@@ -92,6 +92,24 @@ svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor;
   font-size: 12.5px; overflow-wrap: anywhere; }
 .history li span { display: block; color: var(--muted); margin-top: 2px; word-break: keep-all; }
 .history li em { font-style: normal; font-weight: 700; color: var(--c); }
+.history-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.history-head h2 { margin: 0; }
+button.link { border: 0; background: none; padding: 4px 6px; border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--muted); }
+button.link:hover:not(:disabled) { background: var(--coral-weak); color: var(--coral); }
+.history li { padding-right: 38px; }
+.history .del { position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; padding: 0; display: grid; place-items: center;
+  border: 0; border-radius: 8px; background: none; color: var(--dim); opacity: .55; }
+.history li:hover .del, .history .del:focus-visible { opacity: 1; }
+.history .del:hover:not(:disabled) { background: var(--coral-weak); color: var(--coral); }
+.history .del svg { width: 15px; height: 15px; }
+.confirm-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line-strong);
+  font-size: 12px; color: var(--text); cursor: default; }
+.confirm-row span { flex: 1 1 auto; font-weight: 600; }
+.confirm-row button { padding: 4px 10px; font-size: 12px; border-radius: 8px; }
+.confirm-row button.danger { background: var(--coral); border-color: var(--coral); color: #fff; }
+.confirm-row button.danger:hover:not(:disabled) { background: #c93a3f; border-color: #c93a3f; }
+.clear-confirm { margin: 0 0 10px; padding: 10px 12px; border-radius: 12px; background: var(--coral-weak); }
+.clear-confirm .confirm-row { margin: 0; padding: 0; border: 0; }
 .history li.empty { cursor: default; text-align: center; color: var(--muted); border-style: dashed; padding: 18px 10px; }
 .history li.empty::before { display: none; }
 
@@ -258,6 +276,7 @@ button.src .meter i { display: block; height: 100%; border-radius: 6px; backgrou
 .result-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
 .result-head h3 { margin: 0; }
 .result-head p { margin: 2px 0 0; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.export-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
 .toolbar input[type=search] { flex: 1 1 220px; min-width: 0; border-radius: 999px; padding-left: 16px; }
 .toolbar select { border-radius: 999px; }
@@ -358,6 +377,7 @@ tr.detail td { background: #f7fbfa; }
   <symbol id="ic-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
   <symbol id="ic-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></symbol>
   <symbol id="ic-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+  <symbol id="ic-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
   <symbol id="ic-wind" viewBox="0 0 24 24"><path d="M3 8h11a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h7"/></symbol>
 </svg>
 
@@ -380,7 +400,14 @@ tr.detail td { background: #f7fbfa; }
       <a href="#" id="navCsv"><svg class="i"><use href="#ic-download"/></svg>리포트 내보내기</a>
     </nav>
     <section class="card history-card">
-      <h2><svg class="i"><use href="#ic-clock"/></svg>점검 이력</h2>
+      <div class="history-head">
+        <h2><svg class="i"><use href="#ic-clock"/></svg>점검 이력</h2>
+        <button type="button" class="link" id="clearAll" hidden>전체 삭제</button>
+      </div>
+      <div class="clear-confirm" id="clearConfirm" hidden>
+        <div class="confirm-row"><span id="clearText">점검 이력을 모두 삭제할까요?</span>
+          <button type="button" class="danger" id="clearYes">모두 삭제</button><button type="button" id="clearNo">취소</button></div>
+      </div>
       <ul class="history" id="history"><li class="empty">아직 점검 이력이 없습니다.</li></ul>
     </section>
   </aside>
@@ -461,7 +488,10 @@ tr.detail td { background: #f7fbfa; }
     <section class="card" id="resultPanel" hidden>
       <div class="result-head">
         <div><h3><svg class="i"><use href="#ic-list"/></svg>탐지 결과</h3><p id="resultTitle"></p></div>
-        <button id="csvBtn" type="button" class="ghost"><svg class="i"><use href="#ic-download"/></svg>엑셀(CSV) 내보내기</button>
+        <div class="export-btns">
+          <button id="jsonBtn" type="button" class="ghost" title="요강 붙임4 표준 형식 (실행 폴더에 저장된 제출용 파일과 같은 내용)"><svg class="i"><use href="#ic-pages"/></svg>result.json 다운로드</button>
+          <button id="csvBtn" type="button" class="ghost" title="검토·조치 관리용 엑셀 파일 (앞 6열은 result.json과 같은 필드)"><svg class="i"><use href="#ic-download"/></svg>엑셀(CSV) 내보내기</button>
+        </div>
       </div>
       <div class="toolbar">
         <select id="reviewFilter" aria-label="검토 상태 필터">
@@ -539,19 +569,28 @@ async function loadHistory(selectId) {
   const runs = await api("/api/runs");
   const ul = $("history");
   $("guidePanel").hidden = runs.length > 0;
-  if (!runs.length) { ul.innerHTML = '<li class="empty">아직 점검 이력이 없습니다.<br>첫 점검을 시작해 보세요.</li>'; return; }
+  $("clearAll").hidden = !runs.length;
+  if (!runs.length) $("clearConfirm").hidden = true;
+  if (!runs.length) {
+    ul.innerHTML = '<li class="empty">아직 점검 이력이 없습니다.<br>첫 점검을 시작해 보세요.</li>';
+    current = null; openKey = null; techFilter.clear();
+    $("dashboard").hidden = true; $("resultPanel").hidden = true;
+    return;
+  }
   ul.innerHTML = runs.map(r => {
     const lv = r.entry_failed ? LEVEL_NA : levelOf(r.pending ?? r.findings);
     return `<li data-id="${esc(r.id)}" tabindex="0" class="lv-${lv.key} ${current && current.id === r.id ? "active" : ""}">
       <b title="${esc(r.entry_url)}">${esc(r.entry_url)}</b>
       <span>${esc(r.started_at.replace("T", " ").slice(0, 16))} · ${r.pages}페이지</span>
       <span>탐지 ${r.findings}건 · <em>${lv.word}</em></span>
+      <button type="button" class="del" data-del="${esc(r.id)}" aria-label="이 점검 이력 삭제" title="삭제">${icon("trash")}</button>
     </li>`;
   }).join("");
   ul.querySelectorAll("li[data-id]").forEach(li => {
-    li.onclick = () => openRun(li.dataset.id);
-    li.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openRun(li.dataset.id); } };
+    li.onclick = e => { if (!e.target.closest(".del, .confirm-row")) openRun(li.dataset.id); };
+    li.onkeydown = e => { if (e.target === li && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openRun(li.dataset.id); } };
   });
+  ul.querySelectorAll("button[data-del]").forEach(b => b.onclick = e => { e.stopPropagation(); askDelete(b.closest("li")); });
   if (selectId) await openRun(selectId);
   else if (!current) await openRun(runs[0].id);
 }
@@ -565,6 +604,48 @@ async function openRun(id) {
   document.querySelectorAll("#history li").forEach(li => li.classList.toggle("active", li.dataset.id === id));
   render();
 }
+
+/* ---------- 점검 이력 삭제 (페이지 안에서 한 번 더 확인) ---------- */
+function askDelete(li) {
+  document.querySelectorAll("#history .confirm-row").forEach(row => row.remove());
+  const row = document.createElement("div");
+  row.className = "confirm-row";
+  row.innerHTML = '<span>이 점검 이력을 삭제할까요?</span><button type="button" class="danger">삭제</button><button type="button">취소</button>';
+  const [yes, no] = row.querySelectorAll("button");
+  row.onclick = e => e.stopPropagation();
+  no.onclick = () => { row.remove(); li.querySelector(".del").focus(); };
+  yes.onclick = () => deleteRun(li.dataset.id, yes);
+  li.append(row);
+  no.focus();
+}
+
+async function deleteRun(id, btn) {
+  btn.disabled = true;
+  try {
+    await api(`/api/runs/${encodeURIComponent(id)}/delete`, { method: "POST", headers: JSON_HEADERS, body: "{}" });
+    if (current && current.id === id) current = null;
+    toast("점검 이력을 삭제했습니다.");
+    await loadHistory();
+  } catch (e) { btn.disabled = false; toast(`삭제하지 못했습니다: ${e.message}`, true); }
+}
+
+$("clearAll").onclick = () => {
+  const n = document.querySelectorAll("#history li[data-id]").length;
+  $("clearText").textContent = `점검 이력 ${n}건을 모두 삭제할까요? 되돌릴 수 없습니다.`;
+  $("clearConfirm").hidden = false;
+  $("clearNo").focus();
+};
+$("clearNo").onclick = () => { $("clearConfirm").hidden = true; $("clearAll").focus(); };
+$("clearYes").onclick = async () => {
+  $("clearYes").disabled = true;
+  try {
+    const r = await api("/api/history/clear", { method: "POST", headers: JSON_HEADERS, body: "{}" });
+    $("clearConfirm").hidden = true;
+    toast(`점검 이력 ${r.deleted}건을 삭제했습니다.`);
+    await loadHistory();
+  } catch (e) { toast(`삭제하지 못했습니다: ${e.message}`, true); }
+  $("clearYes").disabled = false;
+};
 
 /* 검토 상태가 바뀌면 이력 카드의 등급도 바로 갱신 */
 function refreshHistoryLevel() {
@@ -690,9 +771,9 @@ function focusRow(key) {
 /* ---------- 결과 표 ---------- */
 function judgeLabel(c) {
   const by = c.decided_by === "laya" ? "AI" : "규칙";
-  if (c.verdict === "ad") return `<span class="verdict-ad">불법광고</span> <small>${by}</small>`;
-  if (c.verdict === "borderline") return `<span class="verdict-clean">정상</span> <small>경계</small>`;  // AI 판정 없이 경계 구간 → 정상 처리
-  return `<span class="verdict-clean">정상</span> <small>${by}</small>`;
+  if (c.verdict === "ad") return `<span class="verdict-ad">불법광고</span> <small>(${by})</small>`;
+  if (c.verdict === "borderline") return `<span class="verdict-clean">정상</span> <small>(경계)</small>`;  // AI 판정 없이 경계 구간 → 정상 처리
+  return `<span class="verdict-clean">정상</span> <small>(${by})</small>`;
 }
 
 function renderRows() {
@@ -857,6 +938,7 @@ $("scanForm").onsubmit = async e => {
 ["search", "reviewFilter", "showExcluded"].forEach(id => $(id).addEventListener("input", () => current && renderRows()));
 const exportCsv = () => { if (current) location.href = `/api/runs/${encodeURIComponent(current.id)}/export.csv`; else toast("먼저 점검을 실행하세요.", true); };
 $("csvBtn").onclick = exportCsv;
+$("jsonBtn").onclick = () => { if (current) location.href = `/api/runs/${encodeURIComponent(current.id)}/result.json`; };
 $("navCsv").onclick = e => { e.preventDefault(); exportCsv(); };
 $("logMore").onclick = () => { techFilter.clear(); render(); $("resultPanel").scrollIntoView({ behavior: "smooth" }); };
 

@@ -3,6 +3,7 @@
 실행하면 127.0.0.1에 서버를 띄우고 기본 브라우저로 화면을 연다.
 탐지 결과는 요강대로 구동 폴더(app_dir)에 result.json/report.json으로 쓰고,
 점검 이력은 history/<실행시각>/ 에 report.json, result.json, review.json(검토 상태·메모)으로 쌓는다.
+이력 삭제는 history/ 아래 실행 ID 형식 폴더만 지운다 (구동 폴더의 제출용 result.json은 그대로).
 
 사용: python -m ui.server [--port 8780] [--no-browser]
 """
@@ -112,6 +113,17 @@ def load_run(run_id):
     return rep
 
 
+def delete_runs(run_ids):
+    """점검 이력 폴더 삭제. 실행 ID 형식이 아닌 이름은 무시해 history 밖이나 다른 파일을 지우지 않는다."""
+    deleted = 0
+    for run_id in run_ids:
+        d = run_dir(run_id)
+        if d:
+            shutil.rmtree(d, ignore_errors=True)
+            deleted += 1
+    return deleted
+
+
 TECH_KO = {"HOMOGLYPH": "닮은꼴 글자", "JAMO": "자모 분해", "TRANSPARENT": "투명 텍스트", "OFFSCREEN": "화면 밖 은닉"}
 REVIEW_KO = {"new": "미검토", "confirmed": "불법광고 확인", "false_positive": "오탐", "resolved": "조치 완료"}
 
@@ -122,19 +134,26 @@ def csv_cell(v):
     return "'" + v if v[:1] in ("=", "+", "-", "@", "\t", "\r") else v
 
 
-def export_csv(rep):
+# CSV 앞쪽 6열은 result.json(요강 붙임4) findings 필드와 같은 이름·순서·값, 뒤쪽은 담당자용 관리 정보
+CSV_HEADER = ["id", "url", "is_violation", "location", "evidence_text", "technique",
+              "은닉 기법(한글)", "복원 문구", "판정 근거", "점수", "판정 주체", "검토 상태", "메모"]
+
+
+def export_csv(rep, result_doc):
+    """검토용 엑셀 CSV. id는 같은 점검의 result.json과 동일하게 맞춘다 (result.json에 없는 항목은 id 공란)."""
+    ids = {(f["url"], f["location"], f["technique"]): f["id"] for f in result_doc.get("findings", [])}
     buf = io.StringIO()
     w = csv.writer(buf)
-    w.writerow(["페이지 URL", "위치(CSS 선택자)", "은닉 기법", "탐지 문구", "정규화 문구", "판정 근거", "점수", "판정 주체",
-                "검토 상태", "메모"])
-    for c in rep["candidates"]:
-        if c["verdict"] != "ad":
-            continue
+    w.writerow(CSV_HEADER)
+    ads = sorted((c for c in rep["candidates"] if c["verdict"] == "ad"),
+                 key=lambda c: ids.get((c["url"], c["location"], c["technique"]), "~"))
+    for c in ads:
         w.writerow([csv_cell(v) for v in (
-            c["url"], c["location"], TECH_KO.get(c["technique"], c["technique"]), c["evidence_text"], c["normalized"],
-            ", ".join(c["hits"]), c["score"], "AI 보조 판정" if c["decided_by"] == "laya" else "규칙",
-            REVIEW_KO.get(c["review"], c["review"]), c["memo"])])
-    return "﻿" + buf.getvalue()  # 엑셀에서 한글이 깨지지 않도록 BOM 추가
+            ids.get((c["url"], c["location"], c["technique"]), ""), c["url"], "true", c["location"], c["evidence_text"],
+            c["technique"], TECH_KO.get(c["technique"], c["technique"]), c["normalized"], ", ".join(c["hits"]), c["score"],
+            "AI 보조 판정" if c["decided_by"] == "laya" else "규칙", REVIEW_KO.get(c["review"], c["review"]), c["memo"])])
+    # 엑셀에서 한글이 깨지지 않도록 BOM 추가 (검토용 파일 — 제출용 result.json은 BOM 없음)
+    return "\ufeff" + buf.getvalue()
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -199,9 +218,17 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(404, {"error": "점검 이력을 찾을 수 없습니다."})
             if len(parts) == 3:
                 return self.send(200, rep)
+            result_path = HISTORY / parts[2] / "result.json"
             if parts[3:] == ["export.csv"]:
-                return self.send(200, export_csv(rep), "text/csv; charset=utf-8",
+                result_doc = json.loads(result_path.read_text(encoding="utf-8")) if result_path.is_file() else {}
+                return self.send(200, export_csv(rep, result_doc), "text/csv; charset=utf-8",
                                  {"Content-Disposition": f'attachment; filename="ad-purifier-{parts[2]}.csv"'})
+            if parts[3:] == ["result.json"]:
+                # 탐지 엔진이 저장한 요강 붙임4 형식 파일을 바이트 그대로 전달 (재생성하지 않음)
+                if not result_path.is_file():
+                    return self.send(404, {"error": "이 점검의 result.json이 없습니다."})
+                return self.send(200, result_path.read_bytes(), "application/json; charset=utf-8",
+                                 {"Content-Disposition": 'attachment; filename="result.json"'})
         self.send(404, {"error": "not found"})
 
     def do_POST(self):
@@ -225,7 +252,17 @@ class Handler(BaseHTTPRequestHandler):
                              started=time.time(), run_id=None, error=None)
             threading.Thread(target=scan_job, args=(url, use_ml, max_pages), daemon=True).start()
             return self.send(202, {"ok": True})
+        if path == "/api/history/clear":
+            with state_lock:
+                n = delete_runs([r["id"] for r in list_runs()])
+            return self.send(200, {"ok": True, "deleted": n})
         parts = path.strip("/").split("/")
+        if len(parts) == 4 and parts[:2] == ["api", "runs"] and parts[3] == "delete":
+            with state_lock:
+                n = delete_runs([parts[2]])
+            if not n:
+                return self.send(404, {"error": "점검 이력을 찾을 수 없습니다."})
+            return self.send(200, {"ok": True, "deleted": n})
         if len(parts) == 4 and parts[:2] == ["api", "runs"] and parts[3] == "review":
             d = run_dir(parts[2])
             if not d:

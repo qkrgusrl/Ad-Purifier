@@ -29,6 +29,8 @@ def norm_url(url):
 
 
 def parse_iso(s):
+    if not isinstance(s, str):
+        return None
     try:
         return datetime.fromisoformat(s.replace("Z", "+00:00"))
     except (TypeError, ValueError):
