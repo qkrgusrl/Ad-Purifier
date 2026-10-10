@@ -1,0 +1,29 @@
+{
+  "base": "http://127.0.0.1:8765",
+  "answers": [
+    {"url": "/board/list", "technique": "HOMOGLYPH", "location": "main.wrap > div.board-list > table > tbody > tr:nth-of-type(5) > td.title > a"},
+    {"url": "/board/view?id=1001", "technique": "TRANSPARENT", "location": "main.wrap > div.article-body > p.desc > span"},
+    {"url": "/board/view?id=1001", "technique": "OFFSCREEN", "location": "iframe[src=\"{BASE}/widget/notice\"] >>> div.wrap > span.hidden-link"},
+    {"url": "/board/view?id=1001", "technique": "JAMO", "location": "main.wrap > div.comment-area > div.comment-list > div.comment:nth-of-type(2) > p.comment-text"},
+    {"url": "/board/view?id=1002", "technique": "TRANSPARENT", "location": "main.wrap > div.article-body > div.white-box > p.note"},
+    {"url": "/board/view?id=1002", "technique": "OFFSCREEN", "location": "main.wrap > div.article-body > p.desc > span.tiny"},
+    {"url": "/board/view?id=1002", "technique": "HOMOGLYPH", "location": "main.wrap > div.article-body > p.ref > a.ext"},
+    {"url": "/board/view?id=1002", "technique": "TRANSPARENT", "location": "main.wrap > div.article-body > div.promo"},
+    {"url": "/board/view?id=1002", "technique": "OFFSCREEN", "location": "main.wrap > div.article-body > div.promo"},
+    {"url": "/board/view?id=1002", "technique": "JAMO", "location": "main.wrap > div.comment-area > div.comment-list > div.comment:nth-of-type(2) > p.comment-text"},
+    {"url": "/board/view?id=1002", "technique": "TRANSPARENT", "location": "main.wrap > div.comment-area > div.comment-list > div.comment:nth-of-type(2) > p.comment-text"},
+    {"url": "/board/view?id=1003", "technique": "OFFSCREEN", "location": "main.wrap > div.article-body > div.ad-slot"},
+    {"url": "/board/view?id=1004", "technique": "JAMO", "location": "main.wrap > div.article-body > div.content > p:nth-of-type(3)"},
+    {"url": "/board/view?id=1005", "technique": "OFFSCREEN", "location": "iframe[src=\"{BASE}/widget/outer\"] >>> iframe[src=\"{BASE}/widget/inner\"] >>> div.gallery > div.hide"},
+    {"url": "/board/view?id=1006", "technique": "OFFSCREEN", "location": "main.wrap > div.article-body > p.hidden-msg"},
+    {"url": "/board/view?id=1006", "technique": "HOMOGLYPH", "location": "main.wrap > div.article-body > p.hidden-msg"}
+  ],
+  "traps": [
+    "skip-nav '본문 바로가기' (left:-9999px)", "sr-only '새창 열림'/'대표전화'", "caption.blind",
+    "gnb .sub 드롭다운 (display:none)", ".modal 로그인 안내 (display:none)", ".tab-panel.inactive (display:none)",
+    "1003 span.blind '불법 도박 신고센터 바로가기'", "1003 div.accordion FAQ (display:none)",
+    "notice span.visually-hidden '불법 도박 예방 캠페인' (left:-10000px)", "1004 p.top '맨 위로' (흰 글자/흰 배경)",
+    "전각 제목 '２０２６년 예산 공개（안내） Ｑ＆Ａ', '５％', '№ 3'", "댓글 'ㅋㅋㅋ', 'ㅎㅎ', 'ㅠㅠ'",
+    "about p.hidden-version (visibility:hidden)", "1006 '무료 체험 프로그램 신청 바로가기' (정상 문구)"
+  ]
+}

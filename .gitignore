@@ -1,0 +1,16 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# 대용량 모델 (GitHub 100MB 파일 제한 — Releases/드라이브로 별도 공유)
+models/
+
+# 실행 결과물
+runs/
+
+# 비밀키
+.env
+
+# macOS
+.DS_Store
