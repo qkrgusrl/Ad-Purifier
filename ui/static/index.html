@@ -5,136 +5,478 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>광고청정기</title>
 <style>
+/* ============================================================
+   광고청정기 — 맑은 공기 대시보드 테마 (민트·그린 글래스)
+   평가 PC가 오프라인일 수 있어 외부 폰트·CDN 없이 시스템 폰트만 사용
+   ============================================================ */
 :root {
-  --bg: #f4f6f8; --panel: #fff; --text: #1d2430; --muted: #66707f; --line: #e1e5ea;
-  --accent: #1f7a5c; --accent-weak: #e3f2ec; --danger: #c2352b; --danger-weak: #fbe9e7;
-  --warn: #9a6400; --warn-weak: #fdf2dc; --info: #2f5fb3; --info-weak: #e6eefb;
-  --mono: ui-monospace, SFMono-Regular, Consolas, monospace;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #12161c; --panel: #1b2129; --text: #e4e8ee; --muted: #98a2b0; --line: #2d3540;
-    --accent: #4cc39a; --accent-weak: #173a2f; --danger: #f07167; --danger-weak: #3d1f1d;
-    --warn: #e7b04a; --warn-weak: #3a2e15; --info: #7ea6f0; --info-weak: #1c2a44;
-  }
+  color-scheme: light;
+  --bg: #eef6f3; --card: rgba(255, 255, 255, .78); --card-solid: #fff;
+  --line: #dcebe6; --line-strong: #c4ddd5;
+  --text: #0f2f2a; --muted: #5e7b74; --dim: #93aaa4;
+  --teal: #0f9e8e; --teal-dark: #0b7f72; --teal-weak: #e0f4f0;
+  --green: #2bb36b; --green-weak: #e3f6eb;
+  --amber: #d98a00; --amber-weak: #fdf1d9;
+  --coral: #e2484d; --coral-weak: #fde8e8;
+  --violet: #7a61d9; --violet-weak: #eeeafb;
+  --blue: #2f80d9; --blue-weak: #e5f0fc;
+  --shadow: 0 10px 30px rgba(15, 80, 70, .08), 0 2px 6px rgba(15, 80, 70, .05);
+  --radius: 20px;
+  --mono: Consolas, "SF Mono", ui-monospace, monospace;
+  --sans: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text);
-  font: 14px/1.5 "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif; }
-header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 14px 24px;
-  display: flex; align-items: baseline; gap: 12px; }
-header h1 { margin: 0; font-size: 20px; color: var(--accent); }
-header span { color: var(--muted); font-size: 13px; }
-.layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 16px; padding: 16px 24px; max-width: 1500px; margin: 0 auto; }
-@media (max-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr); padding: 12px 16px; } }
-.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
-h2 { font-size: 15px; margin: 0 0 12px; }
-.scan-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.scan-form input[type=url] { flex: 1 1 360px; min-width: 0; }
+[hidden] { display: none !important; }  /* display를 지정한 요소도 hidden 속성이면 숨김 */
+html { background: var(--bg); }
+body {
+  margin: 0; color: var(--text); font: 14px/1.55 var(--sans); min-height: 100vh;
+  background:
+    radial-gradient(700px 420px at 92% -8%, rgba(43, 179, 107, .16), transparent 65%),
+    radial-gradient(600px 400px at 30% 108%, rgba(15, 158, 142, .12), transparent 65%),
+    linear-gradient(160deg, #f6fbf9 0%, #eaf5f1 55%, #e6f3ee 100%);
+  background-attachment: fixed;
+}
+/* 떠다니는 공기 방울 장식 */
+.bubbles { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.bubbles i { position: absolute; border-radius: 50%; border: 1px solid rgba(15, 158, 142, .18);
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, .9), rgba(186, 233, 220, .25) 60%, transparent 70%);
+  animation: float 14s ease-in-out infinite; }
+.bubbles i:nth-child(1) { width: 46px; height: 46px; left: 6%; top: 18%; }
+.bubbles i:nth-child(2) { width: 22px; height: 22px; left: 14%; top: 70%; animation-delay: -4s; }
+.bubbles i:nth-child(3) { width: 64px; height: 64px; right: 5%; top: 62%; animation-delay: -7s; }
+.bubbles i:nth-child(4) { width: 18px; height: 18px; right: 18%; top: 10%; animation-delay: -2s; }
+.bubbles i:nth-child(5) { width: 30px; height: 30px; left: 48%; top: 88%; animation-delay: -9s; }
+@keyframes float { 50% { transform: translateY(-22px); } }
+a { color: var(--teal-dark); }
+code { font-family: var(--mono); font-size: 12px; color: #1d4f47; background: var(--teal-weak);
+  border-radius: 6px; padding: 1px 6px; }
+svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- 앱 레이아웃 ---------- */
+.app { position: relative; z-index: 1; display: grid; grid-template-columns: 268px minmax(0, 1fr); gap: 22px;
+  max-width: 1520px; margin: 0 auto; padding: 22px; }
+@media (max-width: 960px) { .app { grid-template-columns: minmax(0, 1fr); padding: 14px; gap: 14px; } }
+.card { min-width: 0; background: var(--card); border: 1px solid rgba(255, 255, 255, .9); border-radius: var(--radius);
+  box-shadow: var(--shadow); backdrop-filter: blur(10px); padding: 20px; }
+
+/* ---------- 사이드바 ---------- */
+.side { position: sticky; top: 22px; align-self: start; display: grid; gap: 18px; max-height: calc(100vh - 44px);
+  grid-template-rows: auto auto minmax(0, 1fr); }
+/* 좁은 화면: 로고 → 점검·대시보드 → 점검 이력 순으로 (메뉴는 숨김) */
+@media (max-width: 960px) {
+  .side { display: contents; }
+  .brand { order: 0; } .main { order: 1; } .history-card { order: 2; } .side .nav { display: none; }
+}
+.brand { display: flex; align-items: center; gap: 10px; padding: 4px 6px; }
+.brand svg { width: 44px; height: 44px; flex: none; }
+.brand h1 { margin: 0; font-size: 22px; letter-spacing: -.02em; color: #0d3b33; }
+.brand p { margin: 0; font-size: 12px; color: var(--muted); letter-spacing: .04em; }
+.nav { display: grid; gap: 6px; padding: 10px; }
+.nav a { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-radius: 12px; color: var(--muted);
+  text-decoration: none; font-weight: 600; transition: background .15s, color .15s; }
+.nav a:hover { background: var(--teal-weak); color: var(--teal-dark); }
+.nav a.on { background: linear-gradient(90deg, var(--teal), #18b39a); color: #fff; box-shadow: 0 6px 16px rgba(15, 158, 142, .3); }
+.history-card { display: flex; flex-direction: column; min-height: 0; padding: 16px; }
+.history-card h2 { margin: 0 0 10px; font-size: 14px; display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.history { list-style: none; margin: 0; padding: 0 2px 2px 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px;
+  overflow-y: auto; min-height: 0; }
+@media (max-width: 960px) { .history { max-height: 260px; } }
+.history li { --c: var(--green); position: relative; min-width: 0; padding: 10px 12px 10px 16px; cursor: pointer; font-size: 12px;
+  border-radius: 12px; background: var(--card-solid); border: 1px solid var(--line); transition: border-color .15s, box-shadow .15s; }
+.history li::before { content: ""; position: absolute; left: 7px; top: 12px; bottom: 12px; width: 3px; border-radius: 3px; background: var(--c); }
+.history li.lv-good { --c: var(--green); } .history li.lv-mod { --c: var(--teal); }
+.history li.lv-bad { --c: var(--amber); } .history li.lv-worst { --c: var(--coral); } .history li.lv-na { --c: var(--dim); }
+.history li:hover { border-color: var(--line-strong); }
+.history li.active { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(15, 158, 142, .14); }
+.history li b { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  font-size: 12.5px; overflow-wrap: anywhere; }
+.history li span { display: block; color: var(--muted); margin-top: 2px; word-break: keep-all; }
+.history li em { font-style: normal; font-weight: 700; color: var(--c); }
+.history li.empty { cursor: default; text-align: center; color: var(--muted); border-style: dashed; padding: 18px 10px; }
+.history li.empty::before { display: none; }
+
+/* ---------- 상단: 제목 + 점검 ---------- */
+.main { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; align-content: start; }
+@media (max-width: 960px) { .main { gap: 14px; } }
+.topbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 0 4px; }
+.topbar h2 { margin: 0; font-size: 28px; letter-spacing: -.02em; }
+.topbar p { margin: 2px 0 0; color: var(--muted); overflow-wrap: anywhere; }
+.status-pill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px;
+  background: var(--card-solid); border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--muted); }
+.status-pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px var(--green-weak); }
+body.running .status-pill i { background: var(--amber); box-shadow: 0 0 0 4px var(--amber-weak); animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+
 input, select, textarea, button { font: inherit; color: inherit; }
 input[type=url], input[type=number], input[type=search], select, textarea {
-  background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
-input[type=number] { width: 90px; }
-button { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 8px 14px; cursor: pointer; }
-button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
-button:disabled { opacity: .5; cursor: not-allowed; }
-label.inline { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
-.hint { color: var(--muted); font-size: 12px; margin-top: 8px; word-break: break-all; }
-.error { color: var(--danger); margin-top: 8px; }
-.progress { margin-top: 14px; display: none; }
-.bar { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; }
-.bar > div { height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+  background: #fff; border: 1px solid var(--line-strong); border-radius: 12px; padding: 10px 12px;
+  transition: border-color .15s, box-shadow .15s; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(15, 158, 142, .15); }
+input::placeholder, textarea::placeholder { color: var(--dim); }
+:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+button { background: #fff; border: 1px solid var(--line-strong); border-radius: 12px; padding: 9px 14px; cursor: pointer;
+  transition: border-color .15s, background .15s, box-shadow .15s; }
+button:hover:not(:disabled) { border-color: var(--teal); background: var(--teal-weak); }
+button:disabled, input:disabled { opacity: .5; cursor: not-allowed; }
+button.small { padding: 2px 10px; font-size: 12px; border-radius: 8px; }
+button.ghost { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; font-weight: 600; color: var(--teal-dark); }
+input[type=checkbox] { accent-color: var(--teal); width: 16px; height: 16px; }
+label.inline { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+
+.scan-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.url-box { flex: 1 1 380px; min-width: 0; position: relative; }
+.url-box svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--teal); }
+.url-box input { width: 100%; padding: 13px 14px 13px 42px; border-radius: 999px; font-size: 15px; }
+input[type=number] { width: 84px; }
+#startBtn { display: inline-flex; flex-direction: column; align-items: center; line-height: 1.2; padding: 10px 30px;
+  border: 0; border-radius: 999px; color: #fff; font-size: 16px; font-weight: 800;
+  background: linear-gradient(90deg, #0f9e8e, #22b47d); box-shadow: 0 8px 20px rgba(15, 158, 142, .35); }
+#startBtn::after { content: "Purify Now"; font-size: 11px; font-weight: 600; opacity: .85; letter-spacing: .04em; }
+#startBtn:hover:not(:disabled) { background: linear-gradient(90deg, #0b8a7c, #1ea06f); box-shadow: 0 10px 24px rgba(15, 158, 142, .45); }
+.hint { margin-top: 10px; color: var(--dim); font-size: 12px; overflow-wrap: anywhere; }
+.error { margin-top: 12px; padding: 10px 14px; border-radius: 12px; background: var(--coral-weak); color: #a3262a; }
+.error:empty { display: none; }
+
+/* 정화 중: 오염(빨강) 입자가 청정기로 빨려 들어가 맑은 방울(초록)로 */
+.progress { margin-top: 16px; display: none; }
+.purify { position: relative; height: 64px; border-radius: 16px; overflow: hidden;
+  background: linear-gradient(90deg, #fdeeee, #f4faf8 45%, #f4faf8 55%, #e3f6eb); border: 1px solid var(--line); }
+.purify .unit { position: absolute; left: 50%; top: 50%; width: 48px; height: 48px; transform: translate(-50%, -50%);
+  border-radius: 50%; background: #fff; box-shadow: 0 4px 14px rgba(15, 158, 142, .3); display: grid; place-items: center; }
+.purify .unit svg { width: 34px; height: 34px; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.purify .p { position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 50%; animation: suck 2.6s linear infinite; }
+@keyframes suck {
+  0% { left: -3%; background: var(--coral); opacity: 0; transform: translateY(var(--y)) scale(1); }
+  10% { opacity: .9; }
+  46% { left: 47%; background: var(--coral); transform: translateY(-50%) scale(.5); }
+  54% { left: 53%; background: var(--green); transform: translateY(-50%) scale(.5); }
+  100% { left: 102%; background: var(--green); opacity: 0; transform: translateY(var(--y)) scale(1.1); }
+}
+.purify .p:nth-child(2) { --y: -22px; animation-delay: -.4s; }
+.purify .p:nth-child(3) { --y: 10px; animation-delay: -1.0s; }
+.purify .p:nth-child(4) { --y: -8px; animation-delay: -1.6s; }
+.purify .p:nth-child(5) { --y: 16px; animation-delay: -2.1s; }
+.purify .p:nth-child(6) { --y: -18px; animation-delay: -1.3s; }
+.purify .p:nth-child(7) { --y: 2px; animation-delay: -.7s; }
+.bar { height: 6px; margin-top: 12px; border-radius: 6px; background: var(--line); overflow: hidden; }
+.bar > div { height: 100%; width: 0; border-radius: 6px; background: linear-gradient(90deg, var(--teal), var(--green)); transition: width .3s; }
 .bar.indeterminate > div { width: 30%; animation: slide 1.2s infinite ease-in-out; }
 @keyframes slide { from { margin-left: -30%; } to { margin-left: 100%; } }
-.progress .line { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; margin-top: 6px; gap: 12px; }
+.progress .line { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; font-size: 12px; color: var(--muted); }
+.progress .line span:first-child { white-space: nowrap; color: var(--teal-dark); font-weight: 700; }
 .progress .line span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-content: start; }
-.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-@media (max-width: 600px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.tile { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
-.tile b { display: block; font-size: 22px; }
-.tile small { color: var(--muted); }
-.toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 14px 0 10px; }
-.toolbar input[type=search] { flex: 1 1 200px; }
-.chip { border-radius: 999px; padding: 4px 12px; font-size: 13px; }
-.chip.on { background: var(--accent-weak); border-color: var(--accent); color: var(--accent); font-weight: 600; }
-.table-wrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; }
-th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
-th { color: var(--muted); font-weight: 600; font-size: 12px; white-space: nowrap; }
-tr.row { cursor: pointer; }
-tr.row:hover { background: var(--bg); }
-tr.row.excluded { opacity: .55; }
-td.text { max-width: 360px; word-break: break-all; }
-td.page { max-width: 220px; word-break: break-all; color: var(--muted); font-size: 12px; }
-.badge { display: inline-block; border-radius: 4px; padding: 2px 8px; font-size: 12px; font-weight: 600; white-space: nowrap; }
-.t-HOMOGLYPH { background: var(--info-weak); color: var(--info); }
-.t-JAMO { background: var(--warn-weak); color: var(--warn); }
-.t-TRANSPARENT { background: var(--accent-weak); color: var(--accent); }
-.t-OFFSCREEN { background: var(--danger-weak); color: var(--danger); }
-.r-confirmed { color: var(--danger); } .r-false_positive { color: var(--muted); } .r-resolved { color: var(--accent); }
-tr.detail td { background: var(--bg); }
-.detail-grid { display: grid; grid-template-columns: 120px 1fr; gap: 6px 12px; font-size: 13px; }
-.detail-grid dt { color: var(--muted); }
-.detail-grid dd { margin: 0; word-break: break-all; }
-code { font-family: var(--mono); font-size: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
-.memo { display: flex; gap: 8px; margin-top: 10px; }
-.memo textarea { flex: 1; min-height: 38px; resize: vertical; }
-.history { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.history li { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; cursor: pointer; font-size: 12px; }
-.history li.active { border-color: var(--accent); background: var(--accent-weak); }
-.history li b { display: block; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.history li span { color: var(--muted); }
-.empty { color: var(--muted); text-align: center; padding: 32px 0; }
+
+/* ---------- 접속 실패 경고 ---------- */
+.warn-banner { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 22px; padding: 14px 18px; border-radius: 16px;
+  background: var(--amber-weak); border: 1px solid #f3d595; color: #7a4d00; }
+.warn-banner.critical { background: var(--coral-weak); border-color: #f5b8ba; color: #9b1f24; }
+.warn-banner svg { margin-top: 2px; }
+.warn-banner b { display: block; margin-bottom: 2px; }
+.warn-banner ul { margin: 6px 0 0; padding-left: 18px; font-size: 12px; }
+.warn-banner li { overflow-wrap: anywhere; }
+
+/* ---------- 대시보드: 게이지 + 통계 카드 ---------- */
+.hero { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 22px; }
+@media (max-width: 1100px) { .hero { grid-template-columns: minmax(0, 1fr); } }
+.gauge { --c: var(--green); --cw: var(--green-weak); display: grid; place-items: center; text-align: center; padding: 26px 20px; }
+.ring { position: relative; width: 236px; height: 236px; border-radius: 50%; display: grid; place-items: center;
+  background: radial-gradient(circle, #fff 52%, var(--cw) 53%, transparent 72%); }
+.ring::after { content: ""; position: absolute; inset: -14px; border-radius: 50%;
+  background: radial-gradient(circle, transparent 58%, color-mix(in srgb, var(--c) 18%, transparent) 70%, transparent 74%); z-index: -1; }
+.ring svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring .track { stroke: var(--line); }
+.ring .val { stroke: var(--c); transition: stroke-dashoffset .9s ease, stroke .3s; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--c) 55%, transparent)); }
+.ring .center { position: relative; }
+.ring .lvl.na { font-size: 30px; }
+.ring .lvl { font-size: 46px; font-weight: 900; line-height: 1.05; color: var(--c); letter-spacing: -.03em; }
+.ring .pct { margin-top: 4px; font-size: 17px; font-weight: 800; color: color-mix(in srgb, var(--c) 80%, #0f2f2a); }
+.ring .cap { margin-top: 4px; font-size: 12px; color: var(--muted); }
+.gauge .gauge-note { margin: 16px 0 0; font-size: 12px; color: var(--muted); max-width: 300px; }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 16px; }
+@media (max-width: 560px) { .stats { gap: 10px; } }
+.tile { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 112px; padding: 18px 20px; }
+.tile small { display: block; font-size: 13px; font-weight: 600; color: var(--muted); word-break: keep-all; }
+.tile b { display: block; margin-top: 6px; font-size: 34px; font-weight: 900; letter-spacing: -.02em; line-height: 1.1; }
+.tile b u { text-decoration: none; font-size: 16px; font-weight: 700; margin-left: 2px; }
+.tile .ico { flex: none; width: 54px; height: 54px; border-radius: 16px; display: grid; place-items: center; }
+.tile .ico svg { width: 28px; height: 28px; stroke-width: 1.8; }
+.tile.t-found .ico { background: var(--teal-weak); color: var(--teal); }
+.tile.t-pending .ico { background: var(--coral-weak); color: var(--coral); }
+.tile.t-pending.zero .ico { background: var(--green-weak); color: var(--green); }
+.tile.t-pending b { color: var(--coral); }
+.tile.t-pending.zero b { color: var(--green); }
+.tile.t-pages .ico { background: var(--blue-weak); color: var(--blue); }
+.tile.t-grade .ico { background: var(--green-weak); color: var(--green); }
+.tile.t-grade b { font-size: 28px; word-break: keep-all; }
+.actions { grid-column: 1 / -1; display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* ---------- 오염원 분석 + 탐지 로그 ---------- */
+.row2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; }
+@media (max-width: 1100px) { .row2 { grid-template-columns: minmax(0, 1fr); } }
+.card h3 { margin: 0 0 4px; font-size: 17px; display: flex; align-items: center; gap: 8px; }
+.card h3 + p { margin: 0 0 14px; font-size: 12px; color: var(--muted); }
+.src-list { display: grid; gap: 10px; }
+.src { --c: var(--teal); --cw: var(--teal-weak); }
+button.src { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center;
+  gap: 4px 12px; width: 100%; text-align: left; padding: 12px 14px; border-radius: 14px; background: #fff; border: 1px solid var(--line); }
+button.src:hover:not(:disabled) { background: var(--cw); border-color: var(--c); }
+button.src.on { background: var(--cw); border-color: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 18%, transparent); }
+button.src .dot { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--cw); color: var(--c);
+  font-weight: 900; font-size: 13px; grid-row: span 2; }
+button.src .name { font-weight: 700; }
+button.src .name small { margin-left: 6px; font-weight: 500; color: var(--muted); font-size: 12px; }
+button.src .n { font-size: 20px; font-weight: 900; color: var(--c); grid-row: span 2; }
+button.src .meter { height: 6px; border-radius: 6px; background: var(--line); overflow: hidden; }
+button.src .meter i { display: block; height: 100%; border-radius: 6px; background: var(--c); transition: width .7s; }
+.src-HOMOGLYPH, .t-HOMOGLYPH { --c: var(--violet); --cw: var(--violet-weak); }
+.src-JAMO, .t-JAMO { --c: var(--amber); --cw: var(--amber-weak); }
+.src-TRANSPARENT, .t-TRANSPARENT { --c: var(--blue); --cw: var(--blue-weak); }
+.src-OFFSCREEN, .t-OFFSCREEN { --c: var(--coral); --cw: var(--coral-weak); }
+.log { list-style: none; margin: 0; padding: 0; position: relative; }
+.log::before { content: ""; position: absolute; left: 9px; top: 8px; bottom: 8px; width: 2px; background: var(--line); }
+.log li { position: relative; display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 10px; align-items: start;
+  padding: 8px 0; cursor: pointer; border-radius: 10px; }
+.log li:hover .msg b { color: var(--teal-dark); }
+.log .pt { position: relative; z-index: 1; width: 20px; height: 20px; margin-top: 1px; border-radius: 50%; background: #fff;
+  border: 3px solid var(--c, var(--teal)); }
+.log li.done .pt { background: var(--green); border-color: var(--green); display: grid; place-items: center; }
+.log li.done .pt::after { content: ""; width: 6px; height: 3px; border-left: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(-45deg) translate(1px, -1px); }
+.log .msg { min-width: 0; }
+.log .msg b { display: block; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.log .msg span { display: block; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.log .tag { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.log .tag.new { background: var(--coral-weak); color: var(--coral); }
+.log .tag.confirmed { background: var(--coral-weak); color: var(--coral); }
+.log .tag.resolved { background: var(--green-weak); color: var(--green); }
+.log .tag.false_positive { background: #eef2f1; color: var(--muted); }
+.log-more { margin-top: 8px; text-align: right; }
+.log-empty { padding: 26px 0; text-align: center; color: var(--muted); }
+.log-empty b { display: block; font-size: 18px; color: var(--green); margin-bottom: 2px; }
+
+/* ---------- 결과 표 ---------- */
+.result-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.result-head h3 { margin: 0; }
+.result-head p { margin: 2px 0 0; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+.toolbar input[type=search] { flex: 1 1 220px; min-width: 0; border-radius: 999px; padding-left: 16px; }
+.toolbar select { border-radius: 999px; }
+.table-wrap { overflow-x: auto; border-radius: 14px; border: 1px solid var(--line); background: #fff; }
+table { width: 100%; min-width: 620px; border-collapse: collapse; table-layout: fixed; }
+col.c-tech { width: 116px; } col.c-page { width: 24%; } col.c-judge { width: 104px; } col.c-review { width: 136px; }
+th { text-align: left; padding: 11px 12px; font-size: 12px; font-weight: 700; color: var(--muted); background: #f5faf8;
+  border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tbody tr:last-child td { border-bottom: 0; }
+tr.row { cursor: pointer; transition: background .15s; }
+tr.row:hover, tr.row.open { background: #f5fbf9; }
+tr.row.excluded { opacity: .5; }
+tr.row.purified td.text { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--green); }
+tr.row.dismissed td.text { color: var(--muted); }
+td.text { word-break: keep-all; overflow-wrap: anywhere; font-weight: 600; }
+td.page { overflow-wrap: anywhere; color: var(--muted); font-size: 12px; }
+td.judge { word-break: keep-all; }
+td select { width: 100%; white-space: nowrap; padding: 6px 8px; font-size: 13px; border-radius: 10px; }
+td small { white-space: nowrap; color: var(--muted); font-size: 11px; }
+.verdict-ad { color: var(--coral); font-weight: 700; }
+.verdict-clean { color: var(--muted); }
+.badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap;
+  color: var(--c); background: var(--cw); }
+.r-confirmed { color: var(--coral); border-color: var(--coral); } .r-resolved { color: var(--green); border-color: var(--green); }
+.r-false_positive { color: var(--muted); }
+.stamp { display: inline-block; margin-left: 6px; padding: 0 8px; border-radius: 999px; font-size: 11px; font-weight: 700;
+  color: var(--green); background: var(--green-weak); vertical-align: 1px; text-decoration: none; }
+tr.detail td { background: #f7fbfa; }
+.detail-grid { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 8px 14px; font-size: 13px; margin: 2px 0 0; }
+@media (max-width: 600px) { .detail-grid { grid-template-columns: minmax(0, 1fr); gap: 2px; } .detail-grid dd { margin-bottom: 8px; } }
+.detail-grid dt { color: var(--muted); font-weight: 600; }
+.detail-grid dd { margin: 0; overflow-wrap: anywhere; }
+.restore { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.restore .from { color: var(--coral); }
+.restore .to { color: var(--teal-dark); font-weight: 800; }
+.memo { display: flex; gap: 8px; margin-top: 12px; }
+.memo textarea { flex: 1; min-width: 0; min-height: 42px; resize: vertical; }
+.empty { color: var(--muted); text-align: center; padding: 36px 0; }
+.empty b { display: block; font-size: 18px; color: var(--green); margin-bottom: 2px; }
+
+/* ---------- 사용 방법 ---------- */
+.guide ol { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; counter-reset: step; }
+@media (max-width: 1100px) { .guide ol { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .guide ol { grid-template-columns: minmax(0, 1fr); } }
+.guide li { counter-increment: step; padding: 16px; border-radius: 16px; background: #fff; border: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+.guide li::before { content: counter(step); display: grid; place-items: center; width: 30px; height: 30px; margin-bottom: 8px;
+  border-radius: 50%; background: linear-gradient(135deg, var(--teal), var(--green)); color: #fff; font-weight: 900; }
+.guide b { color: var(--text); }
+
+/* ---------- 토스트 ---------- */
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); opacity: 0; z-index: 60;
+  max-width: calc(100% - 32px); text-align: center; padding: 10px 20px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  pointer-events: none; background: #0f3b34; color: #fff; box-shadow: var(--shadow); transition: opacity .2s, transform .2s; }
+.toast.show { opacity: 1; transform: translateX(-50%); }
+.toast.err { background: var(--coral); }
+
+/* ---------- 휴대폰 폭: 표 → 카드 ---------- */
+@media (max-width: 600px) {
+  .card { padding: 16px; border-radius: 16px; }
+  .topbar h2 { font-size: 22px; }
+  .ring { width: 200px; height: 200px; }
+  .ring .lvl { font-size: 38px; }
+  .tile { min-height: 96px; padding: 14px; }
+  .tile b { font-size: 26px; }
+  .tile.t-grade b { font-size: 20px; }
+  .tile .ico { width: 40px; height: 40px; border-radius: 12px; }
+  .tile .ico svg { width: 22px; height: 22px; }
+  .table-wrap { border: 0; background: none; }
+  table, tbody { display: block; min-width: 0; }
+  colgroup, thead { display: none; }
+  tr.row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 10px; padding: 12px; margin-bottom: 8px;
+    border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+  tr.row td { border: 0; padding: 0; }
+  tr.row td.page { grid-column: 1 / -1; }
+  tr.row td.judge { align-self: center; }
+  tr.detail, tr.detail td { display: block; }
+  tr.detail td { margin: -8px 0 8px; border: 1px solid var(--line); border-top: 0; border-radius: 0 0 14px 14px; padding: 12px; }
+  td.empty { display: block; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .purify .p { display: none; }
+}
 </style>
 </head>
 <body>
-<header>
-  <h1>광고청정기</h1>
-  <span>Ad-Purifier · 공공 웹사이트 숨은 불법광고 탐지</span>
-</header>
+<div class="bubbles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
 
-<div class="layout">
-  <aside class="panel">
-    <h2>점검 이력</h2>
-    <ul class="history" id="history"><li class="empty">아직 점검 이력이 없습니다.</li></ul>
+<!-- 아이콘 (인라인 SVG 심볼) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="ic-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="ic-alert" viewBox="0 0 24 24"><path d="M12 3 2 20h20L12 3Z"/><path d="M12 10v4M12 17.5v.01"/></symbol>
+  <symbol id="ic-pages" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></symbol>
+  <symbol id="ic-shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="ic-home" viewBox="0 0 24 24"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/></symbol>
+  <symbol id="ic-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="ic-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="ic-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></symbol>
+  <symbol id="ic-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+  <symbol id="ic-wind" viewBox="0 0 24 24"><path d="M3 8h11a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h7"/></symbol>
+</svg>
+
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <svg viewBox="0 0 48 48" aria-hidden="true">
+        <path d="M8 40c0-14 8-22 20-24-2 12-9 22-20 24Z" fill="#2bb36b"/>
+        <path d="M8 40c6-6 11-12 14-19" stroke="#e3f6eb" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <path d="M22 42c2-9 8-14 17-15-2 8-8 14-17 15Z" fill="#0f9e8e"/>
+        <circle cx="34" cy="10" r="5" fill="#0f9e8e" opacity=".85"/>
+        <circle cx="24" cy="8" r="3" fill="#2bb36b" opacity=".7"/>
+        <circle cx="41" cy="18" r="2.5" fill="#7fd6c4"/>
+      </svg>
+      <div><h1>광고청정기</h1><p>Ad Purifier</p></div>
+    </div>
+    <nav class="card nav" aria-label="메뉴">
+      <a href="#top" class="on" data-nav="top"><svg class="i"><use href="#ic-home"/></svg>대시보드</a>
+      <a href="#resultPanel" data-nav="resultPanel"><svg class="i"><use href="#ic-list"/></svg>탐지 결과</a>
+      <a href="#" id="navCsv"><svg class="i"><use href="#ic-download"/></svg>리포트 내보내기</a>
+    </nav>
+    <section class="card history-card">
+      <h2><svg class="i"><use href="#ic-clock"/></svg>점검 이력</h2>
+      <ul class="history" id="history"><li class="empty">아직 점검 이력이 없습니다.</li></ul>
+    </section>
   </aside>
 
-  <main class="stack">
-    <section class="panel">
-      <h2>웹사이트 점검</h2>
+  <main class="main" id="top">
+    <div class="topbar">
+      <div><h2>Dashboard</h2><p>공공 웹사이트에 숨어 있는 불법광고를 찾아 깨끗하게 정화합니다.</p></div>
+      <span class="status-pill"><i></i><span id="sysText">대기 중</span></span>
+    </div>
+
+    <section class="card">
       <form class="scan-form" id="scanForm">
-        <input type="url" id="url" placeholder="https://점검할-웹사이트-주소/" required>
-        <label class="inline">최대 페이지 <input type="number" id="maxPages" value="200" min="1" max="2000"></label>
-        <label class="inline" id="mlLabel"><input type="checkbox" id="useMl" checked> AI 보조 판정(Laya)</label>
-        <button class="primary" id="startBtn" type="submit">탐지 시작</button>
+        <div class="url-box"><svg class="i"><use href="#ic-search"/></svg>
+          <input type="url" id="url" placeholder="점검할 웹사이트 주소 (https://...)" required aria-label="점검할 웹사이트 주소"></div>
+        <label class="inline">최대 페이지 <input type="number" id="maxPages" value="200" min="1" max="2000" required></label>
+        <label class="inline" id="mlLabel"><input type="checkbox" id="useMl" checked> AI 보조 판정</label>
+        <button id="startBtn" type="submit">탐지 시작</button>
       </form>
       <div class="hint" id="outHint"></div>
-      <div class="error" id="scanError"></div>
-      <div class="progress" id="progress">
+      <div class="error" id="scanError" role="alert"></div>
+      <div class="progress" id="progress" aria-live="polite">
+        <div class="purify" aria-hidden="true">
+          <div class="unit"><svg viewBox="0 0 24 24" fill="#0f9e8e"><path d="M12 12c-1-4 1-7 4-7 0 3-1 5-4 7Zm0 0c4-1 7 1 7 4-3 0-5-1-7-4Zm0 0c1 4-1 7-4 7 0-3 1-5 4-7Zm0 0c-4 1-7-1-7-4 3 0 5 1 7 4Z"/></svg></div>
+          <span class="p"></span><span class="p"></span><span class="p"></span><span class="p"></span><span class="p"></span><span class="p"></span>
+        </div>
         <div class="bar" id="bar"><div></div></div>
         <div class="line"><span id="progText"></span><span id="progUrl"></span></div>
       </div>
     </section>
 
-    <section class="panel" id="resultPanel" hidden>
-      <h2 id="resultTitle">탐지 결과</h2>
-      <div class="tiles" id="tiles"></div>
+    <section class="card guide" id="guidePanel" hidden>
+      <h3>이렇게 사용하세요</h3>
+      <p>URL 하나만 넣으면 하위 페이지·게시글·iframe까지 자동으로 점검합니다.</p>
+      <ol>
+        <li>점검할 웹사이트의 <b>시작 주소</b>를 넣고 <b>탐지 시작</b>을 누릅니다.</li>
+        <li>숨겨진 불법광고가 <b>은닉 기법</b>(닮은꼴 글자·자모 분해·투명 텍스트·화면 밖 은닉)별로 걸러집니다.</li>
+        <li>항목을 누르면 <b>판정 근거</b>를 확인하고 <b>검토 상태·메모</b>를 남길 수 있습니다.</li>
+        <li><b>조치 완료</b>할수록 <b>청정도</b>가 올라갑니다. 결과는 <b>엑셀(CSV)</b>로 전달하세요.</li>
+      </ol>
+    </section>
+
+    <div id="dashboard" hidden>
+      <div class="warn-banner" id="runWarn" role="alert" hidden></div>
+      <div class="hero">
+        <section class="card gauge" id="gauge" aria-label="광고 청정도">
+          <div class="ring">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <circle class="track" cx="60" cy="60" r="54" fill="none" stroke-width="7"/>
+              <circle class="val" id="gaugeVal" cx="60" cy="60" r="54" fill="none" stroke-width="7" stroke-linecap="round"
+                stroke-dasharray="339.29" stroke-dashoffset="339.29"/>
+            </svg>
+            <div class="center">
+              <div class="lvl" id="gaugeLvl">-</div>
+              <div class="pct" id="gaugePct">-</div>
+              <div class="cap" id="gaugeCap"></div>
+            </div>
+          </div>
+          <p class="gauge-note">청정도 = 처리할 불법광고가 남지 않은 페이지 비율. 항목을 <b>조치 완료</b>·<b>오탐</b>으로 처리하면 올라갑니다.</p>
+        </section>
+        <div class="stats" id="tiles"></div>
+      </div>
+
+      <div class="row2" style="margin-top:22px">
+        <section class="card">
+          <h3><svg class="i"><use href="#ic-chart"/></svg>오염원 분석</h3>
+          <p>은닉 기법별 탐지 건수 · 누르면 해당 기법만 걸러 봅니다.</p>
+          <div class="src-list" id="techTiles"></div>
+        </section>
+        <section class="card">
+          <h3><svg class="i"><use href="#ic-wind"/></svg>탐지 로그</h3>
+          <p>처리가 필요한 항목부터 보여 줍니다 · 누르면 상세 근거로 이동합니다.</p>
+          <ul class="log" id="logList"></ul>
+          <div class="log-more"><button type="button" class="ghost small" id="logMore">전체 결과 보기 →</button></div>
+        </section>
+      </div>
+    </div>
+
+    <section class="card" id="resultPanel" hidden>
+      <div class="result-head">
+        <div><h3><svg class="i"><use href="#ic-list"/></svg>탐지 결과</h3><p id="resultTitle"></p></div>
+        <button id="csvBtn" type="button" class="ghost"><svg class="i"><use href="#ic-download"/></svg>엑셀(CSV) 내보내기</button>
+      </div>
       <div class="toolbar">
-        <div id="techChips"></div>
-        <select id="reviewFilter">
+        <select id="reviewFilter" aria-label="검토 상태 필터">
           <option value="">검토 상태: 전체</option>
           <option value="new">미검토</option>
           <option value="confirmed">불법광고 확인</option>
           <option value="false_positive">오탐</option>
           <option value="resolved">조치 완료</option>
         </select>
-        <input type="search" id="search" placeholder="문구·페이지·위치 검색">
+        <input type="search" id="search" placeholder="문구·페이지·위치 검색" aria-label="검색">
         <label class="inline"><input type="checkbox" id="showExcluded"> 정상 판정 후보도 보기</label>
-        <button id="csvBtn" type="button">엑셀(CSV) 내보내기</button>
       </div>
       <div class="table-wrap">
         <table>
+          <colgroup><col class="c-tech"><col><col class="c-page"><col class="c-judge"><col class="c-review"></colgroup>
           <thead><tr><th>은닉 기법</th><th>탐지 문구</th><th>페이지</th><th>판정</th><th>검토 상태</th></tr></thead>
           <tbody id="rows"></tbody>
         </table>
@@ -142,18 +484,38 @@ code { font-family: var(--mono); font-size: 12px; background: var(--panel); bord
     </section>
   </main>
 </div>
+<div class="toast" id="toast" role="status"></div>
 
 <script>
 const TECH = { HOMOGLYPH: "닮은꼴 글자", JAMO: "자모 분해", TRANSPARENT: "투명 텍스트", OFFSCREEN: "화면 밖 은닉" };
+const TECH_EN = { HOMOGLYPH: "Homoglyph", JAMO: "Jamo", TRANSPARENT: "Transparent", OFFSCREEN: "Offscreen" };
+const TECH_MARK = { HOMOGLYPH: "Aа", JAMO: "ㄱㅏ", TRANSPARENT: "◌", OFFSCREEN: "⇤" };
 const REVIEW = { new: "미검토", confirmed: "불법광고 확인", false_positive: "오탐", resolved: "조치 완료" };
 const PHASE = { start: "준비 중", crawl: "페이지 수집 중", judge: "불법광고 판정 중", save: "결과 저장 중" };
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const JSON_HEADERS = { "Content-Type": "application/json" };
+const icon = (id, cls = "i") => `<svg class="${cls}"><use href="#ic-${id}"/></svg>`;
+
+/* 청정 등급: 처리가 필요한 불법광고(미검토·확인) 건수 기준 (미세먼지 예보처럼 4단계) */
+const LEVELS = [
+  { max: 0, key: "good", word: "청정", name: "매우 좋음", color: "var(--green)", weak: "var(--green-weak)" },
+  { max: 3, key: "mod", word: "양호", name: "좋음", color: "var(--teal)", weak: "var(--teal-weak)" },
+  { max: 10, key: "bad", word: "주의", name: "나쁨", color: "var(--amber)", weak: "var(--amber-weak)" },
+  { max: Infinity, key: "worst", word: "오염", name: "매우 나쁨", color: "var(--coral)", weak: "var(--coral-weak)" },
+];
+const levelOf = pending => LEVELS.find(l => pending <= l.max);
+// 진입 페이지에 접속하지 못한 점검: 0건이어도 '청정'이 아니라 판단 불가
+const LEVEL_NA = { key: "na", word: "확인 불가", name: "확인 불가", color: "var(--dim)", weak: "#eef2f1" };
+const isPending = c => c.verdict === "ad" && (c.review === "new" || c.review === "confirmed");
+const pathOf = url => { try { const u = new URL(url); return (u.pathname + u.search) || "/"; } catch { return url; } };
 
 let current = null;          // 지금 보고 있는 점검 결과
 let techFilter = new Set();  // 비어 있으면 전체
 let openKey = null;          // 펼친 상세 행
 let polling = null;
+let pollFailures = 0;
+let modelAvailable = true;
 
 async function api(path, opts) {
   const res = await fetch(path, opts);
@@ -162,146 +524,319 @@ async function api(path, opts) {
   return data;
 }
 
+let toastTimer = null;
+function toast(msg, isError = false) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.toggle("err", isError);
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), isError ? 4000 : 1800);
+}
+
+/* ---------- 점검 이력 ---------- */
 async function loadHistory(selectId) {
   const runs = await api("/api/runs");
   const ul = $("history");
-  if (!runs.length) { ul.innerHTML = '<li class="empty">아직 점검 이력이 없습니다.</li>'; return; }
-  ul.innerHTML = runs.map(r => `
-    <li data-id="${esc(r.id)}" class="${current && current.id === r.id ? "active" : ""}">
+  $("guidePanel").hidden = runs.length > 0;
+  if (!runs.length) { ul.innerHTML = '<li class="empty">아직 점검 이력이 없습니다.<br>첫 점검을 시작해 보세요.</li>'; return; }
+  ul.innerHTML = runs.map(r => {
+    const lv = r.entry_failed ? LEVEL_NA : levelOf(r.pending ?? r.findings);
+    return `<li data-id="${esc(r.id)}" tabindex="0" class="lv-${lv.key} ${current && current.id === r.id ? "active" : ""}">
       <b title="${esc(r.entry_url)}">${esc(r.entry_url)}</b>
-      <span>${esc(r.started_at.replace("T", " ").slice(0, 16))} · ${r.pages}페이지 · 탐지 ${r.findings}건</span>
-    </li>`).join("");
-  ul.querySelectorAll("li[data-id]").forEach(li => li.onclick = () => openRun(li.dataset.id));
-  if (selectId) openRun(selectId);
-  else if (!current) openRun(runs[0].id);
+      <span>${esc(r.started_at.replace("T", " ").slice(0, 16))} · ${r.pages}페이지</span>
+      <span>탐지 ${r.findings}건 · <em>${lv.word}</em></span>
+    </li>`;
+  }).join("");
+  ul.querySelectorAll("li[data-id]").forEach(li => {
+    li.onclick = () => openRun(li.dataset.id);
+    li.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openRun(li.dataset.id); } };
+  });
+  if (selectId) await openRun(selectId);
+  else if (!current) await openRun(runs[0].id);
 }
 
 async function openRun(id) {
-  current = await api(`/api/runs/${id}`);
-  openKey = null;
+  try {
+    const rep = await api(`/api/runs/${encodeURIComponent(id)}`);
+    if (!current || current.id !== rep.id) { techFilter.clear(); openKey = null; }
+    current = rep;
+  } catch (e) { toast(`이력을 열 수 없습니다: ${e.message}`, true); return; }
   document.querySelectorAll("#history li").forEach(li => li.classList.toggle("active", li.dataset.id === id));
   render();
 }
 
+/* 검토 상태가 바뀌면 이력 카드의 등급도 바로 갱신 */
+function refreshHistoryLevel() {
+  const li = document.querySelector(`#history li[data-id="${current.id}"]`);
+  if (!li) return;
+  const lv = current.entry_failed ? LEVEL_NA : levelOf(current.candidates.filter(isPending).length);
+  [...LEVELS, LEVEL_NA].forEach(l => li.classList.remove(`lv-${l.key}`));
+  li.classList.add(`lv-${lv.key}`);
+  const em = li.querySelector("em");
+  if (em) em.textContent = lv.word;
+}
+
+/* ---------- 대시보드 ---------- */
 function render() {
   const r = current;
+  $("dashboard").hidden = false;
   $("resultPanel").hidden = false;
-  $("resultTitle").textContent = `탐지 결과 — ${r.meta.entry_url}`;
+  $("resultTitle").textContent = `${r.meta.entry_url} · ${r.meta.started_at.replace("T", " ").slice(0, 16)} 점검`;
   const ads = r.candidates.filter(c => c.verdict === "ad");
-  const byTech = Object.keys(TECH).map(t => [t, ads.filter(c => c.technique === t).length]);
-  const confirmedOrNew = ads.filter(c => c.review !== "false_positive" && c.review !== "resolved").length;
-  $("tiles").innerHTML = [
-    ["탐지 건수", ads.length], ["처리 필요", confirmedOrNew], ["점검 페이지", r.pages], ["소요 시간", `${r.meta.elapsed_sec}초`],
-    ...byTech.map(([t, n]) => [TECH[t], n]),
-  ].map(([k, v]) => `<div class="tile"><small>${esc(k)}</small><b>${esc(v)}</b></div>`).join("");
+  const pendingList = ads.filter(isPending);
+  const pending = pendingList.length;
+  const dirtyPages = new Set(pendingList.map(c => c.url)).size;
+  const clean = r.pages ? Math.round((1 - dirtyPages / r.pages) * 100) : 100;
+  const lv = r.entry_failed ? LEVEL_NA : levelOf(pending);
+  renderWarnings(r);
 
-  $("techChips").innerHTML = Object.keys(TECH).map(t =>
-    `<button type="button" class="chip ${techFilter.has(t) ? "on" : ""}" data-t="${t}">${TECH[t]}</button>`).join(" ");
-  $("techChips").querySelectorAll("button").forEach(b => b.onclick = () => {
+  // 청정도 게이지
+  const g = $("gauge");
+  g.style.setProperty("--c", lv.color);
+  g.style.setProperty("--cw", lv.weak);
+  $("gaugeVal").style.strokeDashoffset = r.entry_failed ? "339.29" : (339.29 * (1 - clean / 100)).toFixed(2);
+  $("gaugeVal").style.opacity = r.entry_failed ? 0 : 1;  // 둥근 선 끝이 점으로 남지 않게
+  $("gaugeLvl").textContent = lv.word;
+  $("gaugeLvl").classList.toggle("na", !!r.entry_failed);
+  $("gaugePct").textContent = r.entry_failed ? "청정도 -" : `청정도 ${clean}%`;
+  $("gaugeCap").textContent = r.entry_failed ? "사이트에 접속하지 못했습니다"
+    : pending ? `오염 페이지 ${dirtyPages} / ${r.pages}` : (ads.length ? "모든 불법광고 처리 완료" : "숨겨진 불법광고 없음");
+
+  // 통계 카드 (두 번째 카드 = 처리 필요). 접속 실패면 0이 아니라 '-'
+  const na = !!r.entry_failed;
+  $("tiles").innerHTML = na ? `
+    <div class="card tile t-found"><div><small>탐지된 불법광고</small><b>-</b></div><div class="ico">${icon("search")}</div></div>
+    <div class="card tile t-pending zero" style="--c:var(--dim)"><div><small>처리 필요</small><b style="color:var(--dim)">-</b></div><div class="ico" style="background:#eef2f1;color:var(--dim)">${icon("alert")}</div></div>
+    <div class="card tile t-pages"><div><small>점검 페이지 · ${esc(r.meta.elapsed_sec)}초</small><b>0<u>개</u></b></div><div class="ico">${icon("pages")}</div></div>
+    <div class="card tile t-grade"><div><small>청정 등급</small><b style="color:var(--dim)">확인 불가</b></div><div class="ico" style="background:#eef2f1;color:var(--dim)">${icon("shield")}</div></div>` : `
+    <div class="card tile t-found"><div><small>탐지된 불법광고</small><b>${ads.length}<u>건</u></b></div><div class="ico">${icon("search")}</div></div>
+    <div class="card tile t-pending ${pending ? "" : "zero"}"><div><small>처리 필요</small><b>${pending}<u>건</u></b></div><div class="ico">${icon(pending ? "alert" : "shield")}</div></div>
+    <div class="card tile t-pages"><div><small>점검 페이지 · ${esc(r.meta.elapsed_sec)}초</small><b>${r.pages}<u>개</u></b></div><div class="ico">${icon("pages")}</div></div>
+    <div class="card tile t-grade" style="--c:${lv.color}"><div><small>청정 등급</small><b style="color:${lv.color}">${lv.name}</b></div><div class="ico" style="background:${lv.weak};color:${lv.color}">${icon("shield")}</div></div>`;
+
+  // 오염원 분석
+  const counts = Object.fromEntries(Object.keys(TECH).map(t => [t, ads.filter(c => c.technique === t).length]));
+  const maxN = Math.max(1, ...Object.values(counts));
+  $("techTiles").innerHTML = Object.keys(TECH).map(t => `
+    <button type="button" class="src src-${t} ${techFilter.has(t) ? "on" : ""}" data-t="${t}" aria-pressed="${techFilter.has(t)}">
+      <span class="dot">${TECH_MARK[t]}</span>
+      <span class="name">${TECH[t]}<small>${TECH_EN[t]}</small></span>
+      <span class="n">${counts[t]}</span>
+      <span class="meter"><i style="width:${(counts[t] / maxN * 100).toFixed(0)}%"></i></span>
+    </button>`).join("");
+  $("techTiles").querySelectorAll("button").forEach(b => b.onclick = () => {
     techFilter.has(b.dataset.t) ? techFilter.delete(b.dataset.t) : techFilter.add(b.dataset.t);
     render();
   });
+
+  renderLog(ads);
   renderRows();
+}
+
+/* 접속 실패·HTTP 오류 안내: 0건이 '깨끗해서'인지 '못 봐서'인지 구분되게 */
+function renderWarnings(r) {
+  const box = $("runWarn");
+  const failed = r.failed_pages || [], httpErr = r.http_errors || [];
+  const entryHttp = httpErr.find(e => e.url === r.meta.entry_url);
+  const list = (items, fmt) => `<ul>${items.slice(0, 5).map(x => `<li>${fmt(x)}</li>`).join("")}${items.length > 5 ? `<li>외 ${items.length - 5}건 (report.json 참고)</li>` : ""}</ul>`;
+  let html = "", critical = false;
+  if (r.entry_failed) {
+    critical = true;
+    const reason = (failed.find(f => f.url === r.meta.entry_url) || {}).reason || "";
+    html = `<b>진입 페이지에 접속하지 못했습니다.</b>주소가 맞는지, 네트워크·사이트가 정상인지 확인한 뒤 다시 탐지하세요. 이 점검의 결과(0건)는 신뢰할 수 없습니다.${reason ? list([reason], esc) : ""}`;
+  } else if (entryHttp) {
+    html = `<b>진입 페이지가 HTTP ${entryHttp.status} 오류를 반환했습니다.</b>주소를 다시 확인하세요. 오류 화면의 내용만 검사되었을 수 있습니다.`;
+  } else if (failed.length) {
+    html = `<b>${failed.length}개 페이지에 접속하지 못해 검사에서 빠졌습니다.</b>나머지 ${r.pages}개 페이지의 결과만 반영되었습니다.${list(failed, f => esc(f.url))}`;
+  }
+  box.hidden = !html;
+  box.className = `warn-banner ${critical ? "critical" : ""}`;
+  box.innerHTML = html ? `${icon("alert")}<div>${html}</div>` : "";
+}
+
+/* 탐지 로그: 처리 필요 항목 먼저, 최대 6건 */
+function renderLog(ads) {
+  const order = { new: 0, confirmed: 0, false_positive: 1, resolved: 2 };
+  const items = [...ads].sort((a, b) => order[a.review] - order[b.review] || b.score - a.score).slice(0, 6);
+  $("logMore").hidden = !ads.length;
+  if (!items.length) {
+    $("logList").innerHTML = current.entry_failed
+      ? `<li class="log-empty" style="display:block;cursor:default"><b style="color:var(--dim)">점검하지 못했습니다</b>사이트 접속에 실패해 결과가 없습니다.</li>`
+      : `<li class="log-empty" style="display:block;cursor:default"><b>깨끗합니다</b>숨겨진 불법광고가 발견되지 않았습니다.</li>`;
+    return;
+  }
+  $("logList").innerHTML = items.map(c => `
+    <li class="t-${esc(c.technique)} ${c.review === "resolved" ? "done" : ""}" data-key="${c.key}" tabindex="0">
+      <span class="pt"></span>
+      <span class="msg"><b>${esc(c.evidence_text)}</b><span>${TECH[c.technique] || esc(c.technique)} · ${esc(pathOf(c.url))}</span></span>
+      <span class="tag ${c.review}">${REVIEW[c.review]}</span>
+    </li>`).join("");
+  $("logList").querySelectorAll("li[data-key]").forEach(li => {
+    const go = () => focusRow(li.dataset.key);
+    li.onclick = go;
+    li.onkeydown = e => { if (e.key === "Enter") go(); };
+  });
+}
+
+function focusRow(key) {
+  techFilter.clear(); $("reviewFilter").value = ""; $("search").value = "";
+  openKey = key;
+  render();
+  const tr = document.querySelector(`tr.row[data-key="${key}"]`);
+  if (tr) { tr.scrollIntoView({ behavior: "smooth", block: "center" }); tr.focus({ preventScroll: true }); }
+}
+
+/* ---------- 결과 표 ---------- */
+function judgeLabel(c) {
+  const by = c.decided_by === "laya" ? "AI" : "규칙";
+  if (c.verdict === "ad") return `<span class="verdict-ad">불법광고</span> <small>${by}</small>`;
+  if (c.verdict === "borderline") return `<span class="verdict-clean">정상</span> <small>경계</small>`;  // AI 판정 없이 경계 구간 → 정상 처리
+  return `<span class="verdict-clean">정상</span> <small>${by}</small>`;
 }
 
 function renderRows() {
   const q = $("search").value.trim().toLowerCase();
   const rf = $("reviewFilter").value;
   const showEx = $("showExcluded").checked;
+  const order = { new: 0, confirmed: 0, false_positive: 1, resolved: 2 };
   const list = current.candidates
     .filter(c => showEx || c.verdict === "ad")
     .filter(c => !techFilter.size || techFilter.has(c.technique))
-    .filter(c => !rf || c.review === rf)
+    .filter(c => !rf || (c.verdict === "ad" && c.review === rf))
     .filter(c => !q || [c.evidence_text, c.normalized, c.url, c.location].join(" ").toLowerCase().includes(q))
-    .sort((a, b) => (b.verdict === "ad") - (a.verdict === "ad") || b.score - a.score);
+    .sort((a, b) => (b.verdict === "ad") - (a.verdict === "ad") || order[a.review] - order[b.review] || b.score - a.score);
   if (!list.length) {
-    $("rows").innerHTML = `<tr><td colspan="5" class="empty">${current.candidates.some(c => c.verdict === "ad")
-      ? "조건에 맞는 항목이 없습니다." : "불법광고가 탐지되지 않았습니다."}</td></tr>`;
+    const anyAd = current.candidates.some(c => c.verdict === "ad");
+    $("rows").innerHTML = `<tr><td colspan="5" class="empty">${anyAd ? "조건에 맞는 항목이 없습니다."
+      : current.entry_failed ? '<b style="color:var(--dim)">점검하지 못했습니다</b>사이트 접속에 실패해 결과가 없습니다.'
+      : "<b>깨끗합니다</b>숨겨진 불법광고가 발견되지 않았습니다."}</td></tr>`;
     return;
   }
   $("rows").innerHTML = list.map(c => {
     const isAd = c.verdict === "ad";
-    const judge = isAd ? `불법광고 <small>(${c.decided_by === "laya" ? "AI" : "규칙"})</small>`
-                       : `정상 <small>(${c.decided_by === "laya" ? "AI" : "규칙"})</small>`;
-    const row = `<tr class="row ${isAd ? "" : "excluded"}" data-key="${c.key}">
-      <td><span class="badge t-${c.technique}">${TECH[c.technique] || esc(c.technique)}</span></td>
-      <td class="text">${esc(c.evidence_text)}</td>
+    const state = !isAd ? "excluded" : c.review === "resolved" ? "purified" : c.review === "false_positive" ? "dismissed" : "";
+    const row = `<tr class="row ${state} ${openKey === c.key ? "open" : ""}" data-key="${c.key}"
+        tabindex="0" aria-expanded="${openKey === c.key}">
+      <td><span class="badge t-${esc(c.technique)}">${TECH[c.technique] || esc(c.technique)}</span></td>
+      <td class="text">${esc(c.evidence_text)}${c.review === "resolved" && isAd ? '<span class="stamp">정화 완료</span>' : ""}</td>
       <td class="page">${esc(c.url)}</td>
-      <td>${judge}</td>
-      <td>${isAd ? `<select data-review="${c.key}" class="r-${c.review}">${Object.entries(REVIEW).map(([k, v]) =>
+      <td class="judge">${judgeLabel(c)}</td>
+      <td>${isAd ? `<select data-review="${c.key}" class="r-${c.review}" aria-label="검토 상태">${Object.entries(REVIEW).map(([k, v]) =>
         `<option value="${k}" ${k === c.review ? "selected" : ""}>${v}</option>`).join("")}</select>` : "-"}</td>
     </tr>`;
     return row + (openKey === c.key ? detailRow(c) : "");
   }).join("");
 
-  $("rows").querySelectorAll("tr.row").forEach(tr => tr.onclick = e => {
-    if (e.target.closest("select")) return;
-    openKey = openKey === tr.dataset.key ? null : tr.dataset.key;
-    renderRows();
+  $("rows").querySelectorAll("tr.row").forEach(tr => {
+    const toggle = () => { openKey = openKey === tr.dataset.key ? null : tr.dataset.key; renderRows(); };
+    tr.onclick = e => { if (!e.target.closest("select")) toggle(); };
+    tr.onkeydown = e => { if (e.target === tr && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toggle(); } };
   });
   $("rows").querySelectorAll("select[data-review]").forEach(sel => sel.onchange = () => {
     const c = current.candidates.find(x => x.key === sel.dataset.review);
-    saveReview(c, sel.value, c.memo);
+    const msg = sel.value === "resolved" ? "정화 완료! 청정도가 올라갔습니다." : "검토 상태를 저장했습니다.";
+    saveReview(c, sel.value, pendingMemo(c), msg);
   });
   const memoBtn = $("rows").querySelector("button[data-memo]");
   if (memoBtn) memoBtn.onclick = () => {
     const c = current.candidates.find(x => x.key === memoBtn.dataset.memo);
-    saveReview(c, c.review, $("memoText").value);
+    saveReview(c, c.review, $("memoText").value, "메모를 저장했습니다.");
+  };
+  const copyBtn = $("rows").querySelector("button[data-copy]");
+  if (copyBtn) copyBtn.onclick = async () => {
+    const c = current.candidates.find(x => x.key === copyBtn.dataset.copy);
+    try { await navigator.clipboard.writeText(c.location); toast("위치(CSS 선택자)를 복사했습니다."); }
+    catch { toast("복사하지 못했습니다. 직접 선택해 복사하세요.", true); }
   };
 }
 
+// 펼친 행에서 저장 안 한 메모가 있으면 검토 상태를 바꿀 때 함께 저장 (입력 내용 유실 방지)
+function pendingMemo(c) {
+  const ta = $("memoText");
+  return ta && openKey === c.key ? ta.value : c.memo;
+}
+
 function detailRow(c) {
-  const ml = c.ml_prob != null ? ` · AI 불법광고 확률 ${(c.ml_prob * 100).toFixed(1)}%` : "";
+  const ml = c.ml_prob != null ? ` · AI 불법광고 확률 <b>${(c.ml_prob * 100).toFixed(1)}%</b>` : "";
+  const by = c.decided_by === "laya" ? "AI 보조 판정" : c.verdict === "borderline" ? "규칙(경계 구간, AI 판정 없음 → 정상 처리)" : "규칙";
+  const restored = c.normalized && c.normalized !== c.evidence_text
+    ? `<div class="restore"><span class="from">${esc(c.evidence_text)}</span><span aria-hidden="true">→</span><span class="to">${esc(c.normalized)}</span></div>`
+    : esc(c.evidence_text);
   return `<tr class="detail"><td colspan="5">
     <dl class="detail-grid">
-      <dt>페이지</dt><dd><a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.url)}</a></dd>
-      <dt>위치</dt><dd><code>${esc(c.location)}</code></dd>
-      <dt>은닉 방식</dt><dd>${(c.signals || []).map(s => `<code>${esc(s)}</code>`).join(" ") || "-"}</dd>
-      <dt>원문</dt><dd>${esc(c.evidence_text)}</dd>
-      <dt>복원 문구</dt><dd>${esc(c.normalized)}</dd>
+      <dt>페이지</dt><dd><a href="${esc(c.url)}" target="_blank" rel="noopener noreferrer">${esc(c.url)}</a></dd>
+      <dt>위치</dt><dd><code>${esc(c.location)}</code> <button type="button" class="small" data-copy="${c.key}">복사</button></dd>
+      <dt>숨긴 방식</dt><dd>${(c.signals || []).map(s => `<code>${esc(s)}</code>`).join(" ") || "-"}</dd>
+      <dt>원문 → 복원</dt><dd>${restored}</dd>
       <dt>판정 근거</dt><dd>${(c.hits || []).map(h => `<code>${esc(h)}</code>`).join(" ") || "-"}</dd>
-      <dt>점수</dt><dd>규칙 점수 ${esc(c.score)}${ml} · 판정 주체: ${c.decided_by === "laya" ? "AI 보조 판정" : "규칙"}</dd>
+      <dt>점수</dt><dd>규칙 점수 <b>${esc(c.score)}</b>${ml} · 판정 주체: ${by}</dd>
     </dl>
-    ${c.verdict === "ad" ? `<div class="memo"><textarea id="memoText" placeholder="조치 내용·담당자 메모">${esc(c.memo)}</textarea>
+    ${c.verdict === "ad" ? `<div class="memo"><textarea id="memoText" placeholder="조치 내용·담당자 메모" aria-label="메모">${esc(c.memo)}</textarea>
       <button type="button" data-memo="${c.key}">메모 저장</button></div>` : ""}
   </td></tr>`;
 }
 
-async function saveReview(c, status, memo) {
+async function saveReview(c, status, memo, okMsg) {
   try {
-    await api(`/api/runs/${current.id}/review`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: c.key, status, memo }),
+    await api(`/api/runs/${encodeURIComponent(current.id)}/review`, {
+      method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ key: c.key, status, memo }),
     });
     c.review = status; c.memo = memo;
-    render();
-  } catch (e) { alert(`저장 실패: ${e.message}`); }
+    toast(okMsg);
+    refreshHistoryLevel();
+  } catch (e) { toast(`저장 실패: ${e.message}`, true); }
+  render();  // 실패해도 다시 그려서 선택 상자를 저장된 값으로 되돌림
+}
+
+/* ---------- 탐지 실행 ---------- */
+function setRunning(running) {
+  document.body.classList.toggle("running", running);
+  $("sysText").textContent = running ? "정화 중…" : "대기 중";
+  $("startBtn").disabled = running;
+  $("startBtn").textContent = running ? "탐지 중…" : "탐지 시작";
+  ["url", "maxPages"].forEach(id => $(id).disabled = running);
+  $("useMl").disabled = running || !modelAvailable;
+  $("progress").style.display = running ? "block" : "none";
 }
 
 async function pollStatus() {
   const s = await api("/api/status");
-  const running = s.running;
-  $("startBtn").disabled = running;
-  $("progress").style.display = running ? "block" : "none";
-  if (running) {
+  setRunning(s.running);
+  if (s.running) {
     const crawl = s.phase === "crawl" || s.phase === "start";
     $("bar").classList.toggle("indeterminate", !crawl);
     $("bar").firstElementChild.style.width = crawl ? `${Math.min(100, s.pages_done / Math.max(1, s.pages_found) * 100)}%` : "";
     $("progText").textContent = `${PHASE[s.phase] || s.phase} · ${s.pages_done}/${s.pages_found}페이지 · ${s.elapsed}초`;
     $("progUrl").textContent = s.current_url;
-    return true;
+    return null;
   }
-  if (s.phase === "error") $("scanError").textContent = `탐지 중 오류: ${s.error}`;
-  return { done: s.phase === "done", runId: s.run_id };
+  return s;
 }
 
 function startPolling() {
   clearInterval(polling);
+  pollFailures = 0;
   polling = setInterval(async () => {
-    const r = await pollStatus().catch(() => true);
-    if (r === true) return;
+    let s;
+    try { s = await pollStatus(); pollFailures = 0; }
+    catch {
+      if (++pollFailures >= 5) {
+        clearInterval(polling);
+        setRunning(false);
+        $("startBtn").disabled = true;
+        $("scanError").textContent = "프로그램(서버)과 연결이 끊겼습니다. 광고청정기를 다시 실행하세요.";
+      }
+      return;
+    }
+    if (!s) return;
     clearInterval(polling);
-    if (r.done) await loadHistory(r.runId);
+    if (s.phase === "error") $("scanError").textContent = `탐지 중 오류가 발생했습니다: ${s.error}`;
+    if (s.phase === "done") {
+      await loadHistory(s.run_id);
+      if (current && current.entry_failed) toast("사이트에 접속하지 못했습니다. 주소를 확인하세요.", true);
+      else toast("탐지가 끝났습니다.");
+    }
   }, 700);
 }
 
@@ -310,26 +845,42 @@ $("scanForm").onsubmit = async e => {
   $("scanError").textContent = "";
   try {
     await api("/api/scan", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: $("url").value, use_ml: $("useMl").checked, max_pages: +$("maxPages").value }),
+      method: "POST", headers: JSON_HEADERS,
+      body: JSON.stringify({ url: $("url").value.trim(), use_ml: $("useMl").checked, max_pages: +$("maxPages").value }),
     });
-    await pollStatus();
+    setRunning(true);
+    $("progText").textContent = PHASE.start;
+    $("progUrl").textContent = "";
     startPolling();
   } catch (err) { $("scanError").textContent = err.message; }
 };
 ["search", "reviewFilter", "showExcluded"].forEach(id => $(id).addEventListener("input", () => current && renderRows()));
-$("csvBtn").onclick = () => { if (current) location.href = `/api/runs/${current.id}/export.csv`; };
+const exportCsv = () => { if (current) location.href = `/api/runs/${encodeURIComponent(current.id)}/export.csv`; else toast("먼저 점검을 실행하세요.", true); };
+$("csvBtn").onclick = exportCsv;
+$("navCsv").onclick = e => { e.preventDefault(); exportCsv(); };
+$("logMore").onclick = () => { techFilter.clear(); render(); $("resultPanel").scrollIntoView({ behavior: "smooth" }); };
+
+// 메뉴: 보이는 영역에 맞춰 강조
+document.querySelectorAll(".nav a[data-nav]").forEach(a => a.addEventListener("click", () => {
+  document.querySelectorAll(".nav a").forEach(x => x.classList.toggle("on", x === a));
+}));
 
 (async () => {
-  const s = await api("/api/status");
-  $("outHint").textContent = `결과 파일(result.json)은 ${s.out_dir} 에 저장됩니다.`;
-  if (!s.model_available) {
-    $("useMl").checked = false; $("useMl").disabled = true;
-    $("mlLabel").title = "models/laya-illegal-ad 가 없어 규칙만으로 판정합니다.";
-    $("mlLabel").append(" (모델 없음)");
+  try {
+    const s = await api("/api/status");
+    $("outHint").textContent = `결과 파일(result.json) 저장 위치: ${s.out_dir}`;
+    modelAvailable = s.model_available;
+    if (!modelAvailable) {
+      $("useMl").checked = false;
+      $("mlLabel").title = "models/laya-illegal-ad 가 없어 규칙만으로 판정합니다.";
+      $("mlLabel").append(" (모델 없음)");
+    }
+    setRunning(s.running);
+    await loadHistory();
+    if (s.running) startPolling();
+  } catch (e) {
+    $("scanError").textContent = `프로그램(서버)에 연결할 수 없습니다: ${e.message}`;
   }
-  await loadHistory();
-  if (s.running) startPolling();
 })();
 </script>
 </body>

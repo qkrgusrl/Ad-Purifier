@@ -47,11 +47,43 @@ async def frame_prefix(frame):
     return "".join(c + " >>> " for c in chain)
 
 
-async def scan_page(ctx, url, timeout_ms):
-    page = await ctx.new_page()
+class PageLoadError(Exception):
+    """페이지에 접속하지 못함(연결 거부·DNS 실패·시간 초과 등). 브라우저 오류 화면을 '깨끗한 페이지'로 오판하지 않기 위해 구분한다."""
+
+
+async def close_page(page):
+    """페이지 닫기. 드물게 Chromium 오류 화면에서 close가 응답하지 않아도 전체 탐지가 멈추지 않도록 시간 제한."""
     try:
+        await asyncio.wait_for(page.close(), 10)
+    except Exception:
+        pass
+
+
+async def open_page(ctx, url, timeout_ms):
+    """(페이지, 응답). 접속 실패 시 실패한 페이지는 바로 닫고 새 페이지로 1회 재시도, 그래도 안 되면 PageLoadError.
+
+    같은 페이지에서 goto를 연달아 실패시키면 오류 화면 전환이 겹쳐 page.close()가 멈추므로 시도마다 새 페이지를 쓴다.
+    """
+    for attempt in (1, 2):
+        page = await ctx.new_page()
         try:
-            await page.goto(url, wait_until="networkidle", timeout=timeout_ms)
+            return page, await page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
+        except Exception as e:
+            await close_page(page)
+            if attempt == 2:
+                raise PageLoadError(f"{type(e).__name__}: {str(e).splitlines()[0]}") from e
+            await asyncio.sleep(1)
+
+
+async def scan_page(ctx, url, timeout_ms):
+    """(최종 URL, 프레임별 추출 결과, HTTP 상태). 접속 자체가 안 되면 PageLoadError."""
+    t0 = time.perf_counter()
+    page, resp = await open_page(ctx, url, timeout_ms)
+    try:
+        status = resp.status if resp else None
+        try:  # 스크립트로 늦게 삽입되는 광고까지 보도록 네트워크가 잠잠해질 때까지 대기 (남은 시간 안에서)
+            left = timeout_ms - (time.perf_counter() - t0) * 1000
+            await page.wait_for_load_state("networkidle", timeout=max(1000, left))
         except Exception:
             await page.wait_for_timeout(500)  # networkidle 실패 시 현재 DOM으로 진행
         frames = []
@@ -62,15 +94,19 @@ async def scan_page(ctx, url, timeout_ms):
                 frames.append((await frame_prefix(fr), data))
             except Exception:
                 continue
-        return strip_fragment(page.url), frames
+        return strip_fragment(page.url), frames, status
     finally:
-        await page.close()
+        await close_page(page)
 
 
 async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None):
-    """progress(완료 페이지 수, 발견 페이지 수, 방금 끝난 URL) — UI 진행률 표시용."""
+    """(페이지 목록, 문제 목록). progress(완료 페이지 수, 발견 페이지 수, 방금 끝난 URL) — UI 진행률 표시용.
+
+    문제 목록: {"failed": 접속 실패 [{url, reason}], "http_errors": 4xx/5xx 응답 [{url, status}]}
+    """
     host = urlparse(entry).netloc
     seen, queue, results = {norm_url(entry)}, asyncio.Queue(), []
+    failed, http_errors = [], []
     frame_urls = set()  # iframe으로 삽입된 문서: 상위 페이지 기준으로 보고하므로 단독 페이지로 크롤링하지 않음
     queue.put_nowait(entry)
     async with async_playwright() as pw:
@@ -81,8 +117,10 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None):
             while True:
                 url = await queue.get()
                 try:
-                    final_url, frames = await scan_page(ctx, url, timeout_ms)
+                    final_url, frames, status = await scan_page(ctx, url, timeout_ms)
                     results.append((final_url, frames))
+                    if status and status >= 400:  # 오류 응답이어도 본문은 검사하되 기록은 남김
+                        http_errors.append({"url": url, "status": status})
                     frame_urls.update(norm_url(d["frame_url"]) for pre, d in frames if pre)
                     for _, data in frames:
                         for link in data["links"]:
@@ -97,12 +135,12 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None):
                             if key not in seen and len(seen) < max_pages:
                                 seen.add(key)
                                 queue.put_nowait(strip_fragment(link))
-                except Exception as e:  # 한 페이지 실패가 전체를 멈추지 않게
-                    results.append((url, []))
+                except Exception as e:  # 한 페이지 실패가 전체를 멈추지 않게 (점검 페이지 수에는 넣지 않음)
+                    failed.append({"url": url, "reason": str(e) if isinstance(e, PageLoadError) else f"{type(e).__name__}: {e}"})
                     print(f"[warn] {url}: {e}")
                 finally:
                     if progress:
-                        progress(len(results), len(seen), url)
+                        progress(len(results) + len(failed), len(seen), url)
                     queue.task_done()
 
         workers = [asyncio.create_task(worker()) for _ in range(concurrency)]
@@ -111,7 +149,8 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None):
             w.cancel()
         await browser.close()
     # 순서상 iframe 문서가 먼저 큐에 들어갔던 경우까지 정리
-    return [(u, f) for u, f in results if norm_url(u) not in frame_urls]
+    pages = [(u, f) for u, f in results if norm_url(u) not in frame_urls]
+    return pages, {"failed": failed, "http_errors": http_errors}
 
 
 def candidates_from(pages):
@@ -149,14 +188,18 @@ def judge(cands, model_path, use_ml):
         c["decided_by"] = "rules"
     border = [c for c in cands if c["verdict"] == "borderline"]
     if border and use_ml:
-        from laya.agent import Agent
+        try:
+            from laya.agent import Agent
 
-        from training.make_dataset import QUESTION
-        agent = Agent(model_path, device="cpu")
-        texts = sorted({c["normalized"] for c in border})
-        out = agent.predict_batch(texts, QUESTION, batch_size=16)
-        prob = {t: o["answers"]["is_illegal_ad"]["noul"] for t, o in zip(texts, out)}
-        for c in border:
+            from training.make_dataset import QUESTION
+            agent = Agent(model_path, device="cpu")
+            texts = sorted({c["normalized"] for c in border})
+            out = agent.predict_batch(texts, QUESTION, batch_size=16)
+            prob = {t: o["answers"]["is_illegal_ad"]["noul"] for t, o in zip(texts, out)}
+        except Exception as e:  # 모델 문제로 크롤링 결과 전체를 잃지 않도록 규칙 판정(--no-ml과 동일)으로 대체
+            print(f"[warn] Laya 판정 실패, 경계 구간은 정상 처리: {type(e).__name__}: {e}")
+            prob = None
+        for c in border if prob else []:
             c["ml_prob"] = round(prob[c["normalized"]], 4)
             c["verdict"] = "ad" if c["ml_prob"] >= 0.5 else "clean"
             c["decided_by"] = "laya"
@@ -183,7 +226,7 @@ def run(entry_url, out, max_pages=200, concurrency=4, timeout=15000, model=DEFAU
     started = datetime.now(KST)
     t0 = time.perf_counter()
     phase("crawl")
-    pages = asyncio.run(crawl(entry_url, max_pages, concurrency, timeout, progress))
+    pages, issues = asyncio.run(crawl(entry_url, max_pages, concurrency, timeout, progress))
     t_crawl = time.perf_counter() - t0
     phase("judge")
     cands = judge(candidates_from(pages), str(model), use_ml)
@@ -196,7 +239,10 @@ def run(entry_url, out, max_pages=200, concurrency=4, timeout=15000, model=DEFAU
             "finished_at": finished.isoformat(timespec="seconds"), "elapsed_sec": elapsed, "tool_version": TOOL_VERSION}
     findings = [{"id": f"f_{i:03d}", "url": c["url"], "is_violation": True, "location": c["location"],
                  "evidence_text": c["evidence_text"], "technique": c["technique"]} for i, c in enumerate(hits, 1)]
-    report = {"meta": meta, "pages": len(pages), "crawl_sec": round(t_crawl, 2), "candidates": cands}
+    # 접속 실패 정보는 내부 리포트에만 기록 (result.json은 요강 스키마 그대로 유지)
+    entry_failed = any(f["url"] == entry_url for f in issues["failed"])
+    report = {"meta": meta, "pages": len(pages), "crawl_sec": round(t_crawl, 2), "entry_failed": entry_failed,
+              "failed_pages": issues["failed"], "http_errors": issues["http_errors"], "candidates": cands}
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     (out / "result.json").write_text(json.dumps({"meta": meta, "findings": findings}, ensure_ascii=False, indent=2),
@@ -230,6 +276,11 @@ def main():
     print(f"pages={report['pages']} candidates={len(cands)} findings={findings} "
           f"elapsed={report['meta']['elapsed_sec']}s (crawl {report['crawl_sec']:.1f}s)")
     print("판정 분포:", {f"{k[0]}/{k[1]}": v for k, v in sorted(by.items())})
+    if report["failed_pages"]:
+        print(f"[warn] 접속 실패 {len(report['failed_pages'])}페이지 (report.json의 failed_pages 참고)")
+    if report["entry_failed"]:
+        print(f"[error] 진입 페이지에 접속하지 못했습니다: {args.entry_url} — 결과(0건)를 신뢰할 수 없습니다.")
+        sys.exit(2)
 
 
 if __name__ == "__main__":

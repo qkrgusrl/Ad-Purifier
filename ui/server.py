@@ -28,6 +28,7 @@ from detector.main import DEFAULT_MODEL, KST, app_dir, run
 STATIC = Path(__file__).resolve().parent / "static"
 HISTORY = app_dir() / "history"
 RUN_ID = re.compile(r"\d{8}-\d{6}")
+CAND_KEY = re.compile(r"[0-9a-f]{12}")
 REVIEW_STATES = {"new", "confirmed", "false_positive", "resolved"}
 
 state_lock = threading.Lock()
@@ -73,9 +74,18 @@ def list_runs():
             rep = json.loads(d.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue
+        review_path = d.parent / "review.json"
+        try:
+            review = json.loads(review_path.read_text(encoding="utf-8")) if review_path.is_file() else {}
+        except (OSError, json.JSONDecodeError):
+            review = {}
+        ads = [c for c in rep["candidates"] if c["verdict"] == "ad"]
+        # 처리 필요 = 미검토 + 불법광고 확인 (화면의 광고 청정도 등급 계산용)
+        pending = sum(review.get(cand_key(c), {}).get("status", "new") in ("new", "confirmed") for c in ads)
         runs.append({"id": d.parent.name, "entry_url": rep["meta"]["entry_url"],
                      "started_at": rep["meta"]["started_at"], "elapsed_sec": rep["meta"]["elapsed_sec"],
-                     "pages": rep["pages"], "findings": sum(c["verdict"] == "ad" for c in rep["candidates"])})
+                     "pages": rep["pages"], "findings": len(ads), "pending": pending,
+                     "entry_failed": rep.get("entry_failed", False)})
     return runs
 
 
@@ -106,6 +116,12 @@ TECH_KO = {"HOMOGLYPH": "닮은꼴 글자", "JAMO": "자모 분해", "TRANSPAREN
 REVIEW_KO = {"new": "미검토", "confirmed": "불법광고 확인", "false_positive": "오탐", "resolved": "조치 완료"}
 
 
+def csv_cell(v):
+    """엑셀 수식 주입 방지: 웹페이지에서 가져온 문구가 = + - @ 로 시작하면 문자열로 고정."""
+    v = str(v)
+    return "'" + v if v[:1] in ("=", "+", "-", "@", "\t", "\r") else v
+
+
 def export_csv(rep):
     buf = io.StringIO()
     w = csv.writer(buf)
@@ -114,9 +130,10 @@ def export_csv(rep):
     for c in rep["candidates"]:
         if c["verdict"] != "ad":
             continue
-        w.writerow([c["url"], c["location"], TECH_KO.get(c["technique"], c["technique"]), c["evidence_text"],
-                    c["normalized"], ", ".join(c["hits"]), c["score"], c["decided_by"],
-                    REVIEW_KO.get(c["review"], c["review"]), c["memo"]])
+        w.writerow([csv_cell(v) for v in (
+            c["url"], c["location"], TECH_KO.get(c["technique"], c["technique"]), c["evidence_text"], c["normalized"],
+            ", ".join(c["hits"]), c["score"], "AI 보조 판정" if c["decided_by"] == "laya" else "규칙",
+            REVIEW_KO.get(c["review"], c["review"]), c["memo"])])
     return "﻿" + buf.getvalue()  # 엑셀에서 한글이 깨지지 않도록 BOM 추가
 
 
@@ -136,6 +153,23 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def trusted(self):
+        """다른 웹사이트가 이 로컬 서버를 조작하지 못하게 한다.
+
+        - Host 검사: DNS 리바인딩 차단 (127.0.0.1 / localhost 로 접속한 경우만 허용)
+        - POST는 application/json만: 다른 출처의 페이지는 사전 확인(preflight) 없이 이 형식을 보낼 수 없다
+        """
+        host = (self.headers.get("Host") or "").rsplit(":", 1)[0].strip("[]")
+        if host not in ("127.0.0.1", "localhost"):
+            return False
+        if self.command == "POST":
+            if not (self.headers.get("Content-Type") or "").startswith("application/json"):
+                return False
+            origin = self.headers.get("Origin")
+            if origin and urlparse(origin).hostname not in ("127.0.0.1", "localhost"):
+                return False
+        return True
+
     def body(self):
         n = int(self.headers.get("Content-Length") or 0)
         try:
@@ -144,6 +178,8 @@ class Handler(BaseHTTPRequestHandler):
             return {}
 
     def do_GET(self):
+        if not self.trusted():
+            return self.send(403, {"error": "forbidden"})
         path = urlparse(self.path).path
         if path in ("/", "/index.html"):
             return self.send(200, (STATIC / "index.html").read_bytes(), "text/html; charset=utf-8")
@@ -169,6 +205,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send(404, {"error": "not found"})
 
     def do_POST(self):
+        if not self.trusted():
+            return self.send(403, {"error": "forbidden"})
         path = urlparse(self.path).path
         if path == "/api/scan":
             req = self.body()
@@ -176,7 +214,10 @@ class Handler(BaseHTTPRequestHandler):
             if urlparse(url).scheme not in ("http", "https") or not urlparse(url).netloc:
                 return self.send(400, {"error": "http:// 또는 https:// 로 시작하는 URL을 입력하세요."})
             use_ml = bool(req.get("use_ml", True)) and DEFAULT_MODEL.is_dir()
-            max_pages = max(1, min(int(req.get("max_pages") or 200), 2000))
+            try:
+                max_pages = max(1, min(int(req.get("max_pages") or 200), 2000))
+            except (TypeError, ValueError):
+                return self.send(400, {"error": "최대 페이지는 숫자로 입력하세요."})
             with state_lock:
                 if state["running"]:
                     return self.send(409, {"error": "이미 탐지가 진행 중입니다."})
@@ -191,7 +232,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(404, {"error": "점검 이력을 찾을 수 없습니다."})
             req = self.body()
             key, status = str(req.get("key", "")), req.get("status", "new")
-            if status not in REVIEW_STATES or not key:
+            if status not in REVIEW_STATES or not CAND_KEY.fullmatch(key):
                 return self.send(400, {"error": "잘못된 요청"})
             review_path = d / "review.json"
             with state_lock:
