@@ -14,3 +14,9 @@ runs/
 
 # macOS
 .DS_Store
+
+# 탐지 결과·점검 이력 (실행할 때마다 생성)
+/result.json
+/result_extra.json
+/report.json
+history/

@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>광고청정기</title>
+<style>
+:root {
+  --bg: #f4f6f8; --panel: #fff; --text: #1d2430; --muted: #66707f; --line: #e1e5ea;
+  --accent: #1f7a5c; --accent-weak: #e3f2ec; --danger: #c2352b; --danger-weak: #fbe9e7;
+  --warn: #9a6400; --warn-weak: #fdf2dc; --info: #2f5fb3; --info-weak: #e6eefb;
+  --mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12161c; --panel: #1b2129; --text: #e4e8ee; --muted: #98a2b0; --line: #2d3540;
+    --accent: #4cc39a; --accent-weak: #173a2f; --danger: #f07167; --danger-weak: #3d1f1d;
+    --warn: #e7b04a; --warn-weak: #3a2e15; --info: #7ea6f0; --info-weak: #1c2a44;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 14px/1.5 "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif; }
+header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 14px 24px;
+  display: flex; align-items: baseline; gap: 12px; }
+header h1 { margin: 0; font-size: 20px; color: var(--accent); }
+header span { color: var(--muted); font-size: 13px; }
+.layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 16px; padding: 16px 24px; max-width: 1500px; margin: 0 auto; }
+@media (max-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr); padding: 12px 16px; } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+h2 { font-size: 15px; margin: 0 0 12px; }
+.scan-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.scan-form input[type=url] { flex: 1 1 360px; min-width: 0; }
+input, select, textarea, button { font: inherit; color: inherit; }
+input[type=url], input[type=number], input[type=search], select, textarea {
+  background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+input[type=number] { width: 90px; }
+button { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 8px 14px; cursor: pointer; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+button:disabled { opacity: .5; cursor: not-allowed; }
+label.inline { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.hint { color: var(--muted); font-size: 12px; margin-top: 8px; word-break: break-all; }
+.error { color: var(--danger); margin-top: 8px; }
+.progress { margin-top: 14px; display: none; }
+.bar { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; }
+.bar > div { height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+.bar.indeterminate > div { width: 30%; animation: slide 1.2s infinite ease-in-out; }
+@keyframes slide { from { margin-left: -30%; } to { margin-left: 100%; } }
+.progress .line { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; margin-top: 6px; gap: 12px; }
+.progress .line span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-content: start; }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 600px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tile { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.tile b { display: block; font-size: 22px; }
+.tile small { color: var(--muted); }
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 14px 0 10px; }
+.toolbar input[type=search] { flex: 1 1 200px; }
+.chip { border-radius: 999px; padding: 4px 12px; font-size: 13px; }
+.chip.on { background: var(--accent-weak); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; font-size: 12px; white-space: nowrap; }
+tr.row { cursor: pointer; }
+tr.row:hover { background: var(--bg); }
+tr.row.excluded { opacity: .55; }
+td.text { max-width: 360px; word-break: break-all; }
+td.page { max-width: 220px; word-break: break-all; color: var(--muted); font-size: 12px; }
+.badge { display: inline-block; border-radius: 4px; padding: 2px 8px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.t-HOMOGLYPH { background: var(--info-weak); color: var(--info); }
+.t-JAMO { background: var(--warn-weak); color: var(--warn); }
+.t-TRANSPARENT { background: var(--accent-weak); color: var(--accent); }
+.t-OFFSCREEN { background: var(--danger-weak); color: var(--danger); }
+.r-confirmed { color: var(--danger); } .r-false_positive { color: var(--muted); } .r-resolved { color: var(--accent); }
+tr.detail td { background: var(--bg); }
+.detail-grid { display: grid; grid-template-columns: 120px 1fr; gap: 6px 12px; font-size: 13px; }
+.detail-grid dt { color: var(--muted); }
+.detail-grid dd { margin: 0; word-break: break-all; }
+code { font-family: var(--mono); font-size: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
+.memo { display: flex; gap: 8px; margin-top: 10px; }
+.memo textarea { flex: 1; min-height: 38px; resize: vertical; }
+.history { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.history li { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; cursor: pointer; font-size: 12px; }
+.history li.active { border-color: var(--accent); background: var(--accent-weak); }
+.history li b { display: block; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.history li span { color: var(--muted); }
+.empty { color: var(--muted); text-align: center; padding: 32px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>광고청정기</h1>
+  <span>Ad-Purifier · 공공 웹사이트 숨은 불법광고 탐지</span>
+</header>
+
+<div class="layout">
+  <aside class="panel">
+    <h2>점검 이력</h2>
+    <ul class="history" id="history"><li class="empty">아직 점검 이력이 없습니다.</li></ul>
+  </aside>
+
+  <main class="stack">
+    <section class="panel">
+      <h2>웹사이트 점검</h2>
+      <form class="scan-form" id="scanForm">
+        <input type="url" id="url" placeholder="https://점검할-웹사이트-주소/" required>
+        <label class="inline">최대 페이지 <input type="number" id="maxPages" value="200" min="1" max="2000"></label>
+        <label class="inline" id="mlLabel"><input type="checkbox" id="useMl" checked> AI 보조 판정(Laya)</label>
+        <button class="primary" id="startBtn" type="submit">탐지 시작</button>
+      </form>
+      <div class="hint" id="outHint"></div>
+      <div class="error" id="scanError"></div>
+      <div class="progress" id="progress">
+        <div class="bar" id="bar"><div></div></div>
+        <div class="line"><span id="progText"></span><span id="progUrl"></span></div>
+      </div>
+    </section>
+
+    <section class="panel" id="resultPanel" hidden>
+      <h2 id="resultTitle">탐지 결과</h2>
+      <div class="tiles" id="tiles"></div>
+      <div class="toolbar">
+        <div id="techChips"></div>
+        <select id="reviewFilter">
+          <option value="">검토 상태: 전체</option>
+          <option value="new">미검토</option>
+          <option value="confirmed">불법광고 확인</option>
+          <option value="false_positive">오탐</option>
+          <option value="resolved">조치 완료</option>
+        </select>
+        <input type="search" id="search" placeholder="문구·페이지·위치 검색">
+        <label class="inline"><input type="checkbox" id="showExcluded"> 정상 판정 후보도 보기</label>
+        <button id="csvBtn" type="button">엑셀(CSV) 내보내기</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>은닉 기법</th><th>탐지 문구</th><th>페이지</th><th>판정</th><th>검토 상태</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const TECH = { HOMOGLYPH: "닮은꼴 글자", JAMO: "자모 분해", TRANSPARENT: "투명 텍스트", OFFSCREEN: "화면 밖 은닉" };
+const REVIEW = { new: "미검토", confirmed: "불법광고 확인", false_positive: "오탐", resolved: "조치 완료" };
+const PHASE = { start: "준비 중", crawl: "페이지 수집 중", judge: "불법광고 판정 중", save: "결과 저장 중" };
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+let current = null;          // 지금 보고 있는 점검 결과
+let techFilter = new Set();  // 비어 있으면 전체
+let openKey = null;          // 펼친 상세 행
+let polling = null;
+
+async function api(path, opts) {
+  const res = await fetch(path, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+
+async function loadHistory(selectId) {
+  const runs = await api("/api/runs");
+  const ul = $("history");
+  if (!runs.length) { ul.innerHTML = '<li class="empty">아직 점검 이력이 없습니다.</li>'; return; }
+  ul.innerHTML = runs.map(r => `
+    <li data-id="${esc(r.id)}" class="${current && current.id === r.id ? "active" : ""}">
+      <b title="${esc(r.entry_url)}">${esc(r.entry_url)}</b>
+      <span>${esc(r.started_at.replace("T", " ").slice(0, 16))} · ${r.pages}페이지 · 탐지 ${r.findings}건</span>
+    </li>`).join("");
+  ul.querySelectorAll("li[data-id]").forEach(li => li.onclick = () => openRun(li.dataset.id));
+  if (selectId) openRun(selectId);
+  else if (!current) openRun(runs[0].id);
+}
+
+async function openRun(id) {
+  current = await api(`/api/runs/${id}`);
+  openKey = null;
+  document.querySelectorAll("#history li").forEach(li => li.classList.toggle("active", li.dataset.id === id));
+  render();
+}
+
+function render() {
+  const r = current;
+  $("resultPanel").hidden = false;
+  $("resultTitle").textContent = `탐지 결과 — ${r.meta.entry_url}`;
+  const ads = r.candidates.filter(c => c.verdict === "ad");
+  const byTech = Object.keys(TECH).map(t => [t, ads.filter(c => c.technique === t).length]);
+  const confirmedOrNew = ads.filter(c => c.review !== "false_positive" && c.review !== "resolved").length;
+  $("tiles").innerHTML = [
+    ["탐지 건수", ads.length], ["처리 필요", confirmedOrNew], ["점검 페이지", r.pages], ["소요 시간", `${r.meta.elapsed_sec}초`],
+    ...byTech.map(([t, n]) => [TECH[t], n]),
+  ].map(([k, v]) => `<div class="tile"><small>${esc(k)}</small><b>${esc(v)}</b></div>`).join("");
+
+  $("techChips").innerHTML = Object.keys(TECH).map(t =>
+    `<button type="button" class="chip ${techFilter.has(t) ? "on" : ""}" data-t="${t}">${TECH[t]}</button>`).join(" ");
+  $("techChips").querySelectorAll("button").forEach(b => b.onclick = () => {
+    techFilter.has(b.dataset.t) ? techFilter.delete(b.dataset.t) : techFilter.add(b.dataset.t);
+    render();
+  });
+  renderRows();
+}
+
+function renderRows() {
+  const q = $("search").value.trim().toLowerCase();
+  const rf = $("reviewFilter").value;
+  const showEx = $("showExcluded").checked;
+  const list = current.candidates
+    .filter(c => showEx || c.verdict === "ad")
+    .filter(c => !techFilter.size || techFilter.has(c.technique))
+    .filter(c => !rf || c.review === rf)
+    .filter(c => !q || [c.evidence_text, c.normalized, c.url, c.location].join(" ").toLowerCase().includes(q))
+    .sort((a, b) => (b.verdict === "ad") - (a.verdict === "ad") || b.score - a.score);
+  if (!list.length) {
+    $("rows").innerHTML = `<tr><td colspan="5" class="empty">${current.candidates.some(c => c.verdict === "ad")
+      ? "조건에 맞는 항목이 없습니다." : "불법광고가 탐지되지 않았습니다."}</td></tr>`;
+    return;
+  }
+  $("rows").innerHTML = list.map(c => {
+    const isAd = c.verdict === "ad";
+    const judge = isAd ? `불법광고 <small>(${c.decided_by === "laya" ? "AI" : "규칙"})</small>`
+                       : `정상 <small>(${c.decided_by === "laya" ? "AI" : "규칙"})</small>`;
+    const row = `<tr class="row ${isAd ? "" : "excluded"}" data-key="${c.key}">
+      <td><span class="badge t-${c.technique}">${TECH[c.technique] || esc(c.technique)}</span></td>
+      <td class="text">${esc(c.evidence_text)}</td>
+      <td class="page">${esc(c.url)}</td>
+      <td>${judge}</td>
+      <td>${isAd ? `<select data-review="${c.key}" class="r-${c.review}">${Object.entries(REVIEW).map(([k, v]) =>
+        `<option value="${k}" ${k === c.review ? "selected" : ""}>${v}</option>`).join("")}</select>` : "-"}</td>
+    </tr>`;
+    return row + (openKey === c.key ? detailRow(c) : "");
+  }).join("");
+
+  $("rows").querySelectorAll("tr.row").forEach(tr => tr.onclick = e => {
+    if (e.target.closest("select")) return;
+    openKey = openKey === tr.dataset.key ? null : tr.dataset.key;
+    renderRows();
+  });
+  $("rows").querySelectorAll("select[data-review]").forEach(sel => sel.onchange = () => {
+    const c = current.candidates.find(x => x.key === sel.dataset.review);
+    saveReview(c, sel.value, c.memo);
+  });
+  const memoBtn = $("rows").querySelector("button[data-memo]");
+  if (memoBtn) memoBtn.onclick = () => {
+    const c = current.candidates.find(x => x.key === memoBtn.dataset.memo);
+    saveReview(c, c.review, $("memoText").value);
+  };
+}
+
+function detailRow(c) {
+  const ml = c.ml_prob != null ? ` · AI 불법광고 확률 ${(c.ml_prob * 100).toFixed(1)}%` : "";
+  return `<tr class="detail"><td colspan="5">
+    <dl class="detail-grid">
+      <dt>페이지</dt><dd><a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.url)}</a></dd>
+      <dt>위치</dt><dd><code>${esc(c.location)}</code></dd>
+      <dt>은닉 방식</dt><dd>${(c.signals || []).map(s => `<code>${esc(s)}</code>`).join(" ") || "-"}</dd>
+      <dt>원문</dt><dd>${esc(c.evidence_text)}</dd>
+      <dt>복원 문구</dt><dd>${esc(c.normalized)}</dd>
+      <dt>판정 근거</dt><dd>${(c.hits || []).map(h => `<code>${esc(h)}</code>`).join(" ") || "-"}</dd>
+      <dt>점수</dt><dd>규칙 점수 ${esc(c.score)}${ml} · 판정 주체: ${c.decided_by === "laya" ? "AI 보조 판정" : "규칙"}</dd>
+    </dl>
+    ${c.verdict === "ad" ? `<div class="memo"><textarea id="memoText" placeholder="조치 내용·담당자 메모">${esc(c.memo)}</textarea>
+      <button type="button" data-memo="${c.key}">메모 저장</button></div>` : ""}
+  </td></tr>`;
+}
+
+async function saveReview(c, status, memo) {
+  try {
+    await api(`/api/runs/${current.id}/review`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: c.key, status, memo }),
+    });
+    c.review = status; c.memo = memo;
+    render();
+  } catch (e) { alert(`저장 실패: ${e.message}`); }
+}
+
+async function pollStatus() {
+  const s = await api("/api/status");
+  const running = s.running;
+  $("startBtn").disabled = running;
+  $("progress").style.display = running ? "block" : "none";
+  if (running) {
+    const crawl = s.phase === "crawl" || s.phase === "start";
+    $("bar").classList.toggle("indeterminate", !crawl);
+    $("bar").firstElementChild.style.width = crawl ? `${Math.min(100, s.pages_done / Math.max(1, s.pages_found) * 100)}%` : "";
+    $("progText").textContent = `${PHASE[s.phase] || s.phase} · ${s.pages_done}/${s.pages_found}페이지 · ${s.elapsed}초`;
+    $("progUrl").textContent = s.current_url;
+    return true;
+  }
+  if (s.phase === "error") $("scanError").textContent = `탐지 중 오류: ${s.error}`;
+  return { done: s.phase === "done", runId: s.run_id };
+}
+
+function startPolling() {
+  clearInterval(polling);
+  polling = setInterval(async () => {
+    const r = await pollStatus().catch(() => true);
+    if (r === true) return;
+    clearInterval(polling);
+    if (r.done) await loadHistory(r.runId);
+  }, 700);
+}
+
+$("scanForm").onsubmit = async e => {
+  e.preventDefault();
+  $("scanError").textContent = "";
+  try {
+    await api("/api/scan", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: $("url").value, use_ml: $("useMl").checked, max_pages: +$("maxPages").value }),
+    });
+    await pollStatus();
+    startPolling();
+  } catch (err) { $("scanError").textContent = err.message; }
+};
+["search", "reviewFilter", "showExcluded"].forEach(id => $(id).addEventListener("input", () => current && renderRows()));
+$("csvBtn").onclick = () => { if (current) location.href = `/api/runs/${current.id}/export.csv`; };
+
+(async () => {
+  const s = await api("/api/status");
+  $("outHint").textContent = `결과 파일(result.json)은 ${s.out_dir} 에 저장됩니다.`;
+  if (!s.model_available) {
+    $("useMl").checked = false; $("useMl").disabled = true;
+    $("mlLabel").title = "models/laya-illegal-ad 가 없어 규칙만으로 판정합니다.";
+    $("mlLabel").append(" (모델 없음)");
+  }
+  await loadHistory();
+  if (s.running) startPolling();
+})();
+</script>
+</body>
+</html>

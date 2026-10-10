@@ -69,6 +69,9 @@ Ad-Purifier/
 │   ├── extract.js       #   브라우저에서 숨김 요소·텍스트·선택자 추출
 │   ├── textnorm.py      #   닮은꼴 문자 복원, 자모 재조합, 정규화
 │   └── adscore.py       #   불법광고 키워드 룰 점수 / 판정 임계값
+├── ui/                  # 화면 (로컬 웹 서버 + 브라우저)
+│   ├── server.py        #   http://127.0.0.1:8780/ — 탐지 실행·진행률·결과·검토·CSV API
+│   └── static/          #   index.html — 화면 (외부 CDN 없이 단일 파일)
 ├── testsite/            # 모의 공공기관 사이트 (정답 16건 + 오탐 유도 함정)
 │   ├── server.py        #   http://127.0.0.1:8765/
 │   └── ground_truth.json
@@ -79,11 +82,12 @@ Ad-Purifier/
 │   ├── eval_set.jsonl   #   손으로 쓴 검증셋 60문장
 │   └── eval_classifier.py # 룰 vs Laya 성능 비교
 ├── setup_windows.bat    # Windows 환경 구성
+├── run_ui.bat           # Windows: 화면 실행
 ├── run_testsite.bat     # Windows: 모의 사이트 실행
 └── run_detect.bat       # Windows: 탐지 + 채점
 ```
 
-git에서 빠지는 것(`.gitignore`): `.venv/`, `models/`, `runs/`, `__pycache__/`, `.env`, `.DS_Store`
+git에서 빠지는 것(`.gitignore`): `.venv/`, `models/`, `runs/`, `history/`, 루트의 `result.json`·`report.json`, `__pycache__/`, `.env`, `.DS_Store`
 
 ---
 
@@ -145,6 +149,28 @@ GitHub의 **파일당 100MB 제한**을 넘어 저장소에 올릴 수 없습니
 
 ## 5. 실행 방법
 
+### 화면으로 실행 (기본)
+```bash
+.venv/bin/python testsite/server.py     # (테스트할 때) 모의 사이트 → http://127.0.0.1:8765/
+.venv/bin/python -m ui.server           # 화면 → 브라우저가 자동으로 열림 (http://127.0.0.1:8780/)
+```
+Windows에서는 `run_ui.bat`을 실행합니다.
+
+1. URL을 입력하고 **탐지 시작**을 누르면 진행률(수집한 페이지 수, 현재 URL)이 표시됩니다.
+2. 끝나면 요약(탐지 건수, 처리 필요, 점검 페이지, 소요 시간, 기법별 건수)과 결과 목록이 나옵니다.
+3. 행을 누르면 **판정 근거**를 볼 수 있습니다: 위치(CSS 선택자), 은닉 방식, 원문과 복원 문구, 걸린 키워드, 점수, 규칙/AI 중 무엇이 판정했는지.
+4. 항목마다 **검토 상태**(미검토, 불법광고 확인, 오탐, 조치 완료)와 **메모**를 저장하고, 기법·상태·검색어로 걸러 볼 수 있습니다. **엑셀(CSV) 내보내기**도 됩니다.
+5. 왼쪽 **점검 이력**에서 지난 점검 결과를 다시 열 수 있습니다(`history/<실행시각>/`).
+
+`result.json`과 `report.json`은 요강대로 **구동 폴더**에 생성됩니다. 개발할 때는 프로젝트 루트, exe로 묶으면 exe가 있는 폴더입니다.
+
+- 화면은 내 PC 안에서만 열리는 로컬 서버(`127.0.0.1`)입니다. 외부 서버에 올리지 않습니다.
+- `result.json`은 탐지할 때마다 덮어쓰고, 지난 결과는 `history/`에 남습니다. 이력을 지우려면 `history/` 폴더를 삭제하세요.
+- 정상 판정 후보도 보기를 켜면 탐지기가 걸러낸 후보(예: 접근성용 "본문 바로가기")까지 흐리게 표시됩니다.
+- 실제 사이트를 처음 점검할 때는 최대 페이지를 20 정도로 줄여서 해 보세요.
+
+### 명령줄로 실행
+
 터미널 두 개를 씁니다.
 
 ```bash
@@ -168,7 +194,7 @@ Windows에서는 `run_testsite.bat`을 실행한 뒤 `run_detect.bat http://127.
 | 옵션 | 기본값 | 설명 |
 |---|---|---|
 | `<진입URL>` | (필수) | 크롤링을 시작할 주소 |
-| `--out` | `.` (현재 폴더) | `result.json`, `report.json` 저장 위치 |
+| `--out` | 구동 폴더 (프로젝트 루트 / exe 폴더) | `result.json`, `report.json` 저장 위치 |
 | `--max-pages` | 200 | 최대 크롤링 페이지 수 |
 | `--concurrency` | 4 | 동시에 여는 탭 수 |
 | `--timeout` | 15000 | 페이지 로딩 제한 시간(ms) |
@@ -180,9 +206,10 @@ Windows에서는 `run_testsite.bat`을 실행한 뒤 `run_detect.bat http://127.
 ## 6. 앞으로 할 일
 
 ### 🔴 필수 (제출 요건)
-- [ ] **화면(UI) 만들기**: 요강상 필수인데 지금은 CLI만 있습니다.
+- [x] **화면(UI) 기본 버전**: URL 입력, 진행률, 결과·근거, 검토 상태·메모, CSV, 점검 이력 (`ui/`)
+- [ ] **화면 다듬기**: 실무 활용성 20점 대상. 위치 하이라이트(스크린샷), 보고서 출력 등
 - [ ] **Windows 11 실행 파일 패키징**: PyInstaller + Chromium + 모델(약 640MB). Mac에서는 Windows용으로 빌드할 수 없으니 **GitHub Actions의 Windows 러너**로 빌드와 스모크 테스트를 합니다.
-- [ ] **`--out` 기본값**: 지금은 현재 폴더(CWD)라서 exe가 있는 폴더에 저장되도록 바꿔야 합니다.
+- [x] **결과 파일 위치**: 구동 폴더(exe 폴더)에 생성되도록 변경 (`detector.main.app_dir`)
 - [ ] **제출용 모델 포함 방법**: 평가 PC에서 인터넷이 된다는 보장이 없으니 exe에 모델을 넣어야 합니다.
 
 ### 🟡 정확도
