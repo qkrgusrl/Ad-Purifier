@@ -190,11 +190,6 @@ Windows에서는 `run_testsite.bat`을 실행한 뒤 `run_detect.bat http://127.
 - [ ] **학습 데이터 보강**: 공공기관 정상 문구(행사·할인·놀이터 등)를 넣어 오탐을 줄입니다.
 - [ ] **실제 공공기관 사이트 대상 오탐 점검**
 
-### 🟢 주최 측 문의
-- [ ] `location`은 어느 요소를 기준으로 하는지 (숨김 처리된 부모인지 텍스트 요소인지)
-- [ ] `meta.topic`에 들어갈 값 (요강 예시는 `"TOPIC"`, 지금은 `"불법광고"`로 가정)
-- [ ] `visibility:hidden`, `clip` 등은 어느 기법(TRANSPARENT/OFFSCREEN)으로 분류하는지
-
 ### ⚪ 정리
 - [ ] bat 파일이 LF 줄바꿈이고 한글 주석이 있어 Windows에서 문제가 날 수 있습니다. `.gitattributes`에 `*.bat text eol=crlf`를 추가하고 실제 Windows에서 검증합니다.
 - [ ] `training/finetune.py`로 파인튜닝 명령을 스크립트로 정리합니다.
