@@ -11,6 +11,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
+from xml.etree import ElementTree as ET
 
 from playwright.async_api import async_playwright
 
@@ -18,21 +19,58 @@ from . import adscore
 from .textnorm import homoglyph_signals, jamo_signal, normalize
 
 TOOL_VERSION = "0.1.0-proto"
+
+
+async def _fetch_sitemap(entry: str, timeout_s: float = 8) -> list[str]:
+    """sitemap.xml 에서 URL 목록을 반환. 실패하면 빈 리스트."""
+    import urllib.request
+    p = urlparse(entry)
+    sitemap_url = f"{p.scheme}://{p.netloc}/sitemap.xml"
+
+    def _get():
+        try:
+            req = urllib.request.Request(sitemap_url,
+                                         headers={"User-Agent": "Mozilla/5.0 Ad-Purifier/0.1"})
+            with urllib.request.urlopen(req, timeout=timeout_s) as r:
+                return r.read() if r.status == 200 else None
+        except Exception:
+            return None
+
+    xml = await asyncio.to_thread(_get)
+    if not xml:
+        return []
+    try:
+        root = ET.fromstring(xml)
+        return [loc.text.strip()
+                for loc in root.iter('{http://www.sitemaps.org/schemas/sitemap/0.9}loc')
+                if loc.text]
+    except Exception:
+        return []
 TOPIC = "불법광고"  # 요강 예시는 "TOPIC" 문자열 — 주최 측 확인 필요
 KST = timezone(timedelta(hours=9))
 EXTRACT_JS = (Path(__file__).parent / "extract.js").read_text(encoding="utf-8")
 SKIP_EXT = (".pdf", ".hwp", ".hwpx", ".doc", ".docx", ".xls", ".xlsx", ".zip", ".jpg", ".jpeg", ".png", ".gif", ".mp4")
 
 
+def _is_hash_route(fragment: str) -> bool:
+    """#/path 또는 #!/path 형태의 SPA 해시 라우팅인지 판별."""
+    return fragment.startswith('/') or fragment.startswith('!')
+
+
 def norm_url(url):
-    """채점 규칙과 같은 기준: http/https·끝 슬래시·# 무시, 쿼리 순서 무시."""
+    """채점 규칙과 같은 기준: http/https·끝 슬래시·# 무시, 쿼리 순서 무시.
+    단, #/route 형태의 해시 라우팅은 경로의 일부이므로 보존한다."""
     p = urlparse(url)
     query = urlencode(sorted(parse_qsl(p.query, keep_blank_values=True)))
-    return urlunparse(("", p.netloc.lower(), p.path.rstrip("/") or "/", "", query, ""))
+    frag = p.fragment if _is_hash_route(p.fragment) else ""
+    return urlunparse(("", p.netloc.lower(), p.path.rstrip("/") or "/", "", query, frag))
 
 
 def strip_fragment(url):
-    return urlunparse(urlparse(url)._replace(fragment=""))
+    p = urlparse(url)
+    if _is_hash_route(p.fragment):
+        return url  # 해시 라우팅은 그대로 유지
+    return urlunparse(p._replace(fragment=""))
 
 
 async def frame_prefix(frame):
@@ -86,6 +124,12 @@ async def scan_page(ctx, url, timeout_ms):
             await page.wait_for_load_state("networkidle", timeout=max(1000, left))
         except Exception:
             await page.wait_for_timeout(500)  # networkidle 실패 시 현재 DOM으로 진행
+        try:  # 스크롤로 IntersectionObserver 기반 lazy-load 콘텐츠 유도
+            await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            await page.wait_for_timeout(300)
+            await page.evaluate("window.scrollTo(0, 0)")
+        except Exception:
+            pass
         frames = []
         for fr in page.frames:
             try:
@@ -109,6 +153,17 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None):
     failed, http_errors = [], []
     frame_urls = set()  # iframe으로 삽입된 문서: 상위 페이지 기준으로 보고하므로 단독 페이지로 크롤링하지 않음
     queue.put_nowait(entry)
+    # sitemap.xml에 등록된 URL도 초기 큐에 추가 (링크 탐색으로 닿지 않는 고아 페이지 대응)
+    for su in await _fetch_sitemap(entry, timeout_s=min(timeout_ms / 1000, 8)):
+        sp = urlparse(su)
+        if sp.scheme not in ("http", "https") or sp.netloc != host:
+            continue
+        if sp.path.lower().endswith(SKIP_EXT):
+            continue
+        key = norm_url(su)
+        if key not in seen and len(seen) < max_pages:
+            seen.add(key)
+            queue.put_nowait(strip_fragment(su))
     async with async_playwright() as pw:
         browser = await pw.chromium.launch(headless=True)
         ctx = await browser.new_context(viewport={"width": 1280, "height": 900}, ignore_https_errors=True)
