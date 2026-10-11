@@ -63,6 +63,13 @@ def page_index():
   <li><a href="/board/view?id=1003">민원 처리 결과 공유</a></li>
 </ul></section>
 <div class="tab-wrap"><div class="tab-panel active">공지 탭 내용</div><div class="tab-panel inactive">보도자료 탭 내용입니다.</div></div>
+<nav class="quick-nav">
+  <ul>
+    <li data-href="/data-nav" style="cursor:pointer">시설 예약</li>
+    <li><button onclick="location.href='/onclick-nav'" type="button">행사 일정</button></li>
+  </ul>
+</nav>
+<script>var quickLinks = ['/script-nav'];</script>
 """)
 
 
@@ -145,6 +152,7 @@ def page_board_view(pid):
   <table class="info"><caption class="blind">처리 현황 표</caption><tr><td>접수</td><td>완료</td></tr></table>
   <div class="ad-slot" style="display: none">무직자 당일 대출 승인 신용불량 OK 010-1234-5678</div>
   <div class="accordion" style="display: none">자주 묻는 질문: 민원 처리 기간은 7일입니다.</div>
+  <div class="collapse" style="height:0;overflow:hidden">당일대출 신용불량OK 즉시승인 카톡 loan_ok</div>
 </div>""",
         "1004": """
 <div class="article-body">
@@ -155,6 +163,8 @@ def page_board_view(pid):
     <p>ㅌㅗㅌㅗ ㅅㅏㅇㅣㅌㅡ 신규가입 ㅊㅓㅅㅊㅜㅇ 20%</p>
   </div>
   <p class="top" style="color: #fff; background: #fff">맨 위로</p>
+  <style>.pseudo-promo::before{content:"바카라 생방송 텔레 @bac_live";color:rgba(255,255,255,0.01)}</style>
+  <div class="pseudo-promo"></div>
 </div>""",
         "1005": """
 <div class="article-body">
@@ -167,6 +177,7 @@ def page_board_view(pid):
   <h3 class="subject">공원 산책로 조명 개선 요청</h3>
   <p class="desc">야간에 산책로가 어둡습니다. 무료 체험 프로그램 신청 바로가기는 공지를 확인하세요.</p>
   <p class="hidden-msg" style="font-size: 1px">ｓｌｏｔ 무료스핀 100회 텔레 @spin_kr</p>
+  <div class="scaled-ad" style="transform:scale(0)">필로폰 구매대행 텔레 @drug_kr</div>
 </div>""",
         "1007": """
 <div class="article-body"><h3 class="subject">삭제된 게시글입니다.</h3></div>""",
@@ -175,6 +186,41 @@ def page_board_view(pid):
         return None
     comments = f'<div id="comments" class="comment-area"><h4>댓글</h4><div class="comment-list"></div></div>{COMMENT_SCRIPT % pid}'
     return layout("게시글", body + comments)
+
+
+def page_data_nav():
+    return layout("시설 예약", """
+<div class="article-body">
+  <h2>시설 예약 안내</h2>
+  <p>온라인 예약은 로그인 후 이용 가능합니다.</p>
+  <div class="data-nav-hidden" style="display:none">토토사이트 가입코드 FREE77 꽁머니 지급</div>
+</div>""")
+
+
+def page_onclick_nav():
+    return layout("행사 일정", """
+<div class="article-body">
+  <h2>행사 일정 안내</h2>
+  <p>이번 달 주요 행사 일정을 안내합니다.</p>
+  <div class="onclick-nav-hidden" style="display:none">바카라 카지노 입금보너스 첫충 100% 카톡 abc123</div>
+</div>""")
+
+
+def page_script_nav():
+    return layout("알림 서비스", """
+<div class="article-body">
+  <h2>알림 서비스</h2>
+  <p>중요 공지를 문자로 받아보세요.</p>
+  <div class="script-nav-hidden" style="display:none">슬롯 무료스핀 100회 홀덤 포커 텔레 @spin_vip</div>
+</div>""")
+
+
+def page_hidden_ad():
+    return layout("숨겨진 광고 페이지", """
+<div class="article-body">
+  <h2>페이지</h2>
+  <div class="sitemap-hidden" style="display:none">성인영상 야동 무료 다운로드 사이트 텔레 @adult_stream</div>
+</div>""")
 
 
 def page_notice():
@@ -205,6 +251,20 @@ WIDGETS = {
 }
 
 
+def sitemap_xml(base):
+    urls = [
+        "", "/board/list", "/board/list?page=2",
+        "/board/view?id=1001", "/board/view?id=1002", "/board/view?id=1003",
+        "/board/view?id=1004", "/board/view?id=1005", "/board/view?id=1006",
+        "/notice/view?id=1", "/about", "/hidden-ad",
+    ]
+    locs = "\n".join(f"  <url><loc>{base}{u}</loc></url>" for u in urls)
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{locs}
+</urlset>"""
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *args):
         pass
@@ -232,6 +292,17 @@ class Handler(BaseHTTPRequestHandler):
             html = page_notice()
         elif p == "/about":
             html = page_about()
+        elif p == "/data-nav":
+            html = page_data_nav()
+        elif p == "/onclick-nav":
+            html = page_onclick_nav()
+        elif p == "/script-nav":
+            html = page_script_nav()
+        elif p == "/hidden-ad":
+            html = page_hidden_ad()
+        elif p == "/sitemap.xml":
+            base = f"http://127.0.0.1:{PORT}"
+            return self._send(200, sitemap_xml(base), "application/xml; charset=utf-8")
         elif p in WIDGETS:
             html = WIDGETS[p]
         elif p == "/api/comments":

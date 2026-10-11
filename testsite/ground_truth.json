@@ -16,7 +16,14 @@
     {"url": "/board/view?id=1004", "technique": "JAMO", "location": "main.wrap > div.article-body > div.content > p:nth-of-type(3)"},
     {"url": "/board/view?id=1005", "technique": "OFFSCREEN", "location": "iframe[src=\"{BASE}/widget/outer\"] >>> iframe[src=\"{BASE}/widget/inner\"] >>> div.gallery > div.hide"},
     {"url": "/board/view?id=1006", "technique": "OFFSCREEN", "location": "main.wrap > div.article-body > p.hidden-msg"},
-    {"url": "/board/view?id=1006", "technique": "HOMOGLYPH", "location": "main.wrap > div.article-body > p.hidden-msg"}
+    {"url": "/board/view?id=1006", "technique": "HOMOGLYPH", "location": "main.wrap > div.article-body > p.hidden-msg"},
+    {"url": "/board/view?id=1003", "technique": "OFFSCREEN", "location": "main.wrap > div.article-body > div.collapse"},
+    {"url": "/board/view?id=1004", "technique": "TRANSPARENT", "location": "main.wrap > div.article-body > div.pseudo-promo"},
+    {"url": "/board/view?id=1006", "technique": "OFFSCREEN", "location": "main.wrap > div.article-body > div.scaled-ad"},
+    {"url": "/hidden-ad", "technique": "OFFSCREEN", "location": "main.wrap > div.article-body > div.sitemap-hidden"},
+    {"url": "/data-nav", "technique": "OFFSCREEN", "location": "main.wrap > div.article-body > div.data-nav-hidden"},
+    {"url": "/onclick-nav", "technique": "OFFSCREEN", "location": "main.wrap > div.article-body > div.onclick-nav-hidden"},
+    {"url": "/script-nav", "technique": "OFFSCREEN", "location": "main.wrap > div.article-body > div.script-nav-hidden"}
   ],
   "traps": [
     "skip-nav '본문 바로가기' (left:-9999px)", "sr-only '새창 열림'/'대표전화'", "caption.blind",
