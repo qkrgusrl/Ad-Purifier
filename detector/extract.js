@@ -12,11 +12,11 @@
   const esc = (s) => (window.CSS && CSS.escape) ? CSS.escape(s) : s;
   function step(el) {
     const tag = el.tagName.toLowerCase();
-    const cls = Array.from(el.classList).map(c => '.' + esc(c)).join('');
+    const cls = [...el.classList].map(c => '.' + esc(c)).join('');
     let s = tag + cls;
     const parent = el.parentElement;
     if (parent) {
-      const sameTag = Array.from(parent.children).filter(c => c.tagName === el.tagName);
+      const sameTag = [...parent.children].filter(c => c.tagName === el.tagName);
       const clash = sameTag.filter(c => c !== el && (cls === '' || c.matches(s))).length > 0;
       if (clash) s += ':nth-of-type(' + (sameTag.indexOf(el) + 1) + ')';
     }
@@ -163,7 +163,7 @@
     if (own) {
       const sel = inShadow(el) ? shadowSelector(el) : selector(el);
       texts.push({ selector: sel, tag: el.tagName.toLowerCase(), cls: el.className || '', text: own,
-                   raw: Array.from(el.childNodes).filter(n => n.nodeType === 3).map(n => n.nodeValue).join('') });
+                   raw: [...el.childNodes].filter(n => n.nodeType === 3).map(n => n.nodeValue).join('') });
     }
   }
 
@@ -250,6 +250,7 @@
     }
   }
 
-  const links = Array.from(linkSet);
+  // Array.from 대신 전개 구문: Prototype.js 등 옛 라이브러리가 Array.from을 덮어써 Set을 빈 배열로 만든다
+  const links = [...linkSet];
   return { hidden, texts, links };
 }
