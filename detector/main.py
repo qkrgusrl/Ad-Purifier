@@ -1,6 +1,7 @@
 """불법광고 탐지기 (프로토타입).
 
-사용: python -m detector.main <진입URL> [--out 폴더(기본: 프로젝트 루트/exe 폴더)] [--max-pages 200] [--model 경로] [--no-ml]
+사용: python -m detector.main <진입URL> [--out 폴더(기본: 프로젝트 루트/exe 폴더)] [--max-pages 0(제한 없음)]
+      [--time-budget 1620] [--llm-reserve 360] [--model 경로] [--no-ml]
 산출: result.json (적격평가 스키마), report.json (판정 근거 포함 내부 리포트)
 """
 import argparse
@@ -16,6 +17,7 @@ from xml.etree import ElementTree as ET
 from playwright.async_api import async_playwright
 
 from . import adscore
+from .frontier import Frontier
 from .textnorm import homoglyph_signals, jamo_signal, normalize
 
 TOOL_VERSION = "0.1.0-proto"
@@ -169,27 +171,39 @@ async def scan_page(ctx, url, timeout_ms):
         await close_page(page)
 
 
-async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_agent=DEFAULT_UA):
+async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_agent=DEFAULT_UA, deadline=None):
     """(페이지 목록, 문제 목록). progress(완료 페이지 수, 발견 페이지 수, 방금 끝난 URL) — UI 진행률 표시용.
 
-    문제 목록: {"failed": 접속 실패 [{url, reason}], "http_errors": 4xx/5xx 응답 [{url, status}]}
+    방문 순서는 Frontier가 정한다(게시판·수상한 제목 우선, 나머지도 버리지 않음 — frontier.py 참고).
+    max_pages: 방문할 최대 페이지 수(0 = 제한 없음). deadline: time.perf_counter() 기준 크롤링 마감 시각(None = 없음).
+    마감이 되면 새 페이지는 열지 않고, 열어 둔 페이지만 마저 검사한 뒤 끝낸다.
+    문제 목록: {"failed": 접속 실패 [{url, reason}], "http_errors": 4xx/5xx 응답 [{url, status}],
+               "stopped_by_time": 마감으로 멈췄는지, "left_in_queue": 못 본 대기 주소 수, "dropped_endless": 버린 검색·정렬 주소 수}
     """
     host = urlparse(entry).netloc
-    seen, queue, results = {norm_url(entry)}, asyncio.Queue(), []
+    frontier, results = Frontier(), []
     failed, http_errors = [], []
     frame_urls = set()  # iframe으로 삽입된 문서: 상위 페이지 기준으로 보고하므로 단독 페이지로 크롤링하지 않음
-    queue.put_nowait(entry)
-    # sitemap.xml에 등록된 URL도 초기 큐에 추가 (링크 탐색으로 닿지 않는 고아 페이지 대응)
-    for su in await _fetch_sitemap(entry, timeout_s=min(timeout_ms / 1000, 8)):
-        sp = urlparse(su)
-        if sp.scheme not in ("http", "https") or sp.netloc != host:
-            continue
-        if sp.path.lower().endswith(SKIP_EXT):
-            continue
-        key = norm_url(su)
-        if key not in seen and len(seen) < max_pages:
-            seen.add(key)
-            queue.put_nowait(strip_fragment(su))
+    frontier.add(entry, norm_url(entry), depth=0)
+
+    def crawlable(links):
+        """같은 호스트의 문서 링크만 [(url, key, text)]로. iframe 문서는 상위 페이지 기준으로 보고하므로 제외."""
+        out = []
+        for link, text in links:
+            p = urlparse(link)
+            if p.scheme not in ("http", "https") or p.netloc != host or p.path.lower().endswith(SKIP_EXT):
+                continue
+            key = norm_url(link)
+            if key not in frame_urls:
+                out.append((strip_fragment(link), key, text))
+        return out
+
+    # sitemap.xml에 등록된 URL도 대기열에 (링크 탐색으로 닿지 않는 고아 페이지 대응). 우선순위는 다른 주소와 똑같이 매긴다.
+    sitemap = await _fetch_sitemap(entry, timeout_s=min(timeout_ms / 1000, 8))
+    frontier.add_links(crawlable((su, "") for su in sitemap), 2)
+    state = {"inflight": 0, "visited": 0, "stopped_by_time": False}
+    t_start = time.perf_counter()
+    visit_log = []  # [크롤링 시작 후 초, 최종 URL, 요청 URL] — 시간에 따라 무엇을 찾았는지(발견 곡선)·리디렉트 분석용
     async with async_playwright() as pw:
         browser = await pw.chromium.launch(headless=True)
         ctx = await browser.new_context(viewport={"width": 1280, "height": 900}, ignore_https_errors=True,
@@ -198,42 +212,43 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
 
         async def worker():
             while True:
-                url = await queue.get()
+                if deadline is not None and time.perf_counter() >= deadline:
+                    state["stopped_by_time"] = state["stopped_by_time"] or len(frontier) > 0
+                    return
+                if max_pages and state["visited"] >= max_pages:
+                    return
+                item = frontier.pop()
+                if item is None:
+                    if state["inflight"] == 0:  # 대기열도 비고 검사 중인 페이지도 없음 → 끝
+                        return
+                    await asyncio.sleep(0.2)  # 다른 작업자가 새 링크를 찾을 수 있으니 잠시 기다림
+                    continue
+                url, depth = item
+                state["inflight"] += 1
+                state["visited"] += 1
                 try:
                     final_url, frames, status = await scan_page(ctx, url, timeout_ms)
                     results.append((final_url, frames))
+                    visit_log.append([round(time.perf_counter() - t_start, 1), final_url, url])
                     if status and status >= 400:  # 오류 응답이어도 본문은 검사하되 기록은 남김
                         http_errors.append({"url": url, "status": status})
                     frame_urls.update(norm_url(d["frame_url"]) for pre, d in frames if pre)
-                    for _, data in frames:
-                        for link in data["links"]:
-                            p = urlparse(link)
-                            if p.scheme not in ("http", "https") or p.netloc != host:
-                                continue
-                            if p.path.lower().endswith(SKIP_EXT):
-                                continue
-                            key = norm_url(link)
-                            if key in frame_urls:
-                                continue
-                            if key not in seen and len(seen) < max_pages:
-                                seen.add(key)
-                                queue.put_nowait(strip_fragment(link))
+                    frontier.add_links(crawlable(lt for _, data in frames for lt in data["links"]), depth + 1)
                 except Exception as e:  # 한 페이지 실패가 전체를 멈추지 않게 (점검 페이지 수에는 넣지 않음)
                     failed.append({"url": url, "reason": str(e) if isinstance(e, PageLoadError) else f"{type(e).__name__}: {e}"})
                     print(f"[warn] {url}: {e}")
                 finally:
+                    state["inflight"] -= 1
                     if progress:
-                        progress(len(results) + len(failed), len(seen), url)
-                    queue.task_done()
+                        progress(len(results) + len(failed), len(frontier.seen), url)
 
-        workers = [asyncio.create_task(worker()) for _ in range(concurrency)]
-        await queue.join()
-        for w in workers:
-            w.cancel()
+        await asyncio.gather(*(worker() for _ in range(concurrency)))
         await browser.close()
     # 순서상 iframe 문서가 먼저 큐에 들어갔던 경우까지 정리
     pages = [(u, f) for u, f in results if norm_url(u) not in frame_urls]
-    return pages, {"failed": failed, "http_errors": http_errors}
+    return pages, {"failed": failed, "http_errors": http_errors, "stopped_by_time": state["stopped_by_time"],
+                   "left_in_queue": len(frontier), "dropped_endless": frontier.dropped_endless,
+                   "skipped_utility": frontier.skipped_utility, "visit_log": visit_log}
 
 
 def candidates_from(pages, detect_posted=True):
@@ -273,8 +288,11 @@ def candidates_from(pages, detect_posted=True):
     return list(cands.values())
 
 
-def judge(cands, model_path, use_ml):
-    """룰 점수로 1차 판정, 경계 구간만 Laya로 2차 판정."""
+def judge(cands, model_path, use_ml, deadline=None):
+    """룰 점수로 1차 판정, 경계 구간만 Laya로 2차 판정.
+
+    deadline(time.perf_counter() 기준)을 넘기면 남은 경계 문구는 Laya 없이 규칙 판정(정상 처리)으로 둔다.
+    """
     for c in cands:
         c["normalized"] = normalize(c["evidence_text"])
         c["score"], c["hits"] = adscore.score(c["normalized"])
@@ -288,12 +306,20 @@ def judge(cands, model_path, use_ml):
             from training.make_dataset import QUESTION
             agent = Agent(model_path, device="cpu")
             texts = sorted({c["normalized"] for c in border})
-            out = agent.predict_batch(texts, QUESTION, batch_size=16)
-            prob = {t: o["answers"]["is_illegal_ad"]["noul"] for t, o in zip(texts, out)}
+            prob = {}
+            for i in range(0, len(texts), 64):  # 64개씩 끊어서, 마감이 지나면 멈춤
+                if deadline is not None and time.perf_counter() >= deadline:
+                    print(f"[warn] 판정 시간 제한: 경계 문구 {len(texts) - i}개는 AI 판정 없이 정상 처리")
+                    break
+                chunk = texts[i:i + 64]
+                out = agent.predict_batch(chunk, QUESTION, batch_size=16)
+                prob.update((t, o["answers"]["is_illegal_ad"]["noul"]) for t, o in zip(chunk, out))
         except Exception as e:  # 모델 문제로 크롤링 결과 전체를 잃지 않도록 규칙 판정(--no-ml과 동일)으로 대체
             print(f"[warn] Laya 판정 실패, 경계 구간은 정상 처리: {type(e).__name__}: {e}")
             prob = None
         for c in border if prob else []:
+            if c["normalized"] not in prob:
+                continue
             c["ml_prob"] = round(prob[c["normalized"]], 4)
             c["verdict"] = "ad" if c["ml_prob"] >= 0.5 else "clean"
             c["decided_by"] = "laya"
@@ -315,21 +341,32 @@ CORE_TECHNIQUES = {"HOMOGLYPH", "JAMO", "TRANSPARENT", "OFFSCREEN"}
 EXTRA_LABEL = {"POSTED": "게시형 불법광고(은닉 없음)"}
 
 
-def run(entry_url, out, max_pages=200, concurrency=4, timeout=15000, model=DEFAULT_MODEL, use_ml=True,
-        progress=None, phase=None, user_agent=DEFAULT_UA, detect_posted=True):
+# 시간 예산(초). 적격평가 검출 시간 상한은 30분 — 넘기면 시간 점수 0점, result.json이 없으면 평가 제외될 수 있다.
+TIME_BUDGET = 27 * 60   # 전체 목표: 30분 상한에서 3분 여유
+JUDGE_RESERVE = 2 * 60  # 로컬 판정(룰+Laya)·저장 몫. 실사이트 11곳 측정 시 판정은 0.4~11초
+LLM_RESERVE = 6 * 60    # 나중에 붙일 LLM 최종 검증 몫(아직 미구현 — 자리만 확보)
+
+
+def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT_MODEL, use_ml=True,
+        progress=None, phase=None, user_agent=DEFAULT_UA, detect_posted=True,
+        time_budget=TIME_BUDGET, llm_reserve=LLM_RESERVE):
     """크롤링 → 판정 → result.json/report.json 저장. report 딕셔너리를 돌려준다.
 
     phase(단계명): UI에 현재 단계(crawl/judge/save)를 알리는 콜백.
     detect_posted: 게시형(은닉 없는) 불법광고도 탐지해 result_extra.json으로 분리 저장.
+    max_pages: 0이면 페이지 수 제한 없이 시간 예산 안에서 전부 탐색.
+    time_budget: 전체 목표 시간(초). 크롤링은 time_budget - llm_reserve - 판정 몫까지만 한다.
     """
     phase = phase or (lambda name: None)
     started = datetime.now(KST)
     t0 = time.perf_counter()
+    crawl_deadline = t0 + max(60, time_budget - llm_reserve - JUDGE_RESERVE)
+    judge_deadline = t0 + max(90, time_budget - llm_reserve - 30)
     phase("crawl")
-    pages, issues = asyncio.run(crawl(entry_url, max_pages, concurrency, timeout, progress, user_agent))
+    pages, issues = asyncio.run(crawl(entry_url, max_pages, concurrency, timeout, progress, user_agent, crawl_deadline))
     t_crawl = time.perf_counter() - t0
     phase("judge")
-    cands = judge(candidates_from(pages, detect_posted), str(model), use_ml)
+    cands = judge(candidates_from(pages, detect_posted), str(model), use_ml, judge_deadline)
     finished = datetime.now(KST)
     elapsed = round(time.perf_counter() - t0, 2)
 
@@ -350,6 +387,9 @@ def run(entry_url, out, max_pages=200, concurrency=4, timeout=15000, model=DEFAU
     entry_failed = any(f["url"] == entry_url for f in issues["failed"])
     report = {"meta": meta, "pages": len(pages), "crawl_sec": round(t_crawl, 2), "entry_failed": entry_failed,
               "failed_pages": issues["failed"], "http_errors": issues["http_errors"],
+              "stopped_by_time": issues["stopped_by_time"], "left_in_queue": issues["left_in_queue"],
+              "dropped_endless": issues["dropped_endless"], "skipped_utility": issues["skipped_utility"], "time_budget": time_budget, "llm_reserve": llm_reserve,
+              "visit_log": issues["visit_log"],
               "extra_count": len(extra_findings), "candidates": cands}
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
@@ -374,7 +414,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("entry_url")
     ap.add_argument("--out", default=str(app_dir()))
-    ap.add_argument("--max-pages", type=int, default=200)
+    ap.add_argument("--max-pages", type=int, default=0, help="방문할 최대 페이지 수 (기본 0 = 제한 없음, 시간 예산까지 전부)")
+    ap.add_argument("--time-budget", type=int, default=TIME_BUDGET, help=f"전체 목표 시간(초, 기본 {TIME_BUDGET})")
+    ap.add_argument("--llm-reserve", type=int, default=LLM_RESERVE, help=f"LLM 검증 몫으로 남길 시간(초, 기본 {LLM_RESERVE})")
     ap.add_argument("--concurrency", type=int, default=4)
     ap.add_argument("--timeout", type=int, default=15000)
     ap.add_argument("--model", default=str(DEFAULT_MODEL))
@@ -386,7 +428,8 @@ def main():
     args = ap.parse_args()
 
     report = run(args.entry_url, args.out, args.max_pages, args.concurrency, args.timeout, args.model, not args.no_ml,
-                 user_agent=args.user_agent, detect_posted=not args.no_extra)
+                 user_agent=args.user_agent, detect_posted=not args.no_extra,
+                 time_budget=args.time_budget, llm_reserve=args.llm_reserve)
     cands = report["candidates"]
     findings = sum(c["verdict"] == "ad" for c in cands)
     by = {}
@@ -397,6 +440,10 @@ def main():
           f"(적격 4종 {findings - report['extra_count']} + 게시형 {report['extra_count']}) "
           f"elapsed={report['meta']['elapsed_sec']}s (crawl {report['crawl_sec']:.1f}s)")
     print("판정 분포:", {f"{k[0]}/{k[1]}": v for k, v in sorted(by.items())})
+    if report["stopped_by_time"]:
+        print(f"[warn] 시간 예산으로 크롤링을 멈춤 — 아직 못 본 대기 주소 {report['left_in_queue']}개")
+    if report["dropped_endless"]:
+        print(f"[info] 검색·정렬·달력 주소 {report['dropped_endless']}개는 같은 형태가 많아 건너뜀")
     if report["failed_pages"]:
         print(f"[warn] 접속 실패 {len(report['failed_pages'])}페이지 (report.json의 failed_pages 참고)")
     if report["entry_failed"]:

@@ -2,7 +2,7 @@
 // 반환: { hidden: [...], texts: [...], links: [...] }
 //  - hidden: 은닉 스타일을 "직접 선언한" 요소와 기법 신호 (TRANSPARENT / OFFSCREEN 후보)
 //  - texts : 직접 텍스트를 가진 요소 (HOMOGLYPH / JAMO 후보)
-//  - links : 다음 페이지 후보 URL
+//  - links : 다음 페이지 후보 [URL, 링크 글자] — 링크 글자(게시글 제목 등)는 크롤링 우선순위에 쓴다
 () => {
   const SKIP = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE', 'HEAD', 'META', 'LINK', 'TITLE', 'SVG', 'IFRAME']);
   const docW = Math.max(document.documentElement.scrollWidth, window.innerWidth);
@@ -207,10 +207,16 @@
   }
 
   // ---- 링크 수집 (a, area, meta refresh, form GET) ----
-  const linkSet = new Set();
-  const addLink = (url) => { try { linkSet.add(new URL(url, location.href).href); } catch(e) {} };
+  const linkMap = new Map();  // URL → 링크 글자 (같은 URL이면 글자가 있는 쪽을 남김)
+  const addLink = (url, text = '') => {
+    try {
+      const u = new URL(url, location.href).href;
+      if (!linkMap.get(u)) linkMap.set(u, text);
+    } catch (e) {}
+  };
 
-  for (const a of document.querySelectorAll('a[href]')) addLink(a.href);
+  for (const a of document.querySelectorAll('a[href]'))
+    addLink(a.href, norm(a.textContent || a.getAttribute('title') || '').slice(0, 120));
   for (const a of document.querySelectorAll('area[href]')) addLink(a.href);
 
   // <meta http-equiv="refresh" content="0;url=...">
@@ -251,6 +257,6 @@
   }
 
   // Array.from 대신 전개 구문: Prototype.js 등 옛 라이브러리가 Array.from을 덮어써 Set을 빈 배열로 만든다
-  const links = [...linkSet];
+  const links = [...linkMap];
   return { hidden, texts, links };
 }
