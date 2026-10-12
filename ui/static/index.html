@@ -146,6 +146,7 @@ label.inline { display: inline-flex; align-items: center; gap: 6px; color: var(-
 .url-box svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--teal); }
 .url-box input { width: 100%; padding: 13px 14px 13px 42px; border-radius: 999px; font-size: 15px; }
 input[type=number] { width: 84px; }
+#maxPages { width: 104px; }  /* "제한 없음" 안내 글자가 잘리지 않게 */
 #startBtn { display: inline-flex; flex-direction: column; align-items: center; line-height: 1.2; padding: 10px 30px;
   border: 0; border-radius: 999px; color: #fff; font-size: 16px; font-weight: 800;
   background: linear-gradient(90deg, #0f9e8e, #22b47d); box-shadow: 0 8px 20px rgba(15, 158, 142, .35); }
@@ -423,7 +424,7 @@ tr.detail td { background: #f7fbfa; }
       <form class="scan-form" id="scanForm">
         <div class="url-box"><svg class="i"><use href="#ic-search"/></svg>
           <input type="url" id="url" placeholder="점검할 웹사이트 주소 (https://...)" required aria-label="점검할 웹사이트 주소"></div>
-        <label class="inline">최대 페이지 <input type="number" id="maxPages" value="200" min="1" max="2000" required></label>
+        <label class="inline">최대 페이지 <input type="number" id="maxPages" value="" placeholder="제한 없음" min="1" max="20000" title="비워 두면 시간 한도 안에서 사이트 전체를 탐색합니다"></label>
         <label class="inline" id="mlLabel"><input type="checkbox" id="useMl" checked> AI 보조 판정</label>
         <button id="startBtn" type="submit">탐지 시작</button>
       </form>
@@ -550,6 +551,7 @@ function levelOf(pct) {
 // 진입 페이지에 접속하지 못한 점검: 0건이어도 '청정'이 아니라 판단 불가
 const LEVEL_NA = { key: "na", word: "확인 불가", name: "확인 불가", color: "var(--dim)", weak: "#eef2f1" };
 const isPending = c => c.verdict === "ad" && (c.review === "new" || c.review === "confirmed");
+const mmss = sec => { const t = Math.round(sec); return t < 60 ? `${t}초` : `${Math.floor(t / 60)}분 ${String(t % 60).padStart(2, "0")}초`; };
 const pathOf = url => { try { const u = new URL(url); return (u.pathname + u.search) || "/"; } catch { return url; } };
 
 let current = null;          // 지금 보고 있는 점검 결과
@@ -702,11 +704,11 @@ function render() {
   $("tiles").innerHTML = na ? `
     <div class="card tile t-found"><div><small>탐지된 불법광고</small><b>-</b></div><div class="ico">${icon("search")}</div></div>
     <div class="card tile t-pending zero" style="--c:var(--dim)"><div><small>처리 필요</small><b style="color:var(--dim)">-</b></div><div class="ico" style="background:#eef2f1;color:var(--dim)">${icon("alert")}</div></div>
-    <div class="card tile t-pages"><div><small>점검 페이지 · ${esc(r.meta.elapsed_sec)}초</small><b>0<u>개</u></b></div><div class="ico">${icon("pages")}</div></div>
+    <div class="card tile t-pages"><div><small>점검 페이지 · ${mmss(r.meta.elapsed_sec)}</small><b>0<u>개</u></b></div><div class="ico">${icon("pages")}</div></div>
     <div class="card tile t-grade"><div><small>청정 등급</small><b style="color:var(--dim)">확인 불가</b></div><div class="ico" style="background:#eef2f1;color:var(--dim)">${icon("shield")}</div></div>` : `
     <div class="card tile t-found"><div><small>탐지된 불법광고</small><b>${ads.length}<u>건</u></b></div><div class="ico">${icon("search")}</div></div>
     <div class="card tile t-pending ${pending ? "" : "zero"}"><div><small>처리 필요</small><b>${pending}<u>건</u></b></div><div class="ico">${icon(pending ? "alert" : "shield")}</div></div>
-    <div class="card tile t-pages"><div><small>점검 페이지 · ${esc(r.meta.elapsed_sec)}초</small><b>${r.pages}<u>개</u></b></div><div class="ico">${icon("pages")}</div></div>
+    <div class="card tile t-pages"><div><small>점검 페이지 · ${mmss(r.meta.elapsed_sec)}</small><b>${r.pages}<u>개</u></b></div><div class="ico">${icon("pages")}</div></div>
     <div class="card tile t-grade" style="--c:${lv.color}"><div><small>청정 등급</small><b style="color:${lv.color}">${lv.name}</b></div><div class="ico" style="background:${lv.weak};color:${lv.color}">${icon("shield")}</div></div>`;
 
   // 오염원 분석
@@ -743,6 +745,9 @@ function renderWarnings(r) {
     html = `<b>진입 페이지가 HTTP ${entryHttp.status} 오류를 반환했습니다.</b>주소를 다시 확인하세요. 오류 화면의 내용만 검사되었을 수 있습니다.`;
   } else if (failed.length) {
     html = `<b>${failed.length}개 페이지에 접속하지 못해 검사에서 빠졌습니다.</b>나머지 ${r.pages}개 페이지의 결과만 반영되었습니다.${list(failed, f => esc(f.url))}`;
+  }
+  if (!r.entry_failed && r.stopped_by_time) {
+    html += `${html ? "<br>" : ""}<b>시간 한도에 도달해 탐색을 멈췄습니다.</b>게시판·수상한 글을 먼저 살펴봤고, 아직 보지 못한 주소 ${r.left_in_queue}개가 남았습니다.`;
   }
   box.hidden = !html;
   box.className = `warn-banner ${critical ? "critical" : ""}`;
@@ -900,8 +905,13 @@ async function pollStatus() {
   if (s.running) {
     const crawl = s.phase === "crawl" || s.phase === "start";
     $("bar").classList.toggle("indeterminate", !crawl);
-    $("bar").firstElementChild.style.width = crawl ? `${Math.min(100, s.pages_done / Math.max(1, s.pages_found) * 100)}%` : "";
-    $("progText").textContent = `${PHASE[s.phase] || s.phase} · ${s.pages_done}/${s.pages_found}페이지 · ${s.elapsed}초`;
+    // 페이지 수 제한이 없으면 발견 페이지가 계속 늘어나므로, 시간 한도 대비 경과도 함께 본다
+    const ratio = Math.max(s.pages_done / Math.max(1, s.pages_found), s.crawl_limit ? s.elapsed / s.crawl_limit : 0);
+    $("bar").firstElementChild.style.width = crawl ? `${Math.min(100, ratio * 100)}%` : "";
+    const limit = crawl && s.crawl_limit ? ` / 최대 ${Math.round(s.crawl_limit / 60)}분` : "";  // 크롤링 시간 한도
+    // 페이지 수 제한이 없으므로 '전체 중 몇 쪽'이 아니라 '본 페이지 · 아직 볼 주소'로 보여 준다
+    const waiting = Math.max(0, s.pages_found - s.pages_done);
+    $("progText").textContent = `${PHASE[s.phase] || s.phase} · ${s.pages_done}페이지 점검${crawl && waiting ? ` · 대기 ${waiting}개` : ""} · ${mmss(s.elapsed)}${limit}`;
     $("progUrl").textContent = s.current_url;
     return null;
   }
@@ -940,7 +950,7 @@ $("scanForm").onsubmit = async e => {
   try {
     await api("/api/scan", {
       method: "POST", headers: JSON_HEADERS,
-      body: JSON.stringify({ url: $("url").value.trim(), use_ml: $("useMl").checked, max_pages: +$("maxPages").value }),
+      body: JSON.stringify({ url: $("url").value.trim(), use_ml: $("useMl").checked, max_pages: +$("maxPages").value || 0 }),
     });
     setRunning(true);
     $("progText").textContent = PHASE.start;

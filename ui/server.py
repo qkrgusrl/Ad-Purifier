@@ -24,7 +24,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
-from detector.main import DEFAULT_MODEL, KST, app_dir, run
+from detector.main import DEFAULT_MODEL, JUDGE_RESERVE, KST, LLM_RESERVE, TIME_BUDGET, app_dir, run
+
+CRAWL_LIMIT = TIME_BUDGET - LLM_RESERVE - JUDGE_RESERVE  # 화면 진행률에 쓰는 크롤링 최대 시간(초)
 
 STATIC = Path(__file__).resolve().parent / "static"
 HISTORY = app_dir() / "history"
@@ -209,6 +211,7 @@ class Handler(BaseHTTPRequestHandler):
                 s = dict(state)
             s["elapsed"] = round(time.time() - s["started"], 1) if s["started"] else 0
             s["model_available"] = DEFAULT_MODEL.is_dir()
+            s["crawl_limit"] = CRAWL_LIMIT
             s["out_dir"] = str(app_dir())
             return self.send(200, s)
         if path == "/api/runs":
@@ -244,7 +247,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(400, {"error": "http:// 또는 https:// 로 시작하는 URL을 입력하세요."})
             use_ml = bool(req.get("use_ml", True)) and DEFAULT_MODEL.is_dir()
             try:
-                max_pages = max(1, min(int(req.get("max_pages") or 200), 2000))
+                max_pages = max(0, min(int(req.get("max_pages") or 0), 20000))  # 0 = 제한 없음(시간 예산까지 전부)
             except (TypeError, ValueError):
                 return self.send(400, {"error": "최대 페이지는 숫자로 입력하세요."})
             with state_lock:
