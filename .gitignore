@@ -20,3 +20,6 @@ runs/
 /result_extra.json
 /report.json
 history/
+
+# 로컬 전용 에디터·세션 설정 (개인 권한·경로 포함)
+.claude/

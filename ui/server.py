@@ -124,7 +124,8 @@ def delete_runs(run_ids):
     return deleted
 
 
-TECH_KO = {"HOMOGLYPH": "닮은꼴 글자", "JAMO": "자모 분해", "TRANSPARENT": "투명 텍스트", "OFFSCREEN": "화면 밖 은닉"}
+TECH_KO = {"HOMOGLYPH": "닮은꼴 글자", "JAMO": "자모 분해", "TRANSPARENT": "투명 텍스트", "OFFSCREEN": "화면 밖 은닉",
+           "POSTED": "게시형 광고"}
 REVIEW_KO = {"new": "미검토", "confirmed": "불법광고 확인", "false_positive": "오탐", "resolved": "조치 완료"}
 
 

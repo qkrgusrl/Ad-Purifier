@@ -1,0 +1,300 @@
+{"state": "행사 문의 카톡 아이디는 주민센터에 문의", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "Family Site", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "경 륜 경 정 장 외 발 매 소 이 전 공 청 회", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "[공지] Family Site", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "【IE 11 이하 브라우저는 지원하지 않습니다 / 주민등록 사실조사 실시 안내】", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "졸업증명서 위조 주소창에 moon41047.club 당일 승인", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "립카페 정보 후불 가능", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "[공지] 첫 입금 보너스 30% 프라그마틱 슬롯 여기서만", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "문의 010-2300-6487 연락주시면 졸업증명서 위조 바로 안내", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "【대출 도서 반납함 위치가 어디인가요】", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "대출 도서 반납함 위치가 어디인가요", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "최대 500만원 졸업증명서 위조 여기서만", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "Family Site 자세히 보기", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "일수 대출 당일 찾으세요? 출금 5분 완료 오픈채팅 문의", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "▶ 긴급복지 생계지원 즉시 지급. 2026년 상반기 지방세 체납액 일제 정리 기간 운영", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "졸업증명서 위조 ▶ 첫 입금 보너스 30% ◀ 라인 happy", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "일수 대출 당일 오픈채팅 문의 24시간 상담 ~!!", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "졸피뎀 처방 없이 blue.xyz 접속 무서류 즉시 입금", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "【미니게임 베팅 먹튀 시 전액 보상】", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "IE 11 이하 브라우저는 지원하지 않습니다 [4]", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "무료 성인 웹툰 오픈채팅 문의 첫 거래 50% 할인 - 푸른도청", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "홀덤 사이트 카톡 fastcashvip 24시간 상담", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "서 민 금 융 통 합 지 원 센 터 이 전 안 내 | 무 료 법 률 상 담 신 청 바 로 가 기 [ 2 ]", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "검증된 홀덤 사이트, 첫충 20%, 문의 주소창에 money_kr39.club", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "[공지] 라이브 카지노 문의 010-1841-2764", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "IE 11 이하 브라우저는 지원하지 않습니다 | 무직 청년 구직활동 지원금", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "R e : 지 금 프 라 그 마 틱 슬 롯 가 입 하 면 익 명 배 송", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "무료 법률 상담 신청 바로가기 자세히 보기", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "주소창에 nightowl56389.club 연락주시면 졸피뎀 처방 없이 바로 안내", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "행사 문의 카톡 아이디는 주민센터에 문의 자세히 보기", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "이메일무단수집거부 (2026.10.08)", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "▶ 검증된 홀덤 사이트, 신규 가입코드 777, 문의 문의 010-8057-7400", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "엑스터시 구해요 텔레 goldline918 ~!!", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "검증된 립카페 정보, 후불 가능, 문의 상담원 연결 1:1", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "일수 대출 당일 찾으세요? 첫 거래 50% 할인 디엠 주세요 ~!!", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "검증된 프라그마틱 슬롯, 롤링 100%, 문의 텔레그램 @luckyday", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "언제부터 신청 가능한가요?", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "검증된 내구제 대출, 가입 즉시 보너스, 문의 상담 @ace_kr", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "식보 게임 ▶ 신분 확인 없음 ◀ 주소창에 royal91720.club ~!!", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "평생학습 수강료 30% 감면 익명 신고 게시판 운영", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "프라그마틱 슬롯 익명 배송 오픈채팅 문의", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "메이저 놀이터 ▶ 24시간 상담 ◀ 주소 blue26.com", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "졸업증명서 위조 (2026.10.09)", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "[공지] 검증된 라이브 카지노, 첫 이용 할인, 문의 kingbet_kr.vip 검색", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "s p o r t s b e t t i n g t i p s s u r e w i n", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "내구제 대출 자세히 보기", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "메이저 놀이터", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "▶ 무직 청년 구직활동 지원금", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "텔레마케팅 사기 주의 / AI 민원 챗봇 시범 운영", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "주소 vipclub63.com 연락주시면 엑스터시 구해요 바로 안내", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "졸피뎀 처방 없이", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "★ 익명 신고 게시판 운영 / 폭염 대비 무더위 쉼터 운영 ★", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "미니게임 베팅 링크는 프로필에 무서류 즉시 입금 - 가람동 주민센터", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "【텔레그램 @nightowl_kr 연락주시면 무료 성인 웹툰 바로 안내】", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "★ sports betting tips sure win ★", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "익명 신고 게시판 운영 물놀이터 운영 시간 변경 안내", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "Re: e-Book 신착 도서 440권 입고 | 재난지원금 1인당 20만원 지급", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "행사 문의 카톡 아이디는 주민센터에 문의 / 주민자치회 위원 공개 모집 ~!!", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "일수 대출 당일", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "[ 공 지 ] 지 금 1 9 금 영 상 무 료 가 입 하 면 가 입 즉 시 보 너 스", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "졸피뎀 처방 없이 주소창에 royal49149.club 최대 500만원 (2026.10.03)", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "검색어 입력", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "[공지] 익명 신고 게시판 운영", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "オンラインカジノ 入金不要ボーナス - 새빛시청", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "식보 게임", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "디엠 주세요 연락주시면 홀덤 사이트 바로 안내 [1]", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "검증된 일수 대출 당일, 출금 5분 완료, 문의 카톡 money221 자세히 보기", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "オンラインカジノ 入金不要ボーナス - 미래구 도서관", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "착한가격업소 5% 할인 자세히 보기", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "[공지] 라이브 카지노 라인 money_kr 신규 가입코드 777", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "미니게임 베팅 ▶ 무료 스핀 50회 ◀ sunny.xyz 접속 (2026.10.03)", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "문화센터 체험 강좌 추천 ~!!", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "R e : 졸 피 뎀 처 방 없 이 상 담 @ g o l d l i n e _ k r 2 4 시 간 상 담", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "졸업증명서 위조 무료 스핀 50회 주소 moon63834.com", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "★ 연락주시면 엑스터시 구해요 바로 안내 ★", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "전국 퀵 배송 졸피뎀 처방 없이 여기서만 [5]", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "상 담 원 연 결 1 : 1 연 락 주 시 면 미 니 게 임 베 팅 바 로 안 내", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "졸피뎀 처방 없이 ▶ 첫 거래 50% 할인 ◀ 주소창에 jackpot90.club", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "대출 도서 반납함 위치가 어디인가요 - 가상군청", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "담당자 연락처 알려주세요", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "라이브 카지노 찾으세요? 익명 배송 텔레 jackpot160 [5]", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "담당자 연락처 알려주세요 ~!!", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "라인댄스 강좌 수강생 모집 ~!!", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "주민자치회 위원 공개 모집 (2026.10.01)", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "▶ 지역사랑상품권 구매 시 10% 추가 적립 / 어르신 무료 독감 예방접종 안내", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "라인댄스 강좌 수강생 모집 / 인감증명 당일 발급 가능 창구", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "지역사랑상품권 구매 시 10% 추가 적립 | 무료 법률 상담 신청 바로가기 - 새빛시청", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "Skip to content", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "로그인", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "★ 지금 미니게임 베팅 가입하면 롤링 100% ★", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "개인돈 급전", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "본문 바로가기", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "대출 도서 반납함 위치가 어디인가요 자세히 보기", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "Re: 일수 대출 당일 ▶ 100% 비밀 보장", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "★ AI 민원 챗봇 시범 운영 텔레마케팅 사기 주의 ★", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "Re: 지금 졸업증명서 위조 가입하면 VIP 혜택", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "무 직 청 년 구 직 활 동 지 원 금", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "【 프 라 그 마 틱 슬 롯 찾 으 세 요 ? 매 충 1 0 % g o l d l i n e _ k r . v i p 검 색 】", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "【전기차 구매 보조금 최대 700만원 ESG 경영 실천 협약 체결】", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "Re: 립카페 정보", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "Re: 립카페 정보 먹튀 시 전액 보상", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "Re: 서민금융 통합지원센터 이전 안내", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "미 니 게 임 베 팅 무 제 한 환 전 주 소 창 에 t i g e r 7 9 0 9 2 . c l u b", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "프라그마틱 슬롯 ▶ 가입 즉시 보너스 ◀ 카톡 ace [1]", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "식보 게임 찾으세요? 무료 스핀 50회 상담 @moneyvip", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "립카페 정보 텔레 ace869 첫충 20% (2026.10.03)", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "홀덤 사이트 상담 @starz_kr", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "[공지] e-Book 신착 도서 880권 입고 / 긴급복지 생계지원 즉시 지급", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "PDF 다운로드 (1.1MB) / 무료 법률 상담 신청 바로가기 자세히 보기", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "주소 kingbet8686.com 연락주시면 졸피뎀 처방 없이 바로 안내", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "라이브 카지노", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "무직 청년 구직활동 지원금", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "행사 문의 카톡 아이디는 주민센터에 문의 [9]", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "▶ 재난지원금 1인당 20만원 지급", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "이메일무단수집거부 (2026.10.09)", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "Re: 라인댄스 강좌 수강생 모집", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "검증된 개인돈 급전, 꽁머니 3만원 지급, 문의 starz.xyz 접속 (2026.10.06)", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "★ IE 11 이하 브라우저는 지원하지 않습니다 ★", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "Re: 폭염 대비 무더위 쉼터 운영 / 물놀이터 운영 시간 변경 안내", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "청년 버팀목 전세대출 안내 | AI 민원 챗봇 시범 운영", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "전 기 차 구 매 보 조 금 최 대 7 0 0 만 원 | A I 민 원 챗 봇 시 범 운 영 [ 4 ]", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "착 한 가 격 업 소 5 % 할 인 평 생 학 습 수 강 료 3 0 % 감 면", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "링크는 프로필에 연락주시면 라이브 카지노 바로 안내", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "담당자 연락처 알려주세요 | e-Book 신착 도서 110권 입고 (2026.10.02)", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "졸피뎀 처방 없이 문의 010-8061-9096 신분 확인 없음", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "주민등록 사실조사 실시 안내 어르신 무료 독감 예방접종 안내", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "[공지] 지금 내구제 대출 가입하면 매충 10%", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "당일 승인 라이브 카지노 여기서만 - 가람동 주민센터", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "엑스터시 구해요 상담 @ace951", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "검증된 엑스터시 구해요, 전국 퀵 배송, 문의 주소창에 starz365.club", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "전기차 구매 보조금 최대 700만원 ESG 경영 실천 협약 체결", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "링크는 프로필에 연락주시면 라이브 카지노 바로 안내 - 가상군청", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "2026년 상반기 지방세 체납액 일제 정리 기간 운영 - 한울구청", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "★ 카 카 오 톡 채 널 @ 푸 른 도 청 ★", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "★ 일수 대출 당일 주소 blue91.com ★", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "【저작권 보호정책】", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "【프라그마틱 슬롯 moon.vip 검색】", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "목록", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "[공지] 경륜 경정 장외발매소 이전 공청회", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "식보 게임 텔레 bigwin835 첫 거래 50% 할인", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "IE 11 이하 브라우저는 지원하지 않습니다", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "목록 - 가람동 주민센터", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "사진 잘 봤습니다", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "【홀덤 사이트】", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "주택도시기금 대출 금리 인하 | 청사 내 전기차 충전기 1기 추가 설치 ~!!", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "▶ 검증된 엑스터시 구해요, 출금 5분 완료, 문의 링크는 프로필에", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "[ 공 지 ] 언 제 부 터 신 청 가 능 한 가 요 ?", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "폭염 대비 무더위 쉼터 운영", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "【IE 11 이하 브라우저는 지원하지 않습니다. 긴급복지 생계지원 즉시 지급】", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "라이브 카지노 찾으세요? 최대 500만원 오픈채팅 문의 (2026.10.08)", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "무료 법률 상담 신청 바로가기 - 해솔시 보건소", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "[공지] 사진 잘 봤습니다", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "▶ 미니게임 베팅 24시간 상담 주소 luckyday63132.com", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "주택도시기금 대출 금리 인하 ~!!", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "언제부터 신청 가능한가요? ~!!", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "▶ 주민등록 사실조사 실시 안내", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "대출 도서 반납함 위치가 어디인가요 [8]", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "Re: 사진 잘 봤습니다", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "이메일무단수집거부", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "후불 가능 프라그마틱 슬롯 여기서만", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "첫충 20% 미니게임 베팅 여기서만", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "메이저 놀이터 문의 010-2004-4096 전국 퀵 배송", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "착한가격업소 5% 할인 [4]", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "라이브 카지노 찾으세요? 첫충 20% 문의 010-6581-6099", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "주소창에 money8869.club 연락주시면 엑스터시 구해요 바로 안내 - 푸른도청", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "무직 청년 구직활동 지원금 자세히 보기", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "▶ 개인돈 급전", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "물놀이터 운영 시간 변경 안내", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "대출 도서 반납함 위치가 어디인가요 / 재난지원금 1인당 20만원 지급", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "슬 라 이 드 정 지 [ 6 ]", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "경 륜 경 정 장 외 발 매 소 이 전 공 청 회 ~ ! !", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "검증된 19금 영상 무료, 첫 이용 할인, 문의", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "텔 레 마 케 팅 사 기 주 의 . 어 르 신 무 료 독 감 예 방 접 종 안 내 ~ ! !", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "최 대 5 0 0 만 원 졸 피 뎀 처 방 없 이 여 기 서 만", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "▶ 본문 바로가기", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "첫충 20% 졸업증명서 위조 여기서만", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "▶ 신용회복위원회 채무조정 상담", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "어르신 무료 독감 예방접종 안내 ~!!", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "Re: 폭염 대비 무더위 쉼터 운영", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "▶ 롤링 100% 식보 게임 여기서만", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "서 민 금 융 통 합 지 원 센 터 이 전 안 내 / 물 놀 이 터 운 영 시 간 변 경 안 내", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "ESG 경영 실천 협약 체결", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "식보 게임 찾으세요? 당일 승인 텔레 ace_kr - 해솔시 보건소", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "내구제 대출 신분 확인 없음 주소창에 sunny71162.club", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "Re: 주민등록 사실조사 실시 안내", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "[공지] 어르신 무료 독감 예방접종 안내 / 2026년 상반기 지방세 체납액 일제 정리 기간 운영", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "S k i p t o c o n t e n t . e - B o o k 신 착 도 서 2 2 0 권 입 고 [ 3 ]", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "홀덤 사이트 최대 500만원 디엠 주세요", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "담당자 연락처 알려주세요 인감증명 당일 발급 가능 창구", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "AI 민원 챗봇 시범 운영 자세히 보기", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "[공지] 어르신 무료 독감 예방접종 안내 청년 버팀목 전세대출 안내", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "식보 게임 찾으세요? 무료 스핀 50회 luckyday975.xyz 접속", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "★ 착한가격업소 5% 할인 ★", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "19금 영상 무료 주소창에 kingbet34042.club 후불 가능 ~!!", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "슬라이드 정지 / 2026년 상반기 지방세 체납액 일제 정리 기간 운영 - 미래구 도서관", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "[공지] 검증된 내구제 대출, 최대 500만원, 문의 오픈채팅 문의", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "외화 환전 우대 쿠폰 배포 (관광안내소). 2026년 상반기 지방세 체납액 일제 정리 기간 운영", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "[공지] e-Book 신착 도서 110권 입고 | 긴급복지 생계지원 즉시 지급", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "【슬라이드 정지】", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "▶ 상담 @jackpotvip 연락주시면 개인돈 급전 바로 안내", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "日本語", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "オンラインカジノ 入金不要ボーナス [9]", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "[공지] 개인돈 급전 주소창에 sunny70.club", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "졸업증명서 위조 royal_kr.vip 검색", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "졸업증명서 위조 찾으세요? VIP 혜택 kingbet_kr.xyz 접속 [9]", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "무료 성인 웹툰 텔레 royal 무제한 환전", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "[공지] luckyday.xyz 접속 연락주시면 엑스터시 구해요 바로 안내", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "[공지] 무직 청년 구직활동 지원금 / 청년 버팀목 전세대출 안내", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "라이브 카지노 디엠 주세요", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "▶ e-Book 신착 도서 220권 입고", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "카 카 오 톡 채 널 @ 새 빛 시 청", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "【카톡 luckyday_kr 연락주시면 홀덤 사이트 바로 안내】", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "지역사랑상품권 구매 시 10% 추가 적립", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "폭염 대비 무더위 쉼터 운영 | 무료 법률 상담 신청 바로가기", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "재난지원금 1인당 20만원 지급", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "▶ 지금 라이브 카지노 가입하면 무료 스핀 50회", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "개인돈 급전 상담 @luckyday", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "외화 환전 우대 쿠폰 배포 (관광안내소)", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "지금 개인돈 급전 가입하면 당일 승인 ~!!", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "검 증 된 개 인 돈 급 전 , 가 입 즉 시 보 너 스 , 문 의 오 픈 채 팅 문 의 자 세 히 보 기", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "본문 바로가기 [8]", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "Re: 립카페 정보 신분 확인 없음 문의 010-2119-5188", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "링크 눌러도 404 오류 나요", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "검색어 입력 자세히 보기", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "어르신 무료 독감 예방접종 안내", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "ESG 경영 실천 협약 체결 ~!!", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "전국 퀵 배송 졸업증명서 위조 여기서만 - 가상군청", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "TOP | 청사 내 전기차 충전기 4기 추가 설치 [7]", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "▶ 홀덤 사이트 ▶ 가입 즉시 보너스 ◀ 카톡 kingbet_kr", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "연락주시면 내구제 대출 바로 안내", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "[공지] AI 민원 챗봇 시범 운영", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "사진 잘 봤습니다 / 재난지원금 1인당 20만원 지급", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "엑스터시 구해요 가입 즉시 보너스 라인 kingbet911", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "지금 내구제 대출 가입하면 출금 5분 완료", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "디엠 주세요 연락주시면 홀덤 사이트 바로 안내", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "지역사랑상품권 구매 시 10% 추가 적립 익명 신고 게시판 운영 [3]", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "본문 바로가기. 폭염 대비 무더위 쉼터 운영", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "졸피뎀 처방 없이 오픈채팅 문의 신분 확인 없음", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "지금 메이저 놀이터 가입하면 출금 5분 완료", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "목록 | 주민등록 사실조사 실시 안내", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "[공지] 무직 청년 구직활동 지원금 / 전기차 구매 보조금 최대 700만원", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "【외화 환전 우대 쿠폰 배포 (관광안내소)】", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "▶ 청 사 내 전 기 차 충 전 기 1 기 추 가 설 치 / 재 난 지 원 금 1 인 당 2 0 만 원 지 급", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "★ 졸피뎀 처방 없이 찾으세요? 100% 비밀 보장 문의 010-4545-1861 ★", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "【인감증명 당일 발급 가능 창구】", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "sports betting tips sure win", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "ESG 경영 실천 협약 체결 - 한울구청", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "물놀이터 운영 시간 변경 안내. ESG 경영 실천 협약 체결", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "★ 일수 대출 당일 첫충 20% 라인 jackpotvip ★", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "청사 내 전기차 충전기 1기 추가 설치", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "crypto casino 100% rakeback", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "crypto casino 50% rakeback", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "sports betting tips sure win - 가상군청", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "저작권 보호정책", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "Re: 식보 게임 ▶ VIP 혜택 ◀ 텔레 dragonvip", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "폭염 대비 무더위 쉼터 운영 / 청사 내 전기차 충전기 7기 추가 설치", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "평생학습 수강료 30% 감면", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "19금 영상 무료 ▶ 롤링 100% ◀ 주소창에 money7080.club (2026.10.01)", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "▶ 첫 거래 50% 할인 미니게임 베팅 여기서만", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "지금 졸업증명서 위조 가입하면 무제한 환전 - 가상군청", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "대출 도서 반납함 위치가 어디인가요 무직 청년 구직활동 지원금 [9]", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "홀덤 사이트 텔레 dragon329", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "주민자치회 위원 공개 모집", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "개인돈 급전 찾으세요? 첫충 20% 주소창에 fastcash87024.club", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "내구제 대출 ▶ 무료 스핀 50회 ◀ kingbet429.xyz 접속 ~!!", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "PDF 다운로드 (8.8MB) ~!!", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "라 이 브 카 지 노", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "▶ 라이브 카지노 텔레그램 @tiger563", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "개인돈 급전 ▶ 100% 비밀 보장 ◀ 디엠 주세요", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "익명 신고 게시판 운영", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "텔 레 마 케 팅 사 기 주 의 | A I 민 원 챗 봇 시 범 운 영", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "▶ 19금 영상 무료 ▶ 신규 가입코드 777 ◀ 라인 goldlinevip", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "Re: 검증된 프라그마틱 슬롯, 무료 스핀 50회, 문의 상담 @happy834", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "★ 외화 환전 우대 쿠폰 배포 (관광안내소) ★", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "オンラインカジノ 入金不要ボーナス", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "졸업증명서 위조 첫충 20% 상담원 연결 1:1", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "▶ 담당자 연락처 알려주세요 | 문화센터 체험 강좌 추천", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "미 니 게 임 베 팅 ▶ 먹 튀 시 전 액 보 상 ◀ 상 담 @ b l u e _ k r", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "전기차 구매 보조금 최대 700만원", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "홀덤 사이트 ▶ 신분 확인 없음", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "지금 19금 영상 무료 가입하면 후불 가능", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "텔레그램 @dragon 연락주시면 19금 영상 무료 바로 안내 ~!!", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "★ 청년 버팀목 전세대출 안내 ★", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "재난지원금 1인당 20만원 지급 / 서민금융 통합지원센터 이전 안내", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "[공지] 검증된 개인돈 급전, 100% 비밀 보장, 문의 텔레그램 @luckyday775", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "[공지] 슬라이드 정지", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "메이저 놀이터 ▶ 무서류 즉시 입금 ◀ 링크는 프로필에", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "[공지] 목록", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "지역사랑상품권 구매 시 10% 추가 적립 | 외화 환전 우대 쿠폰 배포 (관광안내소)", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "링크 눌러도 404 오류 나요 [4]", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "홀덤 사이트 찾으세요? 무서류 즉시 입금 문의 010-4113-2445", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "ESG 경영 실천 협약 체결 | 주민등록 사실조사 실시 안내", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "검색어 입력. 전기차 구매 보조금 최대 700만원", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "★ 주민등록 사실조사 실시 안내 ★", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "신용회복위원회 채무조정 상담 - 가상군청", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "지금 프라그마틱 슬롯 가입하면 무료 스핀 50회 ~!!", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "지금 식보 게임 가입하면 첫충 20%", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "Re: 링크 눌러도 404 오류 나요 / 신용회복위원회 채무조정 상담", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": false}}
+{"state": "메이저 놀이터 꽁머니 3만원 지급 주소 happy31579.com 자세히 보기", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
+{"state": "★ 19금 영상 무료 ▶ 24시간 상담 ◀ moon806.vip 검색 ★", "questions": {"is_illegal_ad": {"type": "noul", "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"}}, "expected": {"is_illegal_ad": true}}
