@@ -85,8 +85,7 @@ svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor;
 .history li { --c: var(--green); position: relative; min-width: 0; padding: 10px 12px 10px 16px; cursor: pointer; font-size: 12px;
   border-radius: 12px; background: var(--card-solid); border: 1px solid var(--line); transition: border-color .15s, box-shadow .15s; }
 .history li::before { content: ""; position: absolute; left: 7px; top: 12px; bottom: 12px; width: 3px; border-radius: 3px; background: var(--c); }
-.history li.lv-good { --c: var(--green); } .history li.lv-mod { --c: var(--teal); }
-.history li.lv-bad { --c: var(--amber); } .history li.lv-worst { --c: var(--coral); } .history li.lv-na { --c: var(--dim); }
+.history li.lv-na { --c: var(--dim); }
 .history li:hover { border-color: var(--line-strong); }
 .history li.active { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(15, 158, 142, .14); }
 .history li b { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
@@ -529,14 +528,25 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 const icon = (id, cls = "i") => `<svg class="${cls}"><use href="#ic-${id}"/></svg>`;
 
-/* 청정 등급: 처리가 필요한 불법광고(미검토·확인) 건수 기준 (미세먼지 예보처럼 4단계) */
-const LEVELS = [
-  { max: 0, key: "good", word: "청정", name: "매우 좋음", color: "var(--green)", weak: "var(--green-weak)" },
-  { max: 3, key: "mod", word: "양호", name: "좋음", color: "var(--teal)", weak: "var(--teal-weak)" },
-  { max: 10, key: "bad", word: "주의", name: "나쁨", color: "var(--amber)", weak: "var(--amber-weak)" },
-  { max: Infinity, key: "worst", word: "오염", name: "매우 나쁨", color: "var(--coral)", weak: "var(--coral-weak)" },
+/* 청정도(%) = 처리할 불법광고가 남지 않은 페이지 비율. 1건이라도 남으면 100%로 반올림되지 않게 99%가 상한 */
+const cleanPct = (pages, dirtyPages) =>
+  !pages || !dirtyPages ? 100 : Math.min(99, Math.round((1 - dirtyPages / pages) * 100));
+/* 청정 등급: 청정도 10%마다 한 단계씩 초록 → 빨강 (100% 초록, 90~99% 거의 초록 … 0~10% 빨강) */
+const WORDS = [  // [최소 단계, 게이지 문구, 등급 이름] — 미세먼지 예보처럼 4단계, 색 구간과 맞춤
+  [7, "오염", "매우 나쁨"],  // 0~39%  주황 → 빨강
+  [4, "주의", "나쁨"],       // 40~69% 연두 → 노랑
+  [1, "양호", "좋음"],       // 70~99% 초록
+  [0, "청정", "매우 좋음"],  // 100%
 ];
-const levelOf = pending => LEVELS.find(l => pending <= l.max);
+function levelOf(pct) {
+  const step = Math.min(10, Math.ceil((100 - pct) / 10));  // 0(100%) ~ 10(0~10%)
+  const t = step / 10;
+  const hue = 148 - 150 * t;  // 초록(148) → 노랑 → 주황 → 빨강(-2)
+  const [, word, name] = WORDS.find(([min]) => step >= min);
+  return { key: `s${step}`, word, name,
+           color: `hsl(${hue.toFixed(0)} ${(62 + 10 * t).toFixed(0)}% ${(42 + 8 * t).toFixed(0)}%)`,
+           weak: `hsl(${hue.toFixed(0)} 70% 94%)` };
+}
 // 진입 페이지에 접속하지 못한 점검: 0건이어도 '청정'이 아니라 판단 불가
 const LEVEL_NA = { key: "na", word: "확인 불가", name: "확인 불가", color: "var(--dim)", weak: "#eef2f1" };
 const isPending = c => c.verdict === "ad" && (c.review === "new" || c.review === "confirmed");
@@ -580,8 +590,8 @@ async function loadHistory(selectId) {
     return;
   }
   ul.innerHTML = runs.map(r => {
-    const lv = r.entry_failed ? LEVEL_NA : levelOf(r.pending ?? r.findings);
-    return `<li data-id="${esc(r.id)}" tabindex="0" class="lv-${lv.key} ${current && current.id === r.id ? "active" : ""}">
+    const lv = r.entry_failed ? LEVEL_NA : levelOf(cleanPct(r.pages, r.dirty_pages ?? (r.pending ?? r.findings)));
+    return `<li data-id="${esc(r.id)}" tabindex="0" class="lv-${lv.key} ${current && current.id === r.id ? "active" : ""}" style="--c:${lv.color}">
       <b title="${esc(r.entry_url)}">${esc(r.entry_url)}</b>
       <span>${esc(r.started_at.replace("T", " ").slice(0, 16))} · ${r.pages}페이지</span>
       <span>탐지 ${r.findings}건 · <em>${lv.word}</em></span>
@@ -653,9 +663,10 @@ $("clearYes").onclick = async () => {
 function refreshHistoryLevel() {
   const li = document.querySelector(`#history li[data-id="${current.id}"]`);
   if (!li) return;
-  const lv = current.entry_failed ? LEVEL_NA : levelOf(current.candidates.filter(isPending).length);
-  [...LEVELS, LEVEL_NA].forEach(l => li.classList.remove(`lv-${l.key}`));
-  li.classList.add(`lv-${lv.key}`);
+  const dirty = new Set(current.candidates.filter(isPending).map(c => c.url)).size;
+  const lv = current.entry_failed ? LEVEL_NA : levelOf(cleanPct(current.pages, dirty));
+  li.classList.toggle("lv-na", lv === LEVEL_NA);
+  li.style.setProperty("--c", lv.color);
   const em = li.querySelector("em");
   if (em) em.textContent = lv.word;
 }
@@ -670,8 +681,8 @@ function render() {
   const pendingList = ads.filter(isPending);
   const pending = pendingList.length;
   const dirtyPages = new Set(pendingList.map(c => c.url)).size;
-  const clean = r.pages ? Math.round((1 - dirtyPages / r.pages) * 100) : 100;
-  const lv = r.entry_failed ? LEVEL_NA : levelOf(pending);
+  const clean = cleanPct(r.pages, dirtyPages);
+  const lv = r.entry_failed ? LEVEL_NA : levelOf(clean);
   renderWarnings(r);
 
   // 청정도 게이지
