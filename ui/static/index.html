@@ -211,6 +211,9 @@ input[type=number] { width: 84px; }
 .ring .lvl { font-size: 46px; font-weight: 900; line-height: 1.05; color: var(--c); letter-spacing: -.03em; }
 .ring .pct { margin-top: 4px; font-size: 17px; font-weight: 800; color: color-mix(in srgb, var(--c) 80%, #0f2f2a); }
 .ring .cap { margin-top: 4px; font-size: 12px; color: var(--muted); }
+.gauge .gauge-why { margin: 14px 0 0; font-size: 13px; font-weight: 700; color: color-mix(in srgb, var(--c) 80%, #0f2f2a); }
+.gauge .gauge-why:empty { display: none; }
+.gauge .gauge-why + .gauge-note { margin-top: 6px; }
 .gauge .gauge-note { margin: 16px 0 0; font-size: 12px; color: var(--muted); max-width: 300px; }
 .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 16px; }
 @media (max-width: 560px) { .stats { gap: 10px; } }
@@ -467,7 +470,8 @@ tr.detail td { background: #f7fbfa; }
               <div class="cap" id="gaugeCap"></div>
             </div>
           </div>
-          <p class="gauge-note">청정도 = 처리할 불법광고가 남지 않은 페이지 비율. 항목을 <b>조치 완료</b>·<b>오탐</b>으로 처리하면 올라갑니다.</p>
+          <p class="gauge-why" id="gaugeWhy"></p>
+          <p class="gauge-note">오염 페이지 비율·오염 페이지 수·처리할 광고 문구 수·숨김형 광고 여부 중 <b>가장 나쁜 기준</b>으로 등급을 매깁니다. 항목을 <b>조치 완료</b>·<b>오탐</b>으로 처리하면 올라갑니다.</p>
         </section>
         <div class="stats" id="tiles"></div>
       </div>
@@ -529,9 +533,28 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 const icon = (id, cls = "i") => `<svg class="${cls}"><use href="#ic-${id}"/></svg>`;
 
-/* 청정도(%) = 처리할 불법광고가 남지 않은 페이지 비율. 1건이라도 남으면 100%로 반올림되지 않게 99%가 상한 */
-const cleanPct = (pages, dirtyPages) =>
-  !pages || !dirtyPages ? 100 : Math.min(99, Math.round((1 - dirtyPages / pages) * 100));
+/* 오염 지수(0~100): 아래 기준 중 가장 나쁜 값을 따른다(미세먼지 통합지수처럼).
+   페이지 비율만 보면 큰 사이트는 광고가 수백 건이어도 '양호'가 나오므로 건수·페이지 수도 함께 본다.
+   ① 오염 페이지 비율(%)
+   ② 오염 페이지 수: 1쪽 10 · 3쪽 30 · 9쪽 50 · 27쪽 70 · 81쪽 90 (3배마다 +20)
+   ③ 처리할 광고 문구 수(같은 글이 목록·상세에 중복으로 잡힌 건 1건): 1건 5 · 9건 35 · 27건 50 · 81건 65 · 243건 80 (3배마다 +15)
+   ④ 숨김형(적격 4종) 광고가 남아 있으면 최소 31(=주의) — 사이트가 변조됐다는 뜻이므로 */
+const log3 = n => Math.log(Math.max(1, n)) / Math.log(3);
+function pollution({ pages, dirtyPages, pending, hidden }) {
+  if (!pending) return { value: 0, why: "" };  // pending = 처리할 고유 문구 수
+  const parts = [
+    [pages ? dirtyPages / pages * 100 : 100, `오염 페이지 비율 ${pages ? Math.round(dirtyPages / pages * 100) : 100}%`],
+    [10 + 20 * log3(dirtyPages), `오염 페이지 ${dirtyPages}개`],
+    [5 + 15 * log3(pending), `처리할 광고 문구 ${pending}건`],
+    [hidden ? 31 : 0, `숨김형 광고 ${hidden}건`],
+  ];
+  const [value, why] = parts.reduce((a, b) => (b[0] > a[0] ? b : a));
+  return { value: Math.min(100, value), why };
+}
+/* 청정도(%) = 100 − 오염 지수. 1건이라도 남으면 100%로 반올림되지 않게 99%가 상한 */
+const cleanPct = p => (p.value ? Math.min(99, Math.round(100 - p.value)) : 100);
+const isHidden = c => c.technique !== "POSTED";
+const phraseKey = c => (c.evidence_text || "").replace(/\s+/g, " ").trim();  // 서버 list_runs의 pending_unique와 같은 기준
 /* 청정 등급: 청정도 10%마다 한 단계씩 초록 → 빨강 (100% 초록, 90~99% 거의 초록 … 0~10% 빨강) */
 const WORDS = [  // [최소 단계, 게이지 문구, 등급 이름] — 미세먼지 예보처럼 4단계, 색 구간과 맞춤
   [7, "오염", "매우 나쁨"],  // 0~39%  주황 → 빨강
@@ -592,7 +615,9 @@ async function loadHistory(selectId) {
     return;
   }
   ul.innerHTML = runs.map(r => {
-    const lv = r.entry_failed ? LEVEL_NA : levelOf(cleanPct(r.pages, r.dirty_pages ?? (r.pending ?? r.findings)));
+    const pending = r.pending ?? r.findings;
+    const lv = r.entry_failed ? LEVEL_NA : levelOf(cleanPct(pollution({ pages: r.pages, dirtyPages: r.dirty_pages ?? pending,
+                                                                       pending: r.pending_unique ?? pending, hidden: r.pending_hidden ?? 0 })));
     return `<li data-id="${esc(r.id)}" tabindex="0" class="lv-${lv.key} ${current && current.id === r.id ? "active" : ""}" style="--c:${lv.color}">
       <b title="${esc(r.entry_url)}">${esc(r.entry_url)}</b>
       <span>${esc(r.started_at.replace("T", " ").slice(0, 16))} · ${r.pages}페이지</span>
@@ -661,12 +686,18 @@ $("clearYes").onclick = async () => {
   $("clearYes").disabled = false;
 };
 
+/* 지금 보고 있는 점검의 오염 지수 (처리 필요 = 미검토 + 불법광고 확인) */
+function pollutionOf(r) {
+  const list = r.candidates.filter(isPending);
+  return pollution({ pages: r.pages, dirtyPages: new Set(list.map(c => c.url)).size,
+                     pending: new Set(list.map(phraseKey)).size, hidden: list.filter(isHidden).length });
+}
+
 /* 검토 상태가 바뀌면 이력 카드의 등급도 바로 갱신 */
 function refreshHistoryLevel() {
   const li = document.querySelector(`#history li[data-id="${current.id}"]`);
   if (!li) return;
-  const dirty = new Set(current.candidates.filter(isPending).map(c => c.url)).size;
-  const lv = current.entry_failed ? LEVEL_NA : levelOf(cleanPct(current.pages, dirty));
+  const lv = current.entry_failed ? LEVEL_NA : levelOf(cleanPct(pollutionOf(current)));
   li.classList.toggle("lv-na", lv === LEVEL_NA);
   li.style.setProperty("--c", lv.color);
   const em = li.querySelector("em");
@@ -683,7 +714,8 @@ function render() {
   const pendingList = ads.filter(isPending);
   const pending = pendingList.length;
   const dirtyPages = new Set(pendingList.map(c => c.url)).size;
-  const clean = cleanPct(r.pages, dirtyPages);
+  const pol = pollutionOf(r);
+  const clean = cleanPct(pol);
   const lv = r.entry_failed ? LEVEL_NA : levelOf(clean);
   renderWarnings(r);
 
@@ -698,6 +730,7 @@ function render() {
   $("gaugePct").textContent = r.entry_failed ? "청정도 -" : `청정도 ${clean}%`;
   $("gaugeCap").textContent = r.entry_failed ? "사이트에 접속하지 못했습니다"
     : pending ? `오염 페이지 ${dirtyPages} / ${r.pages}` : (ads.length ? "모든 불법광고 처리 완료" : "숨겨진 불법광고 없음");
+  $("gaugeWhy").textContent = !r.entry_failed && pending ? `등급 기준: ${pol.why}` : "";
 
   // 통계 카드 (두 번째 카드 = 처리 필요). 접속 실패면 0이 아니라 '-'
   const na = !!r.entry_failed;
