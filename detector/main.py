@@ -51,6 +51,12 @@ KST = timezone(timedelta(hours=9))
 EXTRACT_JS = (Path(__file__).parent / "extract.js").read_text(encoding="utf-8")
 SKIP_EXT = (".pdf", ".hwp", ".hwpx", ".doc", ".docx", ".xls", ".xlsx", ".zip", ".jpg", ".jpeg", ".png", ".gif", ".mp4")
 
+# Playwright 기본 UA에는 "HeadlessChrome"이 들어가 일부 사이트가 다른(또는 빈) 화면을 준다.
+# 일반 브라우저와 같은 UA·로캘·언어 헤더로 맞춰 실제 사이트에서 정상 문서를 받도록 한다.
+# (특정 사이트의 봇 차단을 뚫기 위한 지문 위조가 아니라, 크롤러가 평범한 한국어 클라이언트처럼 보이게 하는 기본 설정이다.)
+DEFAULT_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+              "(KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36")
+
 
 def _is_hash_route(fragment: str) -> bool:
     """#/path 또는 #!/path 형태의 SPA 해시 라우팅인지 판별."""
@@ -97,18 +103,38 @@ async def close_page(page):
         pass
 
 
+def slash_variant(url):
+    """끝 슬래시를 붙인 URL. 붙일 대상이 아니면(이미 '/'로 끝남, 파일 경로) None.
+
+    일부 서버는 '/govpay'를 내부 주소(예: http://192.168.x.x:8080/govpay/)로 잘못 리다이렉트해
+    접속이 끊기지만 '/govpay/'는 정상 응답한다.
+    """
+    p = urlparse(url)
+    if not p.path or p.path.endswith("/") or "." in p.path.rsplit("/", 1)[-1]:
+        return None
+    return urlunparse(p._replace(path=p.path + "/"))
+
+
 async def open_page(ctx, url, timeout_ms):
     """(페이지, 응답). 접속 실패 시 실패한 페이지는 바로 닫고 새 페이지로 1회 재시도, 그래도 안 되면 PageLoadError.
 
+    재시도는 끝 슬래시를 붙인 주소가 있으면 그 주소로, 없으면 같은 주소로 한다.
     같은 페이지에서 goto를 연달아 실패시키면 오류 화면 전환이 겹쳐 page.close()가 멈추므로 시도마다 새 페이지를 쓴다.
     """
-    for attempt in (1, 2):
+    attempts = [url, slash_variant(url) or url]
+    first_err = None
+    for attempt, target in enumerate(attempts, 1):
         page = await ctx.new_page()
         try:
-            return page, await page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
+            resp = await page.goto(target, wait_until="domcontentloaded", timeout=timeout_ms)
+            if target != url:
+                print(f"[info] {url} 접속 실패 → 끝 슬래시를 붙인 {target}로 접속")
+            return page, resp
         except Exception as e:
             await close_page(page)
-            if attempt == 2:
+            first_err = first_err or e
+            if attempt == len(attempts):
+                e = first_err  # 원래 주소의 실패 원인을 보고
                 raise PageLoadError(f"{type(e).__name__}: {str(e).splitlines()[0]}") from e
             await asyncio.sleep(1)
 
@@ -143,7 +169,7 @@ async def scan_page(ctx, url, timeout_ms):
         await close_page(page)
 
 
-async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None):
+async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_agent=DEFAULT_UA):
     """(페이지 목록, 문제 목록). progress(완료 페이지 수, 발견 페이지 수, 방금 끝난 URL) — UI 진행률 표시용.
 
     문제 목록: {"failed": 접속 실패 [{url, reason}], "http_errors": 4xx/5xx 응답 [{url, status}]}
@@ -166,7 +192,9 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None):
             queue.put_nowait(strip_fragment(su))
     async with async_playwright() as pw:
         browser = await pw.chromium.launch(headless=True)
-        ctx = await browser.new_context(viewport={"width": 1280, "height": 900}, ignore_https_errors=True)
+        ctx = await browser.new_context(viewport={"width": 1280, "height": 900}, ignore_https_errors=True,
+                                         user_agent=user_agent, locale="ko-KR",
+                                         extra_http_headers={"Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7"})
 
         async def worker():
             while True:
@@ -208,8 +236,13 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None):
     return pages, {"failed": failed, "http_errors": http_errors}
 
 
-def candidates_from(pages):
-    """페이지 스캔 결과 → (url, location, technique) 후보."""
+def candidates_from(pages, detect_posted=True):
+    """페이지 스캔 결과 → (url, location, technique) 후보.
+
+    detect_posted: 숨기지 않고 '게시된' 불법광고도 후보로 잡는다(기법 POSTED). 요강의 추가 탐지 유형.
+    은닉 기법(TRANSPARENT/OFFSCREEN/HOMOGLYPH/JAMO)과 달리 '보인다'는 것 자체는 단서가 아니므로,
+    룰 점수가 정상 확정(LOW 이하)을 넘는 텍스트만 후보로 올려 오탐·후보 폭증을 막는다.
+    """
     cands = {}
     for url, frames in pages:
         for prefix, data in frames:
@@ -231,6 +264,12 @@ def candidates_from(pages):
                     c = cands.setdefault(key, {"url": url, "location": prefix + t["selector"], "technique": tech,
                                                "evidence_text": t["text"], "signals": []})
                     c["signals"].extend(why)
+                if detect_posted and not checks:  # 닮은꼴·자모가 아닌 '보이는' 텍스트: 내용이 광고다울 때만
+                    s, kw = adscore.score(normalize(t["text"]))
+                    if adscore.verdict(s) != "clean":
+                        key = (norm_url(url), prefix + t["selector"], "POSTED")
+                        cands.setdefault(key, {"url": url, "location": prefix + t["selector"], "technique": "POSTED",
+                                               "evidence_text": t["text"], "signals": [f"keyword:{','.join(kw[:6])}"]})
     return list(cands.values())
 
 
@@ -271,20 +310,26 @@ def app_dir():
 DEFAULT_MODEL = app_dir() / "models" / "laya-illegal-ad"
 
 
+# 적격평가 대상 4종 (result.json). 그 외 추가 유형은 result_extra.json으로 분리한다.
+CORE_TECHNIQUES = {"HOMOGLYPH", "JAMO", "TRANSPARENT", "OFFSCREEN"}
+EXTRA_LABEL = {"POSTED": "게시형 불법광고(은닉 없음)"}
+
+
 def run(entry_url, out, max_pages=200, concurrency=4, timeout=15000, model=DEFAULT_MODEL, use_ml=True,
-        progress=None, phase=None):
+        progress=None, phase=None, user_agent=DEFAULT_UA, detect_posted=True):
     """크롤링 → 판정 → result.json/report.json 저장. report 딕셔너리를 돌려준다.
 
     phase(단계명): UI에 현재 단계(crawl/judge/save)를 알리는 콜백.
+    detect_posted: 게시형(은닉 없는) 불법광고도 탐지해 result_extra.json으로 분리 저장.
     """
     phase = phase or (lambda name: None)
     started = datetime.now(KST)
     t0 = time.perf_counter()
     phase("crawl")
-    pages, issues = asyncio.run(crawl(entry_url, max_pages, concurrency, timeout, progress))
+    pages, issues = asyncio.run(crawl(entry_url, max_pages, concurrency, timeout, progress, user_agent))
     t_crawl = time.perf_counter() - t0
     phase("judge")
-    cands = judge(candidates_from(pages), str(model), use_ml)
+    cands = judge(candidates_from(pages, detect_posted), str(model), use_ml)
     finished = datetime.now(KST)
     elapsed = round(time.perf_counter() - t0, 2)
 
@@ -292,17 +337,32 @@ def run(entry_url, out, max_pages=200, concurrency=4, timeout=15000, model=DEFAU
     hits = sorted((c for c in cands if c["verdict"] == "ad"), key=lambda c: (c["url"], c["location"], c["technique"]))
     meta = {"topic": TOPIC, "entry_url": entry_url, "started_at": started.isoformat(timespec="seconds"),
             "finished_at": finished.isoformat(timespec="seconds"), "elapsed_sec": elapsed, "tool_version": TOOL_VERSION}
+    # 적격평가 4종 → result.json, 그 외(게시형 등) → result_extra.json (technique="ETC" 고정)
+    core_hits = [c for c in hits if c["technique"] in CORE_TECHNIQUES]
+    extra_hits = [c for c in hits if c["technique"] not in CORE_TECHNIQUES]
     findings = [{"id": f"f_{i:03d}", "url": c["url"], "is_violation": True, "location": c["location"],
-                 "evidence_text": c["evidence_text"], "technique": c["technique"]} for i, c in enumerate(hits, 1)]
+                 "evidence_text": c["evidence_text"], "technique": c["technique"]} for i, c in enumerate(core_hits, 1)]
+    extra_findings = [{"id": f"f_{i:03d}", "url": c["url"], "location": c["location"],
+                       "evidence_text": c["evidence_text"], "technique": "ETC",
+                       "extra_finding": EXTRA_LABEL.get(c["technique"], c["technique"])}
+                      for i, c in enumerate(extra_hits, 1)]
     # 접속 실패 정보는 내부 리포트에만 기록 (result.json은 요강 스키마 그대로 유지)
     entry_failed = any(f["url"] == entry_url for f in issues["failed"])
     report = {"meta": meta, "pages": len(pages), "crawl_sec": round(t_crawl, 2), "entry_failed": entry_failed,
-              "failed_pages": issues["failed"], "http_errors": issues["http_errors"], "candidates": cands}
+              "failed_pages": issues["failed"], "http_errors": issues["http_errors"],
+              "extra_count": len(extra_findings), "candidates": cands}
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     (out / "result.json").write_text(json.dumps({"meta": meta, "findings": findings}, ensure_ascii=False, indent=2),
                                      encoding="utf-8")
     (out / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    # result_extra.json: 추가 유형이 있을 때만 생성 (적격평가 제출물과 섞이지 않도록 별도 파일)
+    extra_path = out / "result_extra.json"
+    if extra_findings:
+        extra_path.write_text(json.dumps({"meta": meta, "findings": extra_findings}, ensure_ascii=False, indent=2),
+                              encoding="utf-8")
+    elif extra_path.exists():
+        extra_path.unlink()  # 지난 실행의 result_extra.json이 남아 오해를 주지 않도록 정리
     return report
 
 
@@ -319,9 +379,14 @@ def main():
     ap.add_argument("--timeout", type=int, default=15000)
     ap.add_argument("--model", default=str(DEFAULT_MODEL))
     ap.add_argument("--no-ml", action="store_true", help="경계 구간을 Laya 없이 정상으로 처리")
+    ap.add_argument("--user-agent", default=DEFAULT_UA,
+                    help="크롤러 User-Agent (기본: 일반 Chrome). 점검 기관에 신원을 밝혀야 하면 뒤에 도구명을 덧붙여 쓰세요.")
+    ap.add_argument("--no-extra", action="store_true",
+                    help="게시형(은닉 없는) 불법광고 탐지를 끄고 적격평가 4종만 탐지")
     args = ap.parse_args()
 
-    report = run(args.entry_url, args.out, args.max_pages, args.concurrency, args.timeout, args.model, not args.no_ml)
+    report = run(args.entry_url, args.out, args.max_pages, args.concurrency, args.timeout, args.model, not args.no_ml,
+                 user_agent=args.user_agent, detect_posted=not args.no_extra)
     cands = report["candidates"]
     findings = sum(c["verdict"] == "ad" for c in cands)
     by = {}
@@ -329,6 +394,7 @@ def main():
         by.setdefault((c["decided_by"], c["verdict"]), 0)
         by[(c["decided_by"], c["verdict"])] += 1
     print(f"pages={report['pages']} candidates={len(cands)} findings={findings} "
+          f"(적격 4종 {findings - report['extra_count']} + 게시형 {report['extra_count']}) "
           f"elapsed={report['meta']['elapsed_sec']}s (crawl {report['crawl_sec']:.1f}s)")
     print("판정 분포:", {f"{k[0]}/{k[1]}": v for k, v in sorted(by.items())})
     if report["failed_pages"]:

@@ -20,6 +20,7 @@
   --coral: #e2484d; --coral-weak: #fde8e8;
   --violet: #7a61d9; --violet-weak: #eeeafb;
   --blue: #2f80d9; --blue-weak: #e5f0fc;
+  --rose: #d9458f; --rose-weak: #fbe6f1;
   --shadow: 0 10px 30px rgba(15, 80, 70, .08), 0 2px 6px rgba(15, 80, 70, .05);
   --radius: 20px;
   --mono: Consolas, "SF Mono", ui-monospace, monospace;
@@ -251,6 +252,7 @@ button.src .meter i { display: block; height: 100%; border-radius: 6px; backgrou
 .src-JAMO, .t-JAMO { --c: var(--amber); --cw: var(--amber-weak); }
 .src-TRANSPARENT, .t-TRANSPARENT { --c: var(--blue); --cw: var(--blue-weak); }
 .src-OFFSCREEN, .t-OFFSCREEN { --c: var(--coral); --cw: var(--coral-weak); }
+.src-POSTED, .t-POSTED { --c: var(--rose); --cw: var(--rose-weak); }
 .log { list-style: none; margin: 0; padding: 0; position: relative; }
 .log::before { content: ""; position: absolute; left: 9px; top: 8px; bottom: 8px; width: 2px; background: var(--line); }
 .log li { position: relative; display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 10px; align-items: start;
@@ -443,7 +445,7 @@ tr.detail td { background: #f7fbfa; }
       <p>URL 하나만 넣으면 하위 페이지·게시글·iframe까지 자동으로 점검합니다.</p>
       <ol>
         <li>점검할 웹사이트의 <b>시작 주소</b>를 넣고 <b>탐지 시작</b>을 누릅니다.</li>
-        <li>숨겨진 불법광고가 <b>은닉 기법</b>(닮은꼴 글자·자모 분해·투명 텍스트·화면 밖 은닉)별로 걸러집니다.</li>
+        <li>불법광고가 <b>탐지 유형</b>(닮은꼴 글자·자모 분해·투명 텍스트·화면 밖 은닉, 그리고 숨기지 않고 게시된 광고)별로 걸러집니다.</li>
         <li>항목을 누르면 <b>판정 근거</b>를 확인하고 <b>검토 상태·메모</b>를 남길 수 있습니다.</li>
         <li><b>조치 완료</b>할수록 <b>청정도</b>가 올라갑니다. 결과는 <b>엑셀(CSV)</b>로 전달하세요.</li>
       </ol>
@@ -473,7 +475,7 @@ tr.detail td { background: #f7fbfa; }
       <div class="row2" style="margin-top:22px">
         <section class="card">
           <h3><svg class="i"><use href="#ic-chart"/></svg>오염원 분석</h3>
-          <p>은닉 기법별 탐지 건수 · 누르면 해당 기법만 걸러 봅니다.</p>
+          <p>탐지 유형별 건수 · 누르면 해당 유형만 걸러 봅니다.</p>
           <div class="src-list" id="techTiles"></div>
         </section>
         <section class="card">
@@ -507,7 +509,7 @@ tr.detail td { background: #f7fbfa; }
       <div class="table-wrap">
         <table>
           <colgroup><col class="c-tech"><col><col class="c-page"><col class="c-judge"><col class="c-review"></colgroup>
-          <thead><tr><th>은닉 기법</th><th>탐지 문구</th><th>페이지</th><th>판정</th><th>검토 상태</th></tr></thead>
+          <thead><tr><th>탐지 유형</th><th>탐지 문구</th><th>페이지</th><th>판정</th><th>검토 상태</th></tr></thead>
           <tbody id="rows"></tbody>
         </table>
       </div>
@@ -517,9 +519,9 @@ tr.detail td { background: #f7fbfa; }
 <div class="toast" id="toast" role="status"></div>
 
 <script>
-const TECH = { HOMOGLYPH: "닮은꼴 글자", JAMO: "자모 분해", TRANSPARENT: "투명 텍스트", OFFSCREEN: "화면 밖 은닉" };
-const TECH_EN = { HOMOGLYPH: "Homoglyph", JAMO: "Jamo", TRANSPARENT: "Transparent", OFFSCREEN: "Offscreen" };
-const TECH_MARK = { HOMOGLYPH: "Aа", JAMO: "ㄱㅏ", TRANSPARENT: "◌", OFFSCREEN: "⇤" };
+const TECH = { HOMOGLYPH: "닮은꼴 글자", JAMO: "자모 분해", TRANSPARENT: "투명 텍스트", OFFSCREEN: "화면 밖 은닉", POSTED: "게시형 광고" };
+const TECH_EN = { HOMOGLYPH: "Homoglyph", JAMO: "Jamo", TRANSPARENT: "Transparent", OFFSCREEN: "Offscreen", POSTED: "Posted" };
+const TECH_MARK = { HOMOGLYPH: "Aа", JAMO: "ㄱㅏ", TRANSPARENT: "◌", OFFSCREEN: "⇤", POSTED: "✎" };
 const REVIEW = { new: "미검토", confirmed: "불법광고 확인", false_positive: "오탐", resolved: "조치 완료" };
 const PHASE = { start: "준비 중", crawl: "페이지 수집 중", judge: "불법광고 판정 중", save: "결과 저장 중" };
 const $ = id => document.getElementById(id);
