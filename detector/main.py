@@ -74,6 +74,18 @@ def norm_url(url):
     return urlunparse(("", p.netloc.lower(), p.path.rstrip("/") or "/", "", query, frag))
 
 
+def site_key(netloc):
+    """같은 사이트 비교용 호스트: 대소문자와 맨 앞 'www.'를 무시한다 (example.com == www.example.com)."""
+    n = netloc.lower()
+    return n[4:] if n.startswith("www.") else n
+
+
+def crawl_key(url):
+    """크롤링 중복 방지용 키. norm_url과 같되 www 유무는 같은 페이지로 본다."""
+    k = norm_url(url)
+    return "//" + k[6:] if k.startswith("//www.") else k
+
+
 def strip_fragment(url):
     p = urlparse(url)
     if _is_hash_route(p.fragment):
@@ -141,12 +153,20 @@ async def open_page(ctx, url, timeout_ms):
             await asyncio.sleep(1)
 
 
-async def scan_page(ctx, url, timeout_ms):
-    """(최종 URL, 프레임별 추출 결과, HTTP 상태). 접속 자체가 안 되면 PageLoadError."""
+async def scan_page(ctx, url, timeout_ms, on_site=None):
+    """(최종 URL, 프레임별 추출 결과, HTTP 상태). 접속 자체가 안 되면 PageLoadError.
+
+    on_site(최종 URL)가 False면 다른 사이트로 넘어간 것(예: 게시판 link.php가 외부로 302)이므로
+    더 기다리지 않고 프레임 목록 자리에 None을 돌려준다.
+    """
     t0 = time.perf_counter()
     page, resp = await open_page(ctx, url, timeout_ms)
     try:
         status = resp.status if resp else None
+        # about:blank 등 http(s)가 아닌 도착 주소(경고창 후 history.back 하는 오류 페이지 등)는 외부 이동이 아님
+        web = page.url.startswith(("http://", "https://"))
+        if on_site is not None and web and not on_site(page.url):
+            return strip_fragment(page.url), None, status
         try:  # 스크립트로 늦게 삽입되는 광고까지 보도록 네트워크가 잠잠해질 때까지 대기 (남은 시간 안에서)
             left = timeout_ms - (time.perf_counter() - t0) * 1000
             await page.wait_for_load_state("networkidle", timeout=max(1000, left))
@@ -166,7 +186,7 @@ async def scan_page(ctx, url, timeout_ms):
                 frames.append((await frame_prefix(fr), data))
             except Exception:
                 continue
-        return strip_fragment(page.url), frames, status
+        return strip_fragment(page.url if page.url.startswith(("http://", "https://")) else url), frames, status
     finally:
         await close_page(page)
 
@@ -178,24 +198,29 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
     max_pages: 방문할 최대 페이지 수(0 = 제한 없음). deadline: time.perf_counter() 기준 크롤링 마감 시각(None = 없음).
     마감이 되면 새 페이지는 열지 않고, 열어 둔 페이지만 마저 검사한 뒤 끝낸다.
     문제 목록: {"failed": 접속 실패 [{url, reason}], "http_errors": 4xx/5xx 응답 [{url, status}],
+               "external_skipped": 다른 사이트로 넘어가 제외한 페이지 [{url, final_url}],
                "stopped_by_time": 마감으로 멈췄는지, "left_in_queue": 못 본 대기 주소 수, "dropped_endless": 버린 검색·정렬 주소 수}
+    점검 범위는 진입 사이트(www 유무 무시)뿐이다. 링크 주소뿐 아니라 리다이렉트 이후의 최종 주소도 검사한다.
     """
-    host = urlparse(entry).netloc
+    site = {"host": urlparse(entry).netloc}
+
+    def on_site(u):
+        return site_key(urlparse(u).netloc) == site_key(site["host"])
+
     frontier, results = Frontier(), []
-    failed, http_errors = [], []
+    failed, http_errors, external = [], [], []
     frame_urls = set()  # iframe으로 삽입된 문서: 상위 페이지 기준으로 보고하므로 단독 페이지로 크롤링하지 않음
-    frontier.add(entry, norm_url(entry), depth=0)
+    frontier.add(entry, crawl_key(entry), depth=0)
 
     def crawlable(links):
-        """같은 호스트의 문서 링크만 [(url, key, text)]로. iframe 문서는 상위 페이지 기준으로 보고하므로 제외."""
+        """같은 사이트의 문서 링크만 [(url, key, text)]로. iframe 문서는 상위 페이지 기준으로 보고하므로 제외."""
         out = []
         for link, text in links:
             p = urlparse(link)
-            if p.scheme not in ("http", "https") or p.netloc != host or p.path.lower().endswith(SKIP_EXT):
+            if p.scheme not in ("http", "https") or not on_site(link) or p.path.lower().endswith(SKIP_EXT):
                 continue
-            key = norm_url(link)
-            if key not in frame_urls:
-                out.append((strip_fragment(link), key, text))
+            if norm_url(link) not in frame_urls:
+                out.append((strip_fragment(link), crawl_key(link), text))
         return out
 
     # sitemap.xml에 등록된 URL도 대기열에 (링크 탐색으로 닿지 않는 고아 페이지 대응). 우선순위는 다른 주소와 똑같이 매긴다.
@@ -227,7 +252,15 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
                 state["inflight"] += 1
                 state["visited"] += 1
                 try:
-                    final_url, frames, status = await scan_page(ctx, url, timeout_ms)
+                    is_entry = url == entry  # 시작 주소가 www 등 다른 주소로 넘어가면 그곳을 사이트로 삼는다
+                    final_url, frames, status = await scan_page(ctx, url, timeout_ms, None if is_entry else on_site)
+                    if is_entry and not on_site(final_url):
+                        site["host"] = urlparse(final_url).netloc
+                        print(f"[info] 시작 주소가 {site['host']}로 이동 → 이 사이트를 점검 범위로 사용")
+                    frontier.seen.add(crawl_key(final_url))  # 리다이렉트 도착지를 또 크롤링하지 않도록
+                    if frames is None:  # 다른 사이트로 넘어감: 점검·링크 추적 모두 하지 않는다
+                        external.append({"url": url, "final_url": final_url})
+                        continue
                     results.append((final_url, frames))
                     visit_log.append([round(time.perf_counter() - t_start, 1), final_url, url])
                     if status and status >= 400:  # 오류 응답이어도 본문은 검사하되 기록은 남김
@@ -240,7 +273,7 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
                 finally:
                     state["inflight"] -= 1
                     if progress:
-                        progress(len(results) + len(failed), len(frontier.seen), url)
+                        progress(len(results) + len(failed) + len(external), len(frontier.seen), url)
 
         await asyncio.gather(*(worker() for _ in range(concurrency)))
         await browser.close()
@@ -248,7 +281,8 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
     pages = [(u, f) for u, f in results if norm_url(u) not in frame_urls]
     return pages, {"failed": failed, "http_errors": http_errors, "stopped_by_time": state["stopped_by_time"],
                    "left_in_queue": len(frontier), "dropped_endless": frontier.dropped_endless,
-                   "skipped_utility": frontier.skipped_utility, "visit_log": visit_log}
+                   "skipped_utility": frontier.skipped_utility, "visit_log": visit_log,
+                   "external_skipped": external}
 
 
 def candidates_from(pages, detect_posted=True):
@@ -389,7 +423,7 @@ def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT
               "failed_pages": issues["failed"], "http_errors": issues["http_errors"],
               "stopped_by_time": issues["stopped_by_time"], "left_in_queue": issues["left_in_queue"],
               "dropped_endless": issues["dropped_endless"], "skipped_utility": issues["skipped_utility"], "time_budget": time_budget, "llm_reserve": llm_reserve,
-              "visit_log": issues["visit_log"],
+              "visit_log": issues["visit_log"], "external_skipped": issues["external_skipped"],
               "extra_count": len(extra_findings), "candidates": cands}
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
