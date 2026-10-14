@@ -105,6 +105,9 @@ async def frame_prefix(frame):
     return "".join(c + " >>> " for c in chain)
 
 
+ENTRY_TIMEOUT_MS = 45000  # 시작 페이지 접속 제한 시간 (일반 페이지는 --timeout, 기본 15초)
+
+
 class PageLoadError(Exception):
     """페이지에 접속하지 못함(연결 거부·DNS 실패·시간 초과 등). 브라우저 오류 화면을 '깨끗한 페이지'로 오판하지 않기 위해 구분한다."""
 
@@ -129,16 +132,37 @@ def slash_variant(url):
     return urlunparse(p._replace(path=p.path + "/"))
 
 
-async def open_page(ctx, url, timeout_ms):
+async def guard_navigation(page, on_site, blocked):
+    """페이지가 스크립트로 다른 사이트로 넘어가려 하면 막는다(blocked에 그 주소를 기록).
+
+    공공 사이트에 심어진 기생 페이지는 열자마자 성인·도박 사이트로 넘긴다. 막지 않으면 크롤러가 광고 사이트에 접속하고,
+    점검 대상인 기생 페이지 자체는 '다른 사이트로 이동'으로 빠져 검사되지 않는다. 문서 요청만 보고 나머지는 바로 통과시킨다.
+    서버 리다이렉트(302)는 브라우저가 처리해 여기서 막히지 않으므로 scan_page의 최종 주소 확인이 따로 맡는다.
+    """
+    async def handler(route, request):
+        if (request.resource_type == "document" and request.frame == page.main_frame
+                and request.url.startswith(("http://", "https://")) and not on_site(request.url)):
+            blocked.append(request.url)
+            # abort하면 크롬이 오류 화면으로 바꿔 원래 문서가 사라진다. 204(내용 없음)로 답하면 이동만 취소되고 그대로 남는다.
+            await route.fulfill(status=204, body="")
+        else:
+            await route.continue_()
+    await page.route("**/*", handler)
+
+
+async def open_page(ctx, url, timeout_ms, on_site=None, blocked=None):
     """(페이지, 응답). 접속 실패 시 실패한 페이지는 바로 닫고 새 페이지로 1회 재시도, 그래도 안 되면 PageLoadError.
 
     재시도는 끝 슬래시를 붙인 주소가 있으면 그 주소로, 없으면 같은 주소로 한다.
     같은 페이지에서 goto를 연달아 실패시키면 오류 화면 전환이 겹쳐 page.close()가 멈추므로 시도마다 새 페이지를 쓴다.
+    on_site를 주면 다른 사이트로 넘어가는 스크립트 이동을 막고 blocked에 기록한다(guard_navigation).
     """
     attempts = [url, slash_variant(url) or url]
     first_err = None
     for attempt, target in enumerate(attempts, 1):
         page = await ctx.new_page()
+        if on_site is not None:
+            await guard_navigation(page, on_site, blocked if blocked is not None else [])
         try:
             resp = await page.goto(target, wait_until="domcontentloaded", timeout=timeout_ms)
             if target != url:
@@ -160,7 +184,8 @@ async def scan_page(ctx, url, timeout_ms, on_site=None):
     더 기다리지 않고 프레임 목록 자리에 None을 돌려준다.
     """
     t0 = time.perf_counter()
-    page, resp = await open_page(ctx, url, timeout_ms)
+    blocked = []
+    page, resp = await open_page(ctx, url, timeout_ms, on_site, blocked)
     try:
         status = resp.status if resp else None
         # about:blank 등 http(s)가 아닌 도착 주소(경고창 후 history.back 하는 오류 페이지 등)는 외부 이동이 아님
@@ -186,6 +211,8 @@ async def scan_page(ctx, url, timeout_ms, on_site=None):
                 frames.append((await frame_prefix(fr), data))
             except Exception:
                 continue
+        if blocked and frames:  # 다른 사이트로 넘기려던 페이지 — 판정 때 그 페이지 문구에 가산점 (candidates_from)
+            frames[0][1]["blocked_nav"] = sorted({urlparse(b).netloc for b in blocked})
         return strip_fragment(page.url if page.url.startswith(("http://", "https://")) else url), frames, status
     finally:
         await close_page(page)
@@ -253,7 +280,9 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
                 state["visited"] += 1
                 try:
                     is_entry = url == entry  # 시작 주소가 www 등 다른 주소로 넘어가면 그곳을 사이트로 삼는다
-                    final_url, frames, status = await scan_page(ctx, url, timeout_ms, None if is_entry else on_site)
+                    # 시작 페이지를 못 열면 점검 전체가 0건이 된다 — 첫 응답만 8~10초 걸리는 사이트(s-solution 등)도 있어 넉넉히 기다린다
+                    page_timeout = max(timeout_ms, ENTRY_TIMEOUT_MS) if is_entry else timeout_ms
+                    final_url, frames, status = await scan_page(ctx, url, page_timeout, None if is_entry else on_site)
                     if is_entry and not on_site(final_url):
                         site["host"] = urlparse(final_url).netloc
                         print(f"[info] 시작 주소가 {site['host']}로 이동 → 이 사이트를 점검 범위로 사용")
@@ -285,23 +314,69 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
                    "external_skipped": external}
 
 
+LINK_FARM_MIN = 3      # 같은 외부 사이트로 가는 본문 링크가 이만큼 이상이고
+LINK_FARM_TEXT_MAX = 30  # 링크 글자가 짧은 키워드(이 글자 수 이하)이며
+LINK_FARM_BONUS = 3    # 그중 하나라도 광고 키워드면 → 그 사이트로 가는 링크 전부에 가산점
+REDIRECT_BONUS = 2     # 페이지가 스크립트로 다른 사이트로 넘기려 함(기생 페이지) → 광고 근거가 있는 문구에 가산점
+HEAD_TEXT_MIN = 10     # 본문 글자 요소가 이보다 적은 페이지는 제목·메타 태그 문구도 검사
+
+
+def link_farms(page_url, texts):
+    """본문에 끼워 넣은 광고 링크 묶음 찾기 → {링크 글자 항목 id: 외부 호스트}.
+
+    공공 게시판 스팸의 전형: 정상 글(등산 정보 등) 문장 사이사이에 같은 외부 사이트로 가는 <a>를 여러 개 넣고
+    링크 글자만 '출장마사지·홈타이·토닥이…'로 바꾼다 (C-11·C-12). 링크 글자 하나만 보면 '마사지'처럼 약하지만
+    '같은 외부 사이트로 가는 짧은 링크 여러 개 + 그중 광고 키워드'라는 묶음 자체가 강한 신호다.
+    관련 사이트·SNS 목록(서로 다른 사이트, 같은 글자 반복)은 조건(같은 호스트·서로 다른 글자 2개 이상)에서 걸러진다.
+    """
+    host = site_key(urlparse(page_url).netloc)
+    by_host = {}
+    for t in texts:
+        href = t.get("href") or ""
+        h = site_key(urlparse(href).netloc) if href.startswith(("http://", "https://")) else ""
+        if h and h != host and len(t["text"]) <= LINK_FARM_TEXT_MAX:
+            by_host.setdefault(h, []).append(t)
+    farms = {}
+    for h, ts in by_host.items():
+        if len(ts) < LINK_FARM_MIN or len({t["text"] for t in ts}) < 2:
+            continue
+        if any(adscore.score(normalize(t["text"]))[0] >= 2.5 for t in ts):
+            farms.update((id(t), h) for t in ts)
+    return farms
+
+
 def candidates_from(pages, detect_posted=True):
     """페이지 스캔 결과 → (url, location, technique) 후보.
 
     detect_posted: 숨기지 않고 '게시된' 불법광고도 후보로 잡는다(기법 POSTED). 요강의 추가 탐지 유형.
     은닉 기법(TRANSPARENT/OFFSCREEN/HOMOGLYPH/JAMO)과 달리 '보인다'는 것 자체는 단서가 아니므로,
-    룰 점수가 정상 확정(LOW 이하)을 넘는 텍스트만 후보로 올려 오탐·후보 폭증을 막는다.
+    룰 점수가 정상 확정(LOW 이하)을 넘는 텍스트나 본문 삽입 링크 묶음(link_farms)만 후보로 올려 오탐·후보 폭증을 막는다.
     """
     cands = {}
     for url, frames in pages:
         for prefix, data in frames:
+            farms = link_farms(data.get("frame_url") or url, data["texts"]) if detect_posted else {}
+            redirect = [(f"external-redirect:{h}", REDIRECT_BONUS) for h in data.get("blocked_nav", [])][:1]
             for h in data["hidden"]:
                 for tech, why in h["signals"]:
                     key = (norm_url(url), prefix + h["selector"], tech)
                     c = cands.setdefault(key, {"url": url, "location": prefix + h["selector"], "technique": tech,
                                                "evidence_text": h["text"], "signals": []})
                     c["signals"].append(why)
-            for t in data["texts"]:
+            # 제목·메타(head)는 본문이 거의 없거나 다른 사이트로 넘기려던 페이지(기생 페이지)에서만 본다.
+            # 보통 게시판 페이지는 제목이 게시글 제목과 같아 같은 문구를 두 번 보고하게 되므로 쓰지 않는다.
+            all_head = data.get("head", [])
+            title = next((h["text"] for h in all_head if h["selector"] == "head > title"), "")
+            # 제목·메타(head)는 본문이 거의 없거나 다른 사이트로 넘기려던 페이지(기생 페이지), 또는 제목만 광고로 바꿔치기된
+            # 페이지(제목이 광고 점수인데 본문에 그 제목이 없음)에서만 본다. 보통은 게시글 제목과 겹쳐 같은 문구를 두 번 보고하게 된다.
+            body = {t["text"] for t in data["texts"]}
+            swapped = adscore.score(normalize(title))[0] >= adscore.HIGH and not any(title in b or b in title for b in body if len(b) >= 8)
+            head = all_head if (redirect or swapped or len(data["texts"]) < HEAD_TEXT_MIN) else []
+            # 페이지 맥락: 문서 제목 + 본문의 제목 요소(h1~h3, class에 tit·subject·title). 사이트 공통 <title>("공지사항")만으로는 부족
+            headings = [t["text"] for t in data["texts"] if t["tag"] in ("h1", "h2", "h3")
+                        or any(k in str(t.get("cls", "")).lower() for k in ("tit", "subject", "headline"))][:8]
+            page_ctx = adscore.page_context(normalize(" ".join([title] + headings))) if detect_posted else []
+            for t in data["texts"] + head:
                 checks = []
                 hg = homoglyph_signals(t["raw"])
                 if hg:
@@ -315,10 +390,17 @@ def candidates_from(pages, detect_posted=True):
                     c["signals"].extend(why)
                 if detect_posted and not checks:  # 닮은꼴·자모가 아닌 '보이는' 텍스트: 내용이 광고다울 때만
                     s, kw = adscore.score(normalize(t["text"]))
-                    if adscore.verdict(s) != "clean":
+                    farm = farms.get(id(t))
+                    if adscore.verdict(s) != "clean" or farm or (redirect and s > 0):  # 후보 선정은 문장 자체 점수로
                         key = (norm_url(url), prefix + t["selector"], "POSTED")
-                        cands.setdefault(key, {"url": url, "location": prefix + t["selector"], "technique": "POSTED",
-                                               "evidence_text": t["text"], "signals": [f"keyword:{','.join(kw[:6])}"]})
+                        c = cands.setdefault(key, {"url": url, "location": prefix + t["selector"], "technique": "POSTED",
+                                                   "evidence_text": t["text"], "signals": [f"keyword:{','.join(kw[:6])}"]})
+                        context = [(f"link-farm:{farm}", LINK_FARM_BONUS)] if farm else []
+                        context += redirect if s > 0 else []
+                        context += page_ctx  # 제목이 경고·보도 글이면 감점 (게시형만 — 숨김형 광고는 그대로)
+                        if context:  # 판정 때 점수에 더할 문맥 가산점 (judge 참고)
+                            c["signals"].extend(n for n, _ in context)
+                            c["context"] = context
     return list(cands.values())
 
 
@@ -375,6 +457,9 @@ def judge(cands, model_path, use_ml, deadline=None):
     for c in cands:
         c["normalized"] = normalize(c["evidence_text"])
         c["score"], c["hits"] = adscore.score(c["normalized"])
+        for name, w in c.get("context", []):  # 글자 밖 단서(본문 삽입 링크 묶음 등) 가산점
+            c["score"] = round(c["score"] + w, 2)
+            c["hits"].append(name)
         c["verdict"] = adscore.verdict(c["score"])
         c["decided_by"] = "rules"
     border = [c for c in cands if c["verdict"] == "borderline"]

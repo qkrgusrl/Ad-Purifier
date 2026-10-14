@@ -63,6 +63,16 @@
     for (const n of el.childNodes) if (n.nodeType === 3) t += n.nodeValue;
     return norm(t);
   }
+  // 요소 안의 글자 (textContent와 같되 script/style 등 코드 내용은 뺀다 — 숨김 블록 안의 CSS·JS가 광고 문구로 채점되지 않도록)
+  const CODE_SEL = 'script,style,noscript,template';
+  function textOf(el) {
+    if (!el.querySelector(CODE_SEL)) return el.textContent;
+    let t = '';
+    const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let n = w.nextNode(); n; n = w.nextNode())
+      if (!n.parentElement.closest(CODE_SEL)) t += n.nodeValue;
+    return t;
+  }
 
   const hidden = [], texts = [];
 
@@ -154,16 +164,20 @@
     }
 
     const own = ownText(el);
-    const full = norm(el.textContent);
+    const rawFull = signals.length ? textOf(el) : '';
+    const full = norm(rawFull);
+    const link = el.closest('a[href]');
     if (signals.length && full) {
       const sel = inShadow(el) ? shadowSelector(el) : selector(el);
       hidden.push({ selector: sel, tag: el.tagName.toLowerCase(), cls: el.className || '',
-                    text: full, raw: el.textContent, signals, href: el.closest('a') ? el.closest('a').href : null });
+                    text: full, raw: rawFull, signals, href: link ? link.href : null });
     }
     if (own) {
       const sel = inShadow(el) ? shadowSelector(el) : selector(el);
+      // href: 링크 글자면 링크 주소 — 본문에 같은 외부 사이트 링크를 여러 개 끼워 넣은 '삽입형' 판정에 쓴다
       texts.push({ selector: sel, tag: el.tagName.toLowerCase(), cls: el.className || '', text: own,
-                   raw: [...el.childNodes].filter(n => n.nodeType === 3).map(n => n.nodeValue).join('') });
+                   raw: [...el.childNodes].filter(n => n.nodeType === 3).map(n => n.nodeValue).join(''),
+                   href: link ? link.href : null });
     }
   }
 
@@ -256,7 +270,20 @@
     }
   }
 
+  // ---- 문서 제목·메타 설명 (head) ----
+  // 기생 페이지는 본문 없이 제목·메타에만 광고 문구를 넣고 바로 다른 사이트로 넘긴다(검색엔진 노출용).
+  // 보통 페이지에서는 게시글 제목과 겹치므로, 후보로 쓸지는 main.candidates_from이 정한다.
+  const head = [];
+  const titleEl = document.querySelector('head > title');
+  if (titleEl && norm(titleEl.textContent))
+    head.push({ selector: 'head > title', text: norm(titleEl.textContent), raw: titleEl.textContent });
+  for (const m of document.querySelectorAll('meta[name="description"], meta[name="keywords"], meta[property="og:title"], meta[property="og:description"]')) {
+    const v = norm(m.getAttribute('content'));
+    const key = m.hasAttribute('name') ? 'name' : 'property';
+    if (v) head.push({ selector: `meta[${key}="${m.getAttribute(key)}"]`, text: v, raw: m.getAttribute('content') });
+  }
+
   // Array.from 대신 전개 구문: Prototype.js 등 옛 라이브러리가 Array.from을 덮어써 Set을 빈 배열로 만든다
   const links = [...linkMap];
-  return { hidden, texts, links };
+  return { hidden, texts, links, head };
 }
