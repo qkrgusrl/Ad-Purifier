@@ -36,12 +36,15 @@ KO_KEYWORDS = [
     ("맛사지", 1), ("업소녀", 3), ("오피걸", 3), ("보도방", 3), ("텐프로", 3), ("룸싸롱", 2.5), ("룸살롱", 2.5),
     ("풀싸롱", 2.5), ("풀사롱", 2.5), ("무료만남", 2), ("성인만남", 3), ("채팅어플", 1.5), ("야설", 2.5), ("포르노", 3),
     ("스와핑", 2.5), ("섹스", 2.5),
+    # 유흥업소 은어·구인 (hyojae 스팸: '강남 쩜오 알바 【010-…】', '논현 셔츠룸', '하이퍼블릭') — 2026-10-15 UI 비교에서 jev 의존하던 것
+    ("쩜오", 3), ("셔츠룸", 3), ("하이퍼블릭", 3), ("텐카페", 3), ("가라오케", 1),
     ("마사지", 1),  # 안마사 직업훈련 등 정상 글이 많아 단독은 약하게
     # 불법 금융
     ("작업대출", 3), ("당일대출", 3), ("무직자", 2), ("신용불량", 2), ("대출", 1), ("소액결제현금화", 3), ("소액대출", 2.5),
-    ("카드현금화", 3), ("카드깡", 3),
+    ("카드현금화", 3), ("카드깡", 3), ("작대", 2.5),  # 작대 = 작업대출 줄임말 ('작대기'는 KO_EXCLUDE)
     # 대포·계좌 거래 (금융사기 수단)
     ("대여계좌", 3), ("계좌임대", 3), ("계좌매입", 3), ("대포통장", 3), ("대포유심", 3), ("대포폰", 3),
+    ("통장임대", 3), ("통장대여", 3), ("통장매입", 3), ("법인장대여", 3),
     # 불법 의약품 판매 (발기부전 치료제·구충제 해외 직구) — 2026-10-15 라벨 데이터에서 규칙이 가장 많이 놓친 유형
     ("비아그라", 3), ("시알리스", 3), ("카마그라", 3), ("레비트라", 3), ("실데나필", 3), ("타다라필", 3), ("프릴리지", 3),
     ("성인약국", 3), ("구매대행", 1.5), ("직구", 1),
@@ -49,7 +52,7 @@ KO_KEYWORDS = [
     # 검색 상위노출 도배 스팸 (게시판에 '구글찌라시' 광고를 도배)
     ("찌라시", 2.5), ("상위노출", 2.5), ("구글상위", 2.5), ("도배업체", 2), ("도배대행", 2.5), ("페이지도배", 2.5),
     # 게임 핵 판매 ('핵' 단독은 '핵심'에 걸려 쓰지 않음)
-    ("핵판매", 3), ("핵사이트", 3), ("오토에임", 3), ("에임핵", 3),
+    ("핵판매", 3), ("핵사이트", 3), ("오토에임", 3), ("에임핵", 3), ("월핵", 3), ("핵자판기", 3), ("핵쟁이", 2.5),
     # 마약
     ("필로폰", 3), ("대마초", 3), ("떨액", 3),
     # 불법 스포츠/영상 중계 (피라시) — 게시형 스팸에서 급증
@@ -69,7 +72,7 @@ KO_KEYWORDS = [
     ("티비", 1),  # OO티비 등 불법 중계/도박 사이트 브랜드 접미사
 ]
 # 키워드를 품고 있지만 광고와 무관한 단어 — 키워드 비교 전에 지운다 ('오피' ⊂ '오피니언', '토토' ⊂ '토토로')
-KO_EXCLUDE = re.compile("오피니언|오피스|오피셜|에티오피아|토토로|포토토")
+KO_EXCLUDE = re.compile("오피니언|오피스|오피셜|에티오피아|토토로|포토토|작대기")
 EN_KEYWORDS = [  # 단어 앞 경계 필수 ('better'의 bet, 'timeslots'의 slot 같은 부분일치 방지)
     (r"\bcasino", 3), (r"\bbaccarat", 3), (r"\bslots?\b", 3), (r"\btoto\b", 3), (r"\bbet(s|ting)?\b", 3),
     (r"\bpoker", 2), (r"\bholdem", 3), (r"\bjackpot", 2), (r"\bporn", 3), (r"\bxxx\b", 2),
@@ -90,16 +93,18 @@ EN_NEGATIVE = [(r"\billegal", 2), (r"\bpreventi", 2), (r"\bregulat", 1.5), (r"\b
 PAGE_CONTEXT_MAX = 4  # 페이지 제목의 경고·보도 맥락으로 깎는 최대 점수
 EMAIL = re.compile(r"[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)+")
 # 앞뒤가 숫자면 번호가 아니다 (달력 '…91011121314151…' 안의 '011-1213-1415' 같은 가짜 일치 방지)
+DOMAIN = re.compile(r"(?<![a-z0-9가-힣-])[a-z0-9가-힣-]+(?:\.[a-z0-9가-힣-]+)*\.(xyz|top|club|vip|bet|win|casino|io|me|cc|com|net)\b")
 PHONE = re.compile(r"(?<!\d)01[016789][-. ]?\d{3,4}[-. ]?\d{4}(?!\d)")
 PAID_LINE = re.compile(r"(?<!\d)0(?:60|50\d)[-. ]?\d{3,4}[-. ]?\d{4}(?!\d)")  # 060 유료 전화·050X 안심번호 (폰팅 등)
 PATTERNS = [
     # 메신저 ID (@abc123). 이메일·CSS 규칙(@media 등)은 아님 — 이메일은 아래에서 미리 지운다
-    (re.compile(r"(?<![a-z0-9._-])@(?!media|import|font|keyframes|charset|supports|page)[a-z0-9_]{3,}"), 2,
-     "messenger-id"),
+    # 플랫폼 이름(@KAKAO PLUS 등 사이트 하단 SNS 링크)은 아이디가 아님
+    (re.compile(r"(?<![a-z0-9._-])@(?!media|import|font|keyframes|charset|supports|page"
+                r"|(?:kakao|naver|instagram|facebook|youtube|twitter|gmail|daum)\b)[a-z0-9_]{3,}"), 2, "messenger-id"),
     (PHONE, 1.5, "phone"),
     (PAID_LINE, 2.5, "paid-line"),
     # 도메인 (한글 도메인 '찌라시.com'도). 라벨 데이터 광고 65 / 정상 1
-    (re.compile(r"(?<![a-z0-9가-힣-])[a-z0-9가-힣-]+\.(xyz|top|club|vip|bet|win|casino|io|me|cc|com|net)\b"), 1.5, "domain"),
+    (DOMAIN, 1.5, "domain"),
     (re.compile(r"\d+\s*%"), 0.5, "percent"),  # 광고 44 / 정상 126 — 통계·할인율에 흔해 약하게
     (re.compile(r"\b[a-z]+\d{2,}\b"), 1, "code-like"),  # 가입코드·아이디(abc123) — 광고 197 / 정상 9
 ]
@@ -128,8 +133,22 @@ def _disguised(t):
     return len(PHONE.findall(t)) + len(PAID_LINE.findall(t)) + len(NINETEEN.findall(joined(t)))
 
 
-def explain(norm_text):
-    """(점수, 항목별 점수 [(근거 이름, 가중치)]) — 감점 항목은 가중치가 음수. 판정 근거를 항목별로 남기기 위한 것."""
+COMMON_LABELS = {"www", "m", "co", "or", "go", "ac", "re", "ne", "kr", "com", "net", "org", "html", "http", "https"}
+
+
+def _own_domain(text, site):
+    """문구의 도메인이 모두 점검 중인 사이트 자신이거나 그 기관 이름을 담고 있으면 True
+    ('효재 자사몰(www.hyojae.com)', hrd.jeonbuk.go.kr 페이지의 'jeonbuk.npagoda.com' 교육 접속 주소)."""
+    if not site:
+        return False
+    names = {l for l in re.split(r"[.\-]", site.lower()) if len(l) >= 4 and l not in COMMON_LABELS}
+    doms = [m.group(0) for m in DOMAIN.finditer(text)]
+    return bool(doms) and all(any(n in d for n in names) for d in doms)
+
+
+def explain(norm_text, site=None):
+    """(점수, 항목별 점수 [(근거 이름, 가중치)]) — 감점 항목은 가중치가 음수. 판정 근거를 항목별로 남기기 위한 것.
+    site(점검 중인 사이트 호스트)를 주면 그 사이트·기관 이름이 든 도메인은 광고 도메인으로 세지 않는다."""
     plain = deobfuscate_digits(norm_text)  # 'l9금', 'o6o-5oo-266o' 같은 숫자 위장 복원
     c = KO_EXCLUDE.sub("", compact(plain))
     ct = KO_EXCLUDE.sub("", joined(plain))
@@ -140,7 +159,8 @@ def explain(norm_text):
     words = norm_text + " " + plain + " " + " ".join(leet_words(norm_text))  # 원문도 함께 ('casino777'이 복원으로 깨지지 않게)
     detail += [(re.sub(r"\\b|\(.*|\?", "", pat), w) for pat, w in EN_KEYWORDS if re.search(pat, words)]
     no_mail = EMAIL.sub(" ", plain)  # 연락처 안내의 이메일은 광고 신호가 아니다 (메신저 ID·도메인으로 세지 않음)
-    detail += [(name, w) for pat, w, name in PATTERNS if pat.search(no_mail)]
+    own = _own_domain(no_mail, site)
+    detail += [(name, w) for pat, w, name in PATTERNS if pat.search(no_mail) and not (name == "domain" and own)]
     if plain != norm_text and _disguised(norm_text) < _disguised(plain):
         detail.append(("digit-obfuscation", 2))  # 연락처·'19금'을 글자로 위장해 적은 흔적 자체가 스팸 신호
     if len(EMPHASIS.findall(norm_text)) >= 2:  # 장식 이모지 2개 이상 → 강조형 스팸

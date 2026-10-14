@@ -458,7 +458,7 @@ def judge(cands, model_path, use_ml, deadline=None):
     for c in cands:
         c["normalized"] = normalize(c["evidence_text"])
         # 항목별 점수 [근거, 가중치] — 글자 밖 단서(본문 삽입 링크 묶음 등) 가산점도 함께. hits는 이름만 모은 것
-        _, detail = adscore.explain(c["normalized"])
+        _, detail = adscore.explain(c["normalized"], urlparse(c["url"]).netloc)  # 자기 사이트 도메인은 가산하지 않음
         c["score_detail"] = [[n, w] for n, w in detail + list(c.get("context", []))]
         c["score"] = round(sum(w for _, w in c["score_detail"]), 2)
         c["hits"] = [n if w > 0 else "-" + n for n, w in c["score_detail"]]
