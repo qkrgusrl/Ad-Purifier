@@ -193,6 +193,10 @@ class Frontier:
         heapq.heappush(self._heap, (-self.priority(url, text, depth, hot), next(self._seq), url, depth))
         return True
 
+    def requeue(self, url, depth):
+        """접속에 실패한 주소를 맨 뒤 순위로 한 번 더 넣는다 (시간 초과 재시도). 이미 본 주소 검사는 하지 않는다."""
+        heapq.heappush(self._heap, (1000.0, next(self._seq), url, depth))
+
     def pop(self):
         """가장 우선순위가 높은 (url, depth), 비었으면 None."""
         if not self._heap:

@@ -6,6 +6,7 @@
 """
 import argparse
 import asyncio
+import collections
 import json
 import os
 import re
@@ -108,6 +109,9 @@ async def frame_prefix(frame):
 
 
 ENTRY_TIMEOUT_MS = 45000  # 시작 페이지 접속 제한 시간 (일반 페이지는 --timeout, 기본 15초)
+# 느린 사이트 적응: 최근 SLOW_WINDOW번 방문 중 절반 이상이 시간 초과면 '느린 모드' — 제한 시간을 늘리고 동시 요청을 줄인다.
+# s-solution은 응답에만 8~10초가 걸려, 탭 4개로 동시에 열면 15초를 넘겨 51쪽 중 49쪽이 실패했다.
+SLOW_WINDOW, SLOW_TIMEOUT_MS, SLOW_CONCURRENCY = 10, 45000, 2
 
 
 class PageLoadError(Exception):
@@ -255,7 +259,9 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
     # sitemap.xml에 등록된 URL도 대기열에 (링크 탐색으로 닿지 않는 고아 페이지 대응). 우선순위는 다른 주소와 똑같이 매긴다.
     sitemap = await _fetch_sitemap(entry, timeout_s=min(timeout_ms / 1000, 8))
     frontier.add_links(crawlable((su, "") for su in sitemap), 2)
-    state = {"inflight": 0, "visited": 0, "stopped_by_time": False}
+    state = {"inflight": 0, "visited": 0, "stopped_by_time": False, "slow": False}
+    recent = collections.deque(maxlen=SLOW_WINDOW)  # 최근 방문의 시간 초과 여부
+    retried = set()  # 시간 초과로 한 번 다시 시도한 주소
     t_start = time.perf_counter()
     visit_log = []  # [크롤링 시작 후 초, 최종 URL, 요청 URL] — 시간에 따라 무엇을 찾았는지(발견 곡선)·리디렉트 분석용
     async with async_playwright() as pw:
@@ -264,13 +270,18 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
                                          user_agent=user_agent, locale="ko-KR",
                                          extra_http_headers={"Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7"})
 
-        async def worker():
+        async def worker(idx):
             while True:
                 if deadline is not None and time.perf_counter() >= deadline:
                     state["stopped_by_time"] = state["stopped_by_time"] or len(frontier) > 0
                     return
                 if max_pages and state["visited"] >= max_pages:
                     return
+                if state["slow"] and idx >= SLOW_CONCURRENCY:  # 느린 모드: 탭 수를 줄여 서버 부담을 덜어 줌
+                    if not len(frontier) and state["inflight"] == 0:
+                        return
+                    await asyncio.sleep(0.5)
+                    continue
                 item = frontier.pop()
                 if item is None:
                     if state["inflight"] == 0:  # 대기열도 비고 검사 중인 페이지도 없음 → 끝
@@ -283,7 +294,8 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
                 try:
                     is_entry = url == entry  # 시작 주소가 www 등 다른 주소로 넘어가면 그곳을 사이트로 삼는다
                     # 시작 페이지를 못 열면 점검 전체가 0건이 된다 — 첫 응답만 8~10초 걸리는 사이트(s-solution 등)도 있어 넉넉히 기다린다
-                    page_timeout = max(timeout_ms, ENTRY_TIMEOUT_MS) if is_entry else timeout_ms
+                    page_timeout = max(timeout_ms, ENTRY_TIMEOUT_MS) if is_entry else \
+                        max(timeout_ms, SLOW_TIMEOUT_MS) if state["slow"] else timeout_ms
                     final_url, frames, status = await scan_page(ctx, url, page_timeout, None if is_entry else on_site)
                     if is_entry and not on_site(final_url):
                         site["host"] = urlparse(final_url).netloc
@@ -298,22 +310,33 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
                         http_errors.append({"url": url, "status": status})
                     frame_urls.update(norm_url(d["frame_url"]) for pre, d in frames if pre)
                     frontier.add_links(crawlable(lt for _, data in frames for lt in data["links"]), depth + 1)
+                    recent.append(False)
                 except Exception as e:  # 한 페이지 실패가 전체를 멈추지 않게 (점검 페이지 수에는 넣지 않음)
-                    failed.append({"url": url, "reason": str(e) if isinstance(e, PageLoadError) else f"{type(e).__name__}: {e}"})
-                    print(f"[warn] {url}: {e}")
+                    timed_out = "Timeout" in str(e)
+                    recent.append(timed_out)
+                    if (not state["slow"] and len(recent) >= SLOW_WINDOW // 2
+                            and sum(recent) * 2 >= len(recent)):
+                        state["slow"] = True
+                        print(f"[info] 시간 초과가 잦아 느린 모드로 전환 (제한 {SLOW_TIMEOUT_MS // 1000}초, 동시 {SLOW_CONCURRENCY}개)")
+                    if timed_out and url not in retried:  # 시간 초과는 한 번 더 (느린 모드라면 늘어난 제한 시간으로)
+                        retried.add(url)
+                        frontier.requeue(url, depth)
+                    else:
+                        failed.append({"url": url, "reason": str(e) if isinstance(e, PageLoadError) else f"{type(e).__name__}: {e}"})
+                        print(f"[warn] {url}: {e}")
                 finally:
                     state["inflight"] -= 1
                     if progress:
                         progress(len(results) + len(failed) + len(external), len(frontier.seen), url)
 
-        await asyncio.gather(*(worker() for _ in range(concurrency)))
+        await asyncio.gather(*(worker(i) for i in range(concurrency)))
         await browser.close()
     # 순서상 iframe 문서가 먼저 큐에 들어갔던 경우까지 정리
     pages = [(u, f) for u, f in results if norm_url(u) not in frame_urls]
     return pages, {"failed": failed, "http_errors": http_errors, "stopped_by_time": state["stopped_by_time"],
                    "left_in_queue": len(frontier), "dropped_endless": frontier.dropped_endless,
                    "skipped_utility": frontier.skipped_utility, "visit_log": visit_log,
-                   "external_skipped": external}
+                   "external_skipped": external, "slow_mode": state["slow"], "retried": len(retried)}
 
 
 LINK_FARM_MIN = 3      # 같은 외부 사이트로 가는 본문 링크가 이만큼 이상이고
@@ -595,6 +618,7 @@ def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT
               "stopped_by_time": issues["stopped_by_time"], "left_in_queue": issues["left_in_queue"],
               "dropped_endless": issues["dropped_endless"], "skipped_utility": issues["skipped_utility"], "time_budget": time_budget, "llm_reserve": llm_reserve,
               "visit_log": issues["visit_log"], "external_skipped": issues["external_skipped"],
+              "slow_mode": issues["slow_mode"], "retried": issues["retried"],
               "extra_count": len(extra_findings), "candidates": cands,
               "model": Path(str(model)).name if use_ml else None,  # 경계 구간을 판정한 모델 폴더 이름 (규칙만이면 None)
               "repeats_collapsed": n_repeats,  # 여러 페이지 반복으로 대표에 합친 건수 (대표의 also_on에 페이지 목록)
