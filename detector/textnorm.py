@@ -82,6 +82,26 @@ def deobfuscate_digits(text):
     return "".join(s)
 
 
+KO_DIGIT = {"공": "0", "영": "0", "일": "1", "이": "2", "삼": "3", "사": "4", "오": "5", "육": "6", "칠": "7", "팔": "8", "구": "9"}
+_KO_PHONE_SPAN = re.compile(r"[0-9공영일이삼사오육칠팔구\-. ]{9,}")
+_PHONE_LIKE = re.compile(r"0(?:1[016789]|60|50\d)[-._=~·/ㅡ ]{0,3}\d{3,4}[-._=~·/ㅡ ]{0,3}\d{4}")
+
+
+def korean_digit_phone(text):
+    """한글 숫자를 섞어 쓴 전화번호를 복원한다 ('공60- 오0이 -1오일5' → '060-502-1515' 꼴).
+
+    '15일', '9월 이후'처럼 한글 숫자 글자는 일반 문장에도 많으므로, 숫자·구분자와 섞인 덩어리(실제 숫자 3개 이상)를
+    바꿨을 때 전화번호 모양이 될 때만 그 덩어리를 바꾼다. 판정용 문자열에만 쓴다.
+    """
+    def fix(m):
+        span = m.group(0)
+        if sum(c.isdigit() for c in span) < 3 or not any(c in KO_DIGIT for c in span):
+            return span
+        conv = "".join(KO_DIGIT.get(c, c) for c in span)
+        return conv if _PHONE_LIKE.search(re.sub(r"\s", "", conv)) else span
+    return _KO_PHONE_SPAN.sub(fix, text)
+
+
 def leet_words(text):
     """'s1ot' 처럼 영문 사이에 숫자를 끼운 토큰만 복원한 결과."""
     out = []

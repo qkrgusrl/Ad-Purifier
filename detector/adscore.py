@@ -6,7 +6,7 @@
 """
 import re
 
-from .textnorm import compact, deobfuscate_digits, leet_words
+from .textnorm import compact, deobfuscate_digits, korean_digit_phone, leet_words
 
 HIGH, LOW = 4.0, 1.5
 
@@ -72,30 +72,33 @@ KO_KEYWORDS = [
     ("티비", 1),  # OO티비 등 불법 중계/도박 사이트 브랜드 접미사
 ]
 # 키워드를 품고 있지만 광고와 무관한 단어 — 키워드 비교 전에 지운다 ('오피' ⊂ '오피니언', '토토' ⊂ '토토로')
-KO_EXCLUDE = re.compile("오피니언|오피스|오피셜|에티오피아|토토로|포토토|작대기")
+KO_EXCLUDE = re.compile("오피니언|오피스|오피셜|에티오피아|토토로|포토토|작대기|광고주")  # 광고주의 → '주의' 감점 오인
 EN_KEYWORDS = [  # 단어 앞 경계 필수 ('better'의 bet, 'timeslots'의 slot 같은 부분일치 방지)
     (r"\bcasino", 3), (r"\bbaccarat", 3), (r"\bslots?\b", 3), (r"\btoto\b", 3), (r"\bbet(s|ting)?\b", 3),
     (r"\bpoker", 2), (r"\bholdem", 3), (r"\bjackpot", 2), (r"\bporn", 3), (r"\bxxx\b", 2),
 ]
 # 공익·안내 맥락 (불법 도박 '신고' 안내, 실태 보도, 예방교육 자료, 채용 안내 등) — 감점
+# 라벨 데이터에서 광고 쪽에 더 많이 나온 말은 감점에서 뺐다: 발견(광고 16/정상 6)·면접(6/1, 유흥 구인 스팸)·기자(5/1)·가짜(4/0)
 NEGATIVE = [("신고", 3), ("근절", 3), ("예방", 3), ("캠페인", 2), ("중독", 2), ("처벌", 2), ("주의", 1.5),
-            ("피해", 1.5), ("1336", 2), ("발견", 1.5), ("제보", 2), ("단속", 1.5), ("척결", 2),
+            ("피해", 1.5), ("1336", 2), ("제보", 2), ("단속", 1.5), ("척결", 2),
             ("신고센터", 2), ("예방교육", 2), ("상담전화", 1.5),
             # 실태 보도·통계 (예: 도의회 '학생 사이버도박 현황' — 바카라·토토가 통계 항목으로 나옴)
             ("청소년", 1.5), ("학생", 1.5), ("의원", 1.5), ("가담", 1.5), ("집계", 1.5), ("대책", 2), ("실태", 1.5),
             ("적발", 2), ("검거", 2), ("경찰", 1.5), ("불법", 1.5), ("속칭", 2), ("도박", 1),
             # 채용 안내 (예: 관광 일자리 박람회의 '카지노 등 관광 업종 채용')
-            ("채용", 2), ("면접", 1.5),
+            ("채용", 2),
             # 경고·보도·교육 맥락 (외부 시험 오탐: 가짜 비아그라 적발 보도자료, 작업대출 주의보, 강원랜드 바카라 교육자료)
-            ("주의보", 2), ("경보", 1.5), ("검출", 2), ("가짜", 1.5), ("위험성", 1.5), ("보도자료", 2), ("기자", 1.5),
+            ("주의보", 2), ("경보", 1.5), ("검출", 2), ("위험성", 1.5), ("보도자료", 2),
             ("사기", 1.5), ("고발", 2), ("성매매", 1.5), ("그랜드코리아레저", 2.5)]  # 강원랜드·딜러는 스팸 제목에도 흔해(라벨 데이터 광고 5건) 감점에서 뺌
 EN_NEGATIVE = [(r"\billegal", 2), (r"\bpreventi", 2), (r"\bregulat", 1.5), (r"\bcommission\b", 1.5)]
 PAGE_CONTEXT_MAX = 4  # 페이지 제목의 경고·보도 맥락으로 깎는 최대 점수
+# 뉴스 기사 서명 '(서울=연합뉴스) 홍길동 기자 =' — 단어 '기자'는 스팸에도 나오지만(라벨 광고 5/정상 1) 이 형식은 실제 기사에만 있다
+NEWS_BYLINE = re.compile(r"\([가-힣]{1,6}\s*=\s*[가-힣a-z0-9 ]{2,12}\)\s*[가-힣]{2,4}\s*(?:기자|특파원)")
 EMAIL = re.compile(r"[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)+")
 # 앞뒤가 숫자면 번호가 아니다 (달력 '…91011121314151…' 안의 '011-1213-1415' 같은 가짜 일치 방지)
 DOMAIN = re.compile(r"(?<![a-z0-9가-힣-])[a-z0-9가-힣-]+(?:\.[a-z0-9가-힣-]+)*\.(xyz|top|club|vip|bet|win|casino|io|me|cc|com|net)\b")
-PHONE = re.compile(r"(?<!\d)01[016789][-. ]?\d{3,4}[-. ]?\d{4}(?!\d)")
-PAID_LINE = re.compile(r"(?<!\d)0(?:60|50\d)[-. ]?\d{3,4}[-. ]?\d{4}(?!\d)")  # 060 유료 전화·050X 안심번호 (폰팅 등)
+PHONE = re.compile(r"(?<!\d)01[016789][-._=~·/ㅡ ]{0,3}\d{3,4}[-._=~·/ㅡ ]{0,3}\d{4}(?!\d)")  # 구분자 세 글자까지 ('010 - 1234')
+PAID_LINE = re.compile(r"(?<!\d)0(?:60|50\d)[-._=~·/ㅡ ]{0,3}\d{3,4}[-._=~·/ㅡ ]{0,3}\d{4}(?!\d)")  # 060 유료 전화·050X 안심번호 (폰팅 등)
 PATTERNS = [
     # 메신저 ID (@abc123). 이메일·CSS 규칙(@media 등)은 아님 — 이메일은 아래에서 미리 지운다
     # 플랫폼 이름(@KAKAO PLUS 등 사이트 하단 SNS 링크)은 아이디가 아님
@@ -149,7 +152,7 @@ def _own_domain(text, site):
 def explain(norm_text, site=None):
     """(점수, 항목별 점수 [(근거 이름, 가중치)]) — 감점 항목은 가중치가 음수. 판정 근거를 항목별로 남기기 위한 것.
     site(점검 중인 사이트 호스트)를 주면 그 사이트·기관 이름이 든 도메인은 광고 도메인으로 세지 않는다."""
-    plain = deobfuscate_digits(norm_text)  # 'l9금', 'o6o-5oo-266o' 같은 숫자 위장 복원
+    plain = korean_digit_phone(deobfuscate_digits(norm_text))  # 'l9금', 'o6o-5oo-266o', '공60- 오0이' 같은 숫자 위장 복원
     c = KO_EXCLUDE.sub("", compact(plain))
     ct = KO_EXCLUDE.sub("", joined(plain))
     # 두 글자 키워드는 단어 경계를 넘지 않게(ct), 세 글자 이상은 '출장 안마'처럼 나눠 쓴 것도 잡도록 완전 압축(c)에서 찾는다
@@ -167,6 +170,8 @@ def explain(norm_text, site=None):
         detail.append(("emoji-emphasis", 1.5))
     detail += [(kw, -w) for kw, w in NEGATIVE if kw in c]
     detail += [(re.sub(r"\\b", "", pat), -w) for pat, w in EN_NEGATIVE if re.search(pat, words)]
+    if NEWS_BYLINE.search(norm_text):
+        detail.append(("news-byline", -3))
     return round(sum(w for _, w in detail), 2), detail
 
 
