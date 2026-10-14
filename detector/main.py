@@ -7,6 +7,7 @@
 import argparse
 import asyncio
 import json
+import os
 import sys
 import time
 from datetime import datetime, timedelta, timezone
@@ -456,10 +457,11 @@ def judge(cands, model_path, use_ml, deadline=None):
     """
     for c in cands:
         c["normalized"] = normalize(c["evidence_text"])
-        c["score"], c["hits"] = adscore.score(c["normalized"])
-        for name, w in c.get("context", []):  # 글자 밖 단서(본문 삽입 링크 묶음 등) 가산점
-            c["score"] = round(c["score"] + w, 2)
-            c["hits"].append(name)
+        # 항목별 점수 [근거, 가중치] — 글자 밖 단서(본문 삽입 링크 묶음 등) 가산점도 함께. hits는 이름만 모은 것
+        _, detail = adscore.explain(c["normalized"])
+        c["score_detail"] = [[n, w] for n, w in detail + list(c.get("context", []))]
+        c["score"] = round(sum(w for _, w in c["score_detail"]), 2)
+        c["hits"] = [n if w > 0 else "-" + n for n, w in c["score_detail"]]
         c["verdict"] = adscore.verdict(c["score"])
         c["decided_by"] = "rules"
     border = [c for c in cands if c["verdict"] == "borderline"]
@@ -497,7 +499,8 @@ def app_dir():
     return Path(__file__).resolve().parents[1]
 
 
-DEFAULT_MODEL = app_dir() / "models" / "laya-illegal-ad"
+# 경계 구간 판정 모델(jev). AD_PURIFIER_MODEL 환경변수로 다른 모델 폴더를 지정할 수 있다 (모델 비교용, 예: models/laya-illegal-ad-v3)
+DEFAULT_MODEL = Path(os.environ["AD_PURIFIER_MODEL"]) if os.environ.get("AD_PURIFIER_MODEL") else app_dir() / "models" / "laya-illegal-ad"
 
 
 # 적격평가 대상 4종 (result.json). 그 외 추가 유형은 result_extra.json으로 분리한다.
@@ -556,6 +559,7 @@ def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT
               "dropped_endless": issues["dropped_endless"], "skipped_utility": issues["skipped_utility"], "time_budget": time_budget, "llm_reserve": llm_reserve,
               "visit_log": issues["visit_log"], "external_skipped": issues["external_skipped"],
               "extra_count": len(extra_findings), "candidates": cands,
+              "model": Path(str(model)).name if use_ml else None,  # 경계 구간을 판정한 모델 폴더 이름 (규칙만이면 None)
               # 중복으로 합친 탐지 (같은 주소·내용·줄) — 어디에 합쳐졌는지(duplicate_of)만 남긴다
               "duplicates": [{"url": c["url"], "location": c["location"], "technique": c["technique"],
                               "evidence_text": c["evidence_text"], "duplicate_of": c["duplicate_of"]} for c in dups]}

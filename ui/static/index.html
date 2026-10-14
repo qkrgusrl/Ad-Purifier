@@ -709,7 +709,8 @@ function render() {
   const r = current;
   $("dashboard").hidden = false;
   $("resultPanel").hidden = false;
-  $("resultTitle").textContent = `${r.meta.entry_url} · ${r.meta.started_at.replace("T", " ").slice(0, 16)} 점검`;
+  $("resultTitle").textContent = `${r.meta.entry_url} · ${r.meta.started_at.replace("T", " ").slice(0, 16)} 점검`
+    + (r.model ? ` · 판정 모델 ${r.model}` : "");
   const ads = r.candidates.filter(c => c.verdict === "ad");
   const pendingList = ads.filter(isPending);
   const pending = pendingList.length;
@@ -901,7 +902,9 @@ function detailRow(c) {
       <dt>위치</dt><dd><code>${esc(c.location)}</code> <button type="button" class="small" data-copy="${c.key}">복사</button></dd>
       <dt>숨긴 방식</dt><dd>${(c.signals || []).map(s => `<code>${esc(s)}</code>`).join(" ") || "-"}</dd>
       <dt>원문 → 복원</dt><dd>${restored}</dd>
-      <dt>판정 근거</dt><dd>${(c.hits || []).map(h => `<code>${esc(h)}</code>`).join(" ") || "-"}</dd>
+      <dt>판정 근거</dt><dd>${(c.score_detail
+        ? c.score_detail.map(([n, w]) => `<code>${esc(n)} ${w > 0 ? "+" : "−"}${Math.abs(w)}</code>`)
+        : (c.hits || []).map(h => `<code>${esc(h)}</code>`)).join(" ") || "-"}</dd>
       <dt>점수</dt><dd>규칙 점수 <b>${esc(c.score)}</b>${ml} · 판정 주체: ${by}</dd>
     </dl>
     ${c.verdict === "ad" ? `<div class="memo"><textarea id="memoText" placeholder="조치 내용·담당자 메모" aria-label="메모">${esc(c.memo)}</textarea>

@@ -156,10 +156,17 @@ def export_csv(rep, result_doc):
     for c in ads:
         w.writerow([csv_cell(v) for v in (
             ids.get((c["url"], c["location"], c["technique"]), ""), c["url"], "true", c["location"], c["evidence_text"],
-            c["technique"], TECH_KO.get(c["technique"], c["technique"]), c["normalized"], ", ".join(c["hits"]), c["score"],
+            c["technique"], TECH_KO.get(c["technique"], c["technique"]), c["normalized"], evidence_of(c), c["score"],
             "AI 보조 판정" if c["decided_by"] == "laya" else "규칙", REVIEW_KO.get(c["review"], c["review"]), c["memo"])])
     # 엑셀에서 한글이 깨지지 않도록 BOM 추가 (검토용 파일 — 제출용 result.json은 BOM 없음)
     return "\ufeff" + buf.getvalue()
+
+
+def evidence_of(c):
+    """판정 근거 열: 항목별 점수가 있으면 '출장마사지(+3), 학생(-1.5)', 예전 이력이면 근거 이름만."""
+    if "score_detail" in c:
+        return ", ".join(f"{n}({w:+g})" for n, w in c["score_detail"])
+    return ", ".join(c["hits"])
 
 
 class Handler(BaseHTTPRequestHandler):
