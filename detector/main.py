@@ -321,6 +321,7 @@ LINK_FARM_TEXT_MAX = 30  # 링크 글자가 짧은 키워드(이 글자 수 이�
 LINK_FARM_BONUS = 3    # 그중 하나라도 광고 키워드면 → 그 사이트로 가는 링크 전부에 가산점
 REDIRECT_BONUS = 2     # 페이지가 스크립트로 다른 사이트로 넘기려 함(기생 페이지) → 광고 근거가 있는 문구에 가산점
 HEAD_TEXT_MIN = 10     # 본문 글자 요소가 이보다 적은 페이지는 제목·메타 태그 문구도 검사
+UI_CONTROL = re.compile(r"신고하기|신고 하기|고객센터|관련\s*글|목록|이전\s*글|다음\s*글|댓글|로그인|회원가입|바로가기")
 
 
 def link_farms(page_url, texts):
@@ -375,8 +376,12 @@ def candidates_from(pages, detect_posted=True):
             swapped = adscore.score(normalize(title))[0] >= adscore.HIGH and not any(title in b or b in title for b in body if len(b) >= 8)
             head = all_head if (redirect or swapped or len(data["texts"]) < HEAD_TEXT_MIN) else []
             # 페이지 맥락: 문서 제목 + 본문의 제목 요소(h1~h3, class에 tit·subject·title). 사이트 공통 <title>("공지사항")만으로는 부족
-            headings = [t["text"] for t in data["texts"] if t["tag"] in ("h1", "h2", "h3")
-                        or any(k in str(t.get("cls", "")).lower() for k in ("tit", "subject", "headline"))][:8]
+            # 버튼·메뉴 문구('게시글 신고하기', '고객센터')는 제외하고 앞쪽 제목 3개만 — cafe24 게시판마다 있는
+            # '게시글 신고하기' 버튼이 소제목으로 잡혀 스팸 페이지 전체가 '신고' 감점을 받던 문제(thetoollab 518쪽 중 181쪽)
+            # 본문 제목일 가능성이 높은 것(h1, class에 tit·subject·headline)을 먼저, 그다음 h2·h3 ('Global Menu' 같은 메뉴 제목이 자리를 차지하지 않게)
+            heads = [t for t in data["texts"] if len(t["text"]) >= 8 and not UI_CONTROL.search(t["text"])]
+            is_title = lambda t: t["tag"] == "h1" or any(k in str(t.get("cls", "")).lower() for k in ("tit", "subject", "headline"))
+            headings = ([t["text"] for t in heads if is_title(t)] + [t["text"] for t in heads if t["tag"] in ("h2", "h3") and not is_title(t)])[:3]
             page_ctx = adscore.page_context(normalize(" ".join([title] + headings))) if detect_posted else []
             for t in data["texts"] + head:
                 checks = []
