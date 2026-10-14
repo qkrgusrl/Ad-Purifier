@@ -183,15 +183,17 @@ async def open_page(ctx, url, timeout_ms, on_site=None, blocked=None):
             await asyncio.sleep(1)
 
 
-async def scan_page(ctx, url, timeout_ms, on_site=None):
+async def scan_page(ctx, url, timeout_ms, on_site=None, guard=None):
     """(최종 URL, 프레임별 추출 결과, HTTP 상태). 접속 자체가 안 되면 PageLoadError.
 
     on_site(최종 URL)가 False면 다른 사이트로 넘어간 것(예: 게시판 link.php가 외부로 302)이므로
     더 기다리지 않고 프레임 목록 자리에 None을 돌려준다.
+    guard: 스크립트로 다른 사이트로 넘어가는 이동을 막을 기준 (없으면 on_site). 시작 페이지는 on_site 없이 guard만 준다 —
+    서버 리다이렉트(www 추가·도메인 이전)는 따라가되, 기생 페이지의 스크립트 이동은 막기 위해서다.
     """
     t0 = time.perf_counter()
     blocked = []
-    page, resp = await open_page(ctx, url, timeout_ms, on_site, blocked)
+    page, resp = await open_page(ctx, url, timeout_ms, guard or on_site, blocked)
     try:
         status = resp.status if resp else None
         # about:blank 등 http(s)가 아닌 도착 주소(경고창 후 history.back 하는 오류 페이지 등)는 외부 이동이 아님
@@ -296,7 +298,10 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
                     # 시작 페이지를 못 열면 점검 전체가 0건이 된다 — 첫 응답만 8~10초 걸리는 사이트(s-solution 등)도 있어 넉넉히 기다린다
                     page_timeout = max(timeout_ms, ENTRY_TIMEOUT_MS) if is_entry else \
                         max(timeout_ms, SLOW_TIMEOUT_MS) if state["slow"] else timeout_ms
-                    final_url, frames, status = await scan_page(ctx, url, page_timeout, None if is_entry else on_site)
+                    # 시작 페이지도 스크립트 이동은 막는다 — 시작 주소가 기생 페이지면 성인 사이트로 넘어가 그 사이트를
+                    # 점검 범위로 삼던 문제(bom.or.kr → bam99.club). 서버 리다이렉트(www 등)는 그대로 따라간다
+                    final_url, frames, status = await scan_page(ctx, url, page_timeout, None if is_entry else on_site,
+                                                                guard=on_site)
                     if is_entry and not on_site(final_url):
                         site["host"] = urlparse(final_url).netloc
                         print(f"[info] 시작 주소가 {site['host']}로 이동 → 이 사이트를 점검 범위로 사용")
