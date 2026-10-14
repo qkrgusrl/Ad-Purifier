@@ -322,6 +322,51 @@ def candidates_from(pages, detect_posted=True):
     return list(cands.values())
 
 
+def _parent_of(location):
+    """'… > ul > a:nth-of-type(8)' → ('… > ul', 'a') : 같은 줄(부모)·같은 태그인지 비교용."""
+    head, _, last = location.rpartition(" > ")
+    return head, last.split(":nth-of-type(")[0]
+
+
+def dedupe(cands):
+    """같은 페이지에서 같은 광고를 여러 번 보고하는 것을 하나로 합친다. (남길 후보, 합친 후보 목록)
+
+    불법광고 판정(ad)만 대상이며, 아래 경우 하나만 남긴다.
+    1) 주소·내용이 같고 위치가 같은 줄 — 한쪽이 다른 쪽을 감싸거나(div > ul 둘 다 숨김 신호), 같은 부모 아래 형제
+       (목록에 같은 링크 글자가 두 번) → 은닉 기법이 게시형보다 우선, 그다음 바깥 요소·앞 형제
+       단, 같은 요소에 서로 다른 은닉 기법이 함께 잡힌 경우는 둘 다 남긴다
+    2) 숨김 블록(은닉 4종) 안의 요소가 게시형으로 따로 잡힌 경우 — 숨김 블록 한 건으로 보고
+    """
+    def rank(c):  # 남길 우선순위: 은닉 기법 > 게시형, 바깥 요소 > 안쪽, 앞 형제 > 뒤 형제
+        return (c["technique"] not in CORE_TECHNIQUES, c["location"].count(" > "), c["location"])
+
+    ads = sorted((c for c in cands if c["verdict"] == "ad"), key=rank)
+    kept, dups = [], []
+    by_page = {}
+    for c in ads:
+        text = " ".join(c["evidence_text"].split())
+        page = by_page.setdefault(norm_url(c["url"]), [])
+        for k in page:
+            k_text = " ".join(k["evidence_text"].split())
+            if c["location"] == k["location"] and c["technique"] != k["technique"] \
+                    and {c["technique"], k["technique"]} <= CORE_TECHNIQUES:
+                continue  # 한 요소에 은닉 기법이 둘(예: 투명+화면 밖) — 채점이 기법까지 보므로 둘 다 남긴다
+            nested = (c["location"] == k["location"] or c["location"].startswith(k["location"] + " > ")
+                      or k["location"].startswith(c["location"] + " > "))
+            same_line = _parent_of(c["location"]) == _parent_of(k["location"])
+            # 숨김 블록 안의 요소는 글자가 조금 달라도(링크 글자 제외 등) 그 블록의 일부 — 블록 한 건으로 본다
+            inside_hidden = nested and k["technique"] in CORE_TECHNIQUES and c["technique"] not in CORE_TECHNIQUES
+            if (text == k_text and (nested or same_line)) or inside_hidden:
+                c["duplicate_of"] = {"location": k["location"], "technique": k["technique"]}
+                dups.append(c)
+                break
+        else:
+            page.append(c)
+            kept.append(c)
+    dup_ids = {id(c) for c in dups}
+    return [c for c in cands if id(c) not in dup_ids], dups
+
+
 def judge(cands, model_path, use_ml, deadline=None):
     """룰 점수로 1차 판정, 경계 구간만 Laya로 2차 판정.
 
@@ -401,6 +446,7 @@ def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT
     t_crawl = time.perf_counter() - t0
     phase("judge")
     cands = judge(candidates_from(pages, detect_posted), str(model), use_ml, judge_deadline)
+    cands, dups = dedupe(cands)
     finished = datetime.now(KST)
     elapsed = round(time.perf_counter() - t0, 2)
 
@@ -424,7 +470,10 @@ def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT
               "stopped_by_time": issues["stopped_by_time"], "left_in_queue": issues["left_in_queue"],
               "dropped_endless": issues["dropped_endless"], "skipped_utility": issues["skipped_utility"], "time_budget": time_budget, "llm_reserve": llm_reserve,
               "visit_log": issues["visit_log"], "external_skipped": issues["external_skipped"],
-              "extra_count": len(extra_findings), "candidates": cands}
+              "extra_count": len(extra_findings), "candidates": cands,
+              # 중복으로 합친 탐지 (같은 주소·내용·줄) — 어디에 합쳐졌는지(duplicate_of)만 남긴다
+              "duplicates": [{"url": c["url"], "location": c["location"], "technique": c["technique"],
+                              "evidence_text": c["evidence_text"], "duplicate_of": c["duplicate_of"]} for c in dups]}
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     (out / "result.json").write_text(json.dumps({"meta": meta, "findings": findings}, ensure_ascii=False, indent=2),
