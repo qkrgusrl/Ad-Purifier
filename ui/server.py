@@ -88,7 +88,8 @@ def list_runs():
         runs.append({"id": d.parent.name, "entry_url": rep["meta"]["entry_url"],
                      "started_at": rep["meta"]["started_at"], "elapsed_sec": rep["meta"]["elapsed_sec"],
                      "pages": rep["pages"], "findings": len(ads), "pending": len(pending_ads),
-                     "dirty_pages": len({c["url"] for c in pending_ads}),
+                     # 여러 페이지 반복으로 대표에 합친 페이지(also_on)도 오염 페이지로 센다
+                     "dirty_pages": len({u for c in pending_ads for u in [c["url"]] + [x["url"] for x in c.get("also_on", [])]}),
                      "pending_hidden": sum(c["technique"] != "POSTED" for c in pending_ads),
                      "pending_unique": len({" ".join(c["evidence_text"].split()) for c in pending_ads}),
                      "entry_failed": rep.get("entry_failed", False)})
@@ -142,7 +143,7 @@ def csv_cell(v):
 
 # CSV 앞쪽 6열은 result.json(요강 붙임4) findings 필드와 같은 이름·순서·값, 뒤쪽은 담당자용 관리 정보
 CSV_HEADER = ["id", "url", "is_violation", "location", "evidence_text", "technique",
-              "은닉 기법(한글)", "복원 문구", "판정 근거", "점수", "판정 주체", "검토 상태", "메모"]
+              "은닉 기법(한글)", "복원 문구", "판정 근거", "점수", "판정 주체", "검토 상태", "메모", "같은 광고가 있는 다른 페이지 수"]
 
 
 def export_csv(rep, result_doc):
@@ -157,7 +158,7 @@ def export_csv(rep, result_doc):
         w.writerow([csv_cell(v) for v in (
             ids.get((c["url"], c["location"], c["technique"]), ""), c["url"], "true", c["location"], c["evidence_text"],
             c["technique"], TECH_KO.get(c["technique"], c["technique"]), c["normalized"], evidence_of(c), c["score"],
-            "AI 보조 판정" if c["decided_by"] == "laya" else "규칙", REVIEW_KO.get(c["review"], c["review"]), c["memo"])])
+            "AI 보조 판정" if c["decided_by"] == "laya" else "규칙", REVIEW_KO.get(c["review"], c["review"]), c["memo"], len(c.get("also_on", [])))])
     # 엑셀에서 한글이 깨지지 않도록 BOM 추가 (검토용 파일 — 제출용 result.json은 BOM 없음)
     return "\ufeff" + buf.getvalue()
 

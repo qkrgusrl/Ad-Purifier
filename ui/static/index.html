@@ -310,6 +310,10 @@ td small { white-space: nowrap; color: var(--muted); font-size: 11px; }
 .r-false_positive { color: var(--muted); }
 .stamp { display: inline-block; margin-left: 6px; padding: 0 8px; border-radius: 999px; font-size: 11px; font-weight: 700;
   color: var(--green); background: var(--green-weak); vertical-align: 1px; text-decoration: none; }
+.repeat { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600;
+          color: var(--muted); background: var(--surface-2, rgba(127,127,127,.12)); white-space: nowrap; }
+.also-on ul { margin: 6px 0 0; padding-left: 18px; max-height: 180px; overflow: auto; }
+.also-on li { word-break: break-all; }
 tr.detail td { background: #f7fbfa; }
 .detail-grid { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 8px 14px; font-size: 13px; margin: 2px 0 0; }
 @media (max-width: 600px) { .detail-grid { grid-template-columns: minmax(0, 1fr); gap: 2px; } .detail-grid dd { margin-bottom: 8px; } }
@@ -555,6 +559,8 @@ function pollution({ pages, dirtyPages, pending, hidden }) {
 const cleanPct = p => (p.value ? Math.min(99, Math.round(100 - p.value)) : 100);
 const isHidden = c => c.technique !== "POSTED";
 const phraseKey = c => (c.evidence_text || "").replace(/\s+/g, " ").trim();  // 서버 list_runs의 pending_unique와 같은 기준
+// 광고가 실제로 있는 페이지들: 대표 페이지 + 여러 페이지 반복으로 합친 페이지(also_on) — 오염 페이지 수에 모두 센다
+const pagesOf = c => [c.url, ...(c.also_on || []).map(x => x.url)];
 /* 청정 등급: 청정도 10%마다 한 단계씩 초록 → 빨강 (100% 초록, 90~99% 거의 초록 … 0~10% 빨강) */
 const WORDS = [  // [최소 단계, 게이지 문구, 등급 이름] — 미세먼지 예보처럼 4단계, 색 구간과 맞춤
   [7, "오염", "매우 나쁨"],  // 0~39%  주황 → 빨강
@@ -689,7 +695,7 @@ $("clearYes").onclick = async () => {
 /* 지금 보고 있는 점검의 오염 지수 (처리 필요 = 미검토 + 불법광고 확인) */
 function pollutionOf(r) {
   const list = r.candidates.filter(isPending);
-  return pollution({ pages: r.pages, dirtyPages: new Set(list.map(c => c.url)).size,
+  return pollution({ pages: r.pages, dirtyPages: new Set(list.flatMap(pagesOf)).size,
                      pending: new Set(list.map(phraseKey)).size, hidden: list.filter(isHidden).length });
 }
 
@@ -714,7 +720,7 @@ function render() {
   const ads = r.candidates.filter(c => c.verdict === "ad");
   const pendingList = ads.filter(isPending);
   const pending = pendingList.length;
-  const dirtyPages = new Set(pendingList.map(c => c.url)).size;
+  const dirtyPages = new Set(pendingList.flatMap(pagesOf)).size;
   const pol = pollutionOf(r);
   const clean = cleanPct(pol);
   const lv = r.entry_failed ? LEVEL_NA : levelOf(clean);
@@ -852,7 +858,7 @@ function renderRows() {
     const row = `<tr class="row ${state} ${openKey === c.key ? "open" : ""}" data-key="${c.key}"
         tabindex="0" aria-expanded="${openKey === c.key}">
       <td><span class="badge t-${esc(c.technique)}">${TECH[c.technique] || esc(c.technique)}</span></td>
-      <td class="text">${esc(c.evidence_text)}${c.review === "resolved" && isAd ? '<span class="stamp">정화 완료</span>' : ""}</td>
+      <td class="text">${esc(c.evidence_text)}${c.also_on && c.also_on.length ? `<span class="repeat">외 ${c.also_on.length}개 페이지</span>` : ""}${c.review === "resolved" && isAd ? '<span class="stamp">정화 완료</span>' : ""}</td>
       <td class="page">${esc(c.url)}</td>
       <td class="judge">${judgeLabel(c)}</td>
       <td>${isAd ? `<select data-review="${c.key}" class="r-${c.review}" aria-label="검토 상태">${Object.entries(REVIEW).map(([k, v]) =>
@@ -900,6 +906,9 @@ function detailRow(c) {
     <dl class="detail-grid">
       <dt>페이지</dt><dd><a href="${esc(c.url)}" target="_blank" rel="noopener noreferrer">${esc(c.url)}</a></dd>
       <dt>위치</dt><dd><code>${esc(c.location)}</code> <button type="button" class="small" data-copy="${c.key}">복사</button></dd>
+      ${c.also_on && c.also_on.length ? `<dt>같은 광고가 있는 다른 페이지</dt><dd class="also-on">${c.also_on.length}개 — 게시판 목록·공통 하단처럼 여러 페이지에 반복돼 이 항목 하나로 합쳤습니다 (제출 파일에도 대표 1건).<ul>${
+        c.also_on.slice(0, 20).map(x => `<li><a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.url)}</a></li>`).join("")}${
+        c.also_on.length > 20 ? `<li>… 외 ${c.also_on.length - 20}개</li>` : ""}</ul></dd>` : ""}
       <dt>숨긴 방식</dt><dd>${(c.signals || []).map(s => `<code>${esc(s)}</code>`).join(" ") || "-"}</dd>
       <dt>원문 → 복원</dt><dd>${restored}</dd>
       <dt>판정 근거</dt><dd>${(c.score_detail
