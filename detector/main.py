@@ -8,6 +8,7 @@ import argparse
 import asyncio
 import json
 import os
+import re
 import sys
 import time
 from datetime import datetime, timedelta, timezone
@@ -450,6 +451,36 @@ def dedupe(cands):
     return [c for c in cands if id(c) not in dup_ids], dups
 
 
+def _shape(location):
+    """위치에서 몇 번째 요소인지(nth-of-type)를 뺀 모양 — 게시판 목록에서 글이 밀려 줄 번호가 바뀌어도 같은 자리로 본다."""
+    return re.sub(r":nth-of-type\(\d+\)", "", location)
+
+
+def collapse_repeats(cands):
+    """여러 페이지에 반복된 같은 광고를 대표 1건으로 합친다. (남길 후보, 합친 건수)
+
+    같은 문구·같은 기법·같은 자리(nth-of-type 제외)가 여러 페이지에 나오면 — 모든 글 아래에 붙는 게시판 목록,
+    사이트 공통 하단·사이드바, 같은 글의 다른 주소(?page=…) — 실제로는 광고 하나다.
+    hyojae 점검에서 숨김 문자를 넣은 스팸 제목 4개가 목록 위젯 때문에 202페이지마다 잡혀 608건이 됐다.
+    채점은 '광고를 심은 글(또는 목록)' 기준일 가능성이 높아 대표 1건만 제출하고(정확도 35점 보호),
+    나머지 페이지는 대표의 also_on에 남겨 화면·청정 등급(오염 페이지 수)에 반영한다.
+    대표: 주소가 가장 짧은 페이지(목록 첫 페이지·글 자체 페이지가 보통 가장 짧다), 같으면 사전순.
+    """
+    groups = {}
+    for c in cands:
+        if c["verdict"] == "ad":
+            groups.setdefault((" ".join(c["evidence_text"].split()), c["technique"], _shape(c["location"])), []).append(c)
+    drop = set()
+    for g in groups.values():
+        if len({norm_url(c["url"]) for c in g}) < 2:
+            continue
+        g.sort(key=lambda c: (len(c["url"]), c["url"], c["location"]))
+        keep = g[0]
+        keep["also_on"] = [{"url": c["url"], "location": c["location"]} for c in g[1:]]
+        drop.update(id(c) for c in g[1:])
+    return [c for c in cands if id(c) not in drop], len(drop)
+
+
 def judge(cands, model_path, use_ml, deadline=None):
     """룰 점수로 1차 판정, 경계 구간만 Laya로 2차 판정.
 
@@ -516,7 +547,7 @@ LLM_RESERVE = 6 * 60    # 나중에 붙일 LLM 최종 검증 몫(아직 미구�
 
 def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT_MODEL, use_ml=True,
         progress=None, phase=None, user_agent=DEFAULT_UA, detect_posted=True,
-        time_budget=TIME_BUDGET, llm_reserve=LLM_RESERVE):
+        time_budget=TIME_BUDGET, llm_reserve=LLM_RESERVE, keep_repeats=False):
     """크롤링 → 판정 → result.json/report.json 저장. report 딕셔너리를 돌려준다.
 
     phase(단계명): UI에 현재 단계(crawl/judge/save)를 알리는 콜백.
@@ -535,6 +566,7 @@ def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT
     phase("judge")
     cands = judge(candidates_from(pages, detect_posted), str(model), use_ml, judge_deadline)
     cands, dups = dedupe(cands)
+    cands, n_repeats = (cands, 0) if keep_repeats else collapse_repeats(cands)
     finished = datetime.now(KST)
     elapsed = round(time.perf_counter() - t0, 2)
 
@@ -560,6 +592,7 @@ def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT
               "visit_log": issues["visit_log"], "external_skipped": issues["external_skipped"],
               "extra_count": len(extra_findings), "candidates": cands,
               "model": Path(str(model)).name if use_ml else None,  # 경계 구간을 판정한 모델 폴더 이름 (규칙만이면 None)
+              "repeats_collapsed": n_repeats,  # 여러 페이지 반복으로 대표에 합친 건수 (대표의 also_on에 페이지 목록)
               # 중복으로 합친 탐지 (같은 주소·내용·줄) — 어디에 합쳐졌는지(duplicate_of)만 남긴다
               "duplicates": [{"url": c["url"], "location": c["location"], "technique": c["technique"],
                               "evidence_text": c["evidence_text"], "duplicate_of": c["duplicate_of"]} for c in dups]}
@@ -597,11 +630,13 @@ def main():
                     help="크롤러 User-Agent (기본: 일반 Chrome). 점검 기관에 신원을 밝혀야 하면 뒤에 도구명을 덧붙여 쓰세요.")
     ap.add_argument("--no-extra", action="store_true",
                     help="게시형(은닉 없는) 불법광고 탐지를 끄고 적격평가 4종만 탐지")
+    ap.add_argument("--keep-repeats", action="store_true",
+                    help="여러 페이지에 반복된 같은 광고(게시판 목록·공통 하단 등)를 합치지 않고 페이지마다 따로 제출")
     args = ap.parse_args()
 
     report = run(args.entry_url, args.out, args.max_pages, args.concurrency, args.timeout, args.model, not args.no_ml,
                  user_agent=args.user_agent, detect_posted=not args.no_extra,
-                 time_budget=args.time_budget, llm_reserve=args.llm_reserve)
+                 time_budget=args.time_budget, llm_reserve=args.llm_reserve, keep_repeats=args.keep_repeats)
     cands = report["candidates"]
     findings = sum(c["verdict"] == "ad" for c in cands)
     by = {}
