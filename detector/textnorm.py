@@ -53,6 +53,35 @@ def homoglyph_signals(raw):
     return sig
 
 
+DIGIT_LOOKALIKE = {"o": "0", "ㅇ": "0", "〇": "0", "l": "1", "i": "1", "|": "1"}
+_DIGIT_SEP = "-. "
+
+
+def _digit_near(s, i, step):
+    """s[i]에서 step 방향으로 구분자(- . 공백)를 건너뛴 첫 글자가 숫자인지."""
+    j = i + step
+    while 0 <= j < len(s) and s[j] in _DIGIT_SEP:
+        j += step
+    return 0 <= j < len(s) and s[j].isdigit()
+
+
+def deobfuscate_digits(text):
+    """숫자 사이에 끼운 닮은 글자를 숫자로 복원한다 ('l9금'→'19금', 'o6o-5oo'→'060-500', 'ㅇiㅇ-5309'→'010-5309').
+
+    소문자로 정규화된 텍스트 기준. 이웃(구분자 건너뜀)이 숫자인 글자만 바꾸고, 바뀐 글자가 다시 이웃을 숫자로 만들 수 있어
+    더 바뀌지 않을 때까지 반복한다. 연락처를 필터에 안 걸리게 적는 스팸 표기를 잡기 위한 것으로, 판정용 문자열에만 쓴다.
+    """
+    s = list(text)
+    changed = True
+    while changed:
+        changed = False
+        for i, ch in enumerate(s):
+            if ch in DIGIT_LOOKALIKE and (_digit_near(s, i, -1) or _digit_near(s, i, 1)):
+                s[i] = DIGIT_LOOKALIKE[ch]
+                changed = True
+    return "".join(s)
+
+
 def leet_words(text):
     """'s1ot' 처럼 영문 사이에 숫자를 끼운 토큰만 복원한 결과."""
     out = []
@@ -122,6 +151,7 @@ def normalize(raw):
     # NFKC는 호환 자모(ㄱ~ㅣ)를 조합용 자모로 바꿔 버리므로 그 범위는 제외
     t = "".join(c if 0x3131 <= ord(c) <= 0x318E else unicodedata.normalize("NFKC", c) for c in t)
     t = "".join(CONFUSABLES.get(c, c) for c in t)
+    t = t.replace("。", ".")  # 전각 마침표('｡'은 NFKC에서 '。'가 됨) — 도메인 위장 '찌라시｡𝐂𝐎𝐌'
     return re.sub(r"\s+", " ", t).strip().lower()
 
 
