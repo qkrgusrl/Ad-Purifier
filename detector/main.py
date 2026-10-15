@@ -77,6 +77,24 @@ def norm_url(url):
     return urlunparse(("", p.netloc.lower(), p.path.rstrip("/") or "/", "", query, frag))
 
 
+# 목록에서 몇 쪽째로 들어왔는지만 나타내는 주소 인자 — 값이 달라도 같은 글이다 (hrd: 같은 글을 startPage만 다른 주소로 74번 재방문)
+PAGING_PARAMS = re.compile(r"^(page|pageno|pagenum|pageindex|startpage|gotopage|cpage|curpage|currentpage|pg|listpage)$", re.I)
+
+
+# 글 번호 인자 (dataSid=13045, idx=…, wr_id=…, bSeq=…) — 숫자 값일 때만 글 보기 주소로 본다
+ITEM_PARAMS = re.compile(r"(sid|idx|seq|no|id|num|number|uid|nttsn)$", re.I)
+
+
+def page_key(url):
+    """중복 판단용 '같은 페이지' 키: 글 보기 주소(숫자 글 번호 인자가 있음)면 목록 위치 인자(PAGING_PARAMS)를 뺀다.
+    글 번호가 없는 목록 주소(목록 1쪽·2쪽)는 내용이 다른 페이지이므로 그대로 둔다."""
+    p = urlparse(norm_url(url))
+    q = parse_qsl(p.query, keep_blank_values=True)
+    if not any(ITEM_PARAMS.search(k) and v.isdigit() and not PAGING_PARAMS.match(k) for k, v in q):
+        return norm_url(url)
+    return urlunparse(p._replace(query=urlencode([(k, v) for k, v in q if not PAGING_PARAMS.match(k)])))
+
+
 def site_key(netloc):
     """같은 사이트 비교용 호스트: 대소문자와 맨 앞 'www.'를 무시한다 (example.com == www.example.com)."""
     n = netloc.lower()
@@ -443,19 +461,15 @@ def candidates_from(pages, detect_posted=True):
     return list(cands.values())
 
 
-def _parent_of(location):
-    """'… > ul > a:nth-of-type(8)' → ('… > ul', 'a') : 같은 줄(부모)·같은 태그인지 비교용."""
-    head, _, last = location.rpartition(" > ")
-    return head, last.split(":nth-of-type(")[0]
-
-
 def dedupe(cands):
     """같은 페이지에서 같은 광고를 여러 번 보고하는 것을 하나로 합친다. (남길 후보, 합친 후보 목록)
 
+    중복 기준(팀 결정 2026-10-15): **문구가 같고 페이지가 같을 때만** 하나로 본다. 다른 페이지(다른 글)의 같은 문구는 각각 센다.
+    '같은 페이지'는 page_key — 목록 몇 쪽에서 들어왔는지(startPage 등)만 다른 주소는 같은 글이다.
     불법광고 판정(ad)만 대상이며, 아래 경우 하나만 남긴다.
-    1) 주소·내용이 같고 위치가 같은 줄 — 한쪽이 다른 쪽을 감싸거나(div > ul 둘 다 숨김 신호), 같은 부모 아래 형제
-       (목록에 같은 링크 글자가 두 번) → 은닉 기법이 게시형보다 우선, 그다음 바깥 요소·앞 형제
-       단, 같은 요소에 서로 다른 은닉 기법이 함께 잡힌 경우는 둘 다 남긴다
+    1) 같은 페이지에서 문구가 같으면 위치가 달라도 (글 제목과 아래 목록 링크, 목록에 같은 링크 두 번)
+       → 은닉 기법이 게시형보다 우선, 그다음 바깥 요소·앞 형제
+       단, 같은 요소에 서로 다른 은닉 기법이 함께 잡힌 경우는 둘 다 남긴다 (채점이 기법까지 본다)
     2) 숨김 블록(은닉 4종) 안의 요소가 게시형으로 따로 잡힌 경우 — 숨김 블록 한 건으로 보고
     """
     def rank(c):  # 남길 우선순위: 은닉 기법 > 게시형, 바깥 요소 > 안쪽, 앞 형제 > 뒤 형제
@@ -466,7 +480,7 @@ def dedupe(cands):
     by_page = {}
     for c in ads:
         text = " ".join(c["evidence_text"].split())
-        page = by_page.setdefault(norm_url(c["url"]), [])
+        page = by_page.setdefault(page_key(c["url"]), [])
         for k in page:
             k_text = " ".join(k["evidence_text"].split())
             if c["location"] == k["location"] and c["technique"] != k["technique"] \
@@ -474,10 +488,9 @@ def dedupe(cands):
                 continue  # 한 요소에 은닉 기법이 둘(예: 투명+화면 밖) — 채점이 기법까지 보므로 둘 다 남긴다
             nested = (c["location"] == k["location"] or c["location"].startswith(k["location"] + " > ")
                       or k["location"].startswith(c["location"] + " > "))
-            same_line = _parent_of(c["location"]) == _parent_of(k["location"])
             # 숨김 블록 안의 요소는 글자가 조금 달라도(링크 글자 제외 등) 그 블록의 일부 — 블록 한 건으로 본다
             inside_hidden = nested and k["technique"] in CORE_TECHNIQUES and c["technique"] not in CORE_TECHNIQUES
-            if (text == k_text and (nested or same_line)) or inside_hidden:
+            if text == k_text or inside_hidden:
                 c["duplicate_of"] = {"location": k["location"], "technique": k["technique"]}
                 dups.append(c)
                 break
@@ -588,7 +601,7 @@ LLM_RESERVE = 6 * 60    # 나중에 붙일 LLM 최종 검증 몫(아직 미구�
 
 def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT_MODEL, use_ml=True,
         progress=None, phase=None, user_agent=DEFAULT_UA, detect_posted=True,
-        time_budget=TIME_BUDGET, llm_reserve=LLM_RESERVE, keep_repeats=False):
+        time_budget=TIME_BUDGET, llm_reserve=LLM_RESERVE, collapse=False):
     """크롤링 → 판정 → result.json/report.json 저장. report 딕셔너리를 돌려준다.
 
     phase(단계명): UI에 현재 단계(crawl/judge/save)를 알리는 콜백.
@@ -607,7 +620,8 @@ def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT
     phase("judge")
     cands = judge(candidates_from(pages, detect_posted), str(model), use_ml, judge_deadline)
     cands, dups = dedupe(cands)
-    cands, n_repeats = (cands, 0) if keep_repeats else collapse_repeats(cands)
+    # 여러 페이지 반복 합치기는 기본으로 끔(팀 결정: 다른 페이지의 같은 문구는 따로 센다). --collapse-repeats로 켬
+    cands, n_repeats = collapse_repeats(cands) if collapse else (cands, 0)
     finished = datetime.now(KST)
     elapsed = round(time.perf_counter() - t0, 2)
 
@@ -672,13 +686,13 @@ def main():
                     help="크롤러 User-Agent (기본: 일반 Chrome). 점검 기관에 신원을 밝혀야 하면 뒤에 도구명을 덧붙여 쓰세요.")
     ap.add_argument("--no-extra", action="store_true",
                     help="게시형(은닉 없는) 불법광고 탐지를 끄고 적격평가 4종만 탐지")
-    ap.add_argument("--keep-repeats", action="store_true",
-                    help="여러 페이지에 반복된 같은 광고(게시판 목록·공통 하단 등)를 합치지 않고 페이지마다 따로 제출")
+    ap.add_argument("--collapse-repeats", action="store_true",
+                    help="여러 페이지에 반복된 같은 광고(게시판 목록·공통 하단 등)를 대표 1건으로 합쳐 제출 (기본: 페이지마다 따로)")
     args = ap.parse_args()
 
     report = run(args.entry_url, args.out, args.max_pages, args.concurrency, args.timeout, args.model, not args.no_ml,
                  user_agent=args.user_agent, detect_posted=not args.no_extra,
-                 time_budget=args.time_budget, llm_reserve=args.llm_reserve, keep_repeats=args.keep_repeats)
+                 time_budget=args.time_budget, llm_reserve=args.llm_reserve, collapse=args.collapse_repeats)
     cands = report["candidates"]
     findings = sum(c["verdict"] == "ad" for c in cands)
     by = {}
