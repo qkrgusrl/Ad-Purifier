@@ -102,6 +102,24 @@ def korean_digit_phone(text):
     return _KO_PHONE_SPAN.sub(fix, text)
 
 
+_SEP = r"[\s.,·]{0,3}"  # 숫자 한 자리마다 끼우는 구분자
+_DASH = _SEP + r"[-~_ㅡ]" + _SEP  # 번호 덩어리 사이 구분 기호 — 이것이 있어야 날짜·버전 번호('0.1.0 2026.10.15')와 구별된다
+_SPACED_PHONE = re.compile(r"(?<!\d)0" + _SEP + r"(?:1" + _SEP + r"[016789]|6" + _SEP + r"0)" + _DASH
+                           + r"\d(?:" + _SEP + r"\d){2,3}" + _DASH + r"\d(?:" + _SEP + r"\d){3}(?!\d)")
+
+
+def spaced_phone(text):
+    """숫자 사이마다 점·쉼표·공백을 끼워 쓴 휴대폰·유료 번호를 붙인다 ('0.1 0, - 8.2.5.6 - 9.5.5.7' → '010-8256-9557').
+
+    01X·060으로 시작하고 세 덩어리가 '-' 같은 기호로 나뉜 것만 바꾼다(날짜·버전 번호와 헷갈리지 않게). 판정용 문자열에만 쓴다.
+    전북 인재개발원 자유게시판의 자격증 광고 11건이 이렇게 번호를 숨겼다.
+    """
+    def fix(m):
+        d = re.sub(r"\D", "", m.group(0))
+        return f"{d[:3]}-{d[3:-4]}-{d[-4:]}" if len(d) in (10, 11) else m.group(0)
+    return _SPACED_PHONE.sub(fix, text)
+
+
 def leet_words(text):
     """'s1ot' 처럼 영문 사이에 숫자를 끼운 토큰만 복원한 결과."""
     out = []

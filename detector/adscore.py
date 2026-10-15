@@ -6,7 +6,7 @@
 """
 import re
 
-from .textnorm import compact, deobfuscate_digits, korean_digit_phone, leet_words
+from .textnorm import compact, deobfuscate_digits, korean_digit_phone, leet_words, spaced_phone
 
 HIGH, LOW = 4.0, 1.5
 
@@ -40,7 +40,7 @@ KO_KEYWORDS = [
     ("쩜오", 3), ("셔츠룸", 3), ("하이퍼블릭", 3), ("텐카페", 3), ("가라오케", 1),
     ("유흥알바", 3), ("룸알바", 3), ("쓰리노", 3), ("고액알바", 2),  # 유흥업소 구인·보이스피싱 수거책 모집 (thetoollab·fooime)
     # 유흥업소 형태 은어 (s-solution 게시판 도배 — '단란주점'은 허가 업종명이라 넣지 않음)
-    ("풀쌀롱", 2.5), ("란제리룸", 3), ("터치룸", 3), ("비키니룸", 3), ("미러초이스", 3), ("북창동식", 3), ("룸빵", 3),
+    ("풀쌀롱", 2.5), ("란제리룸", 3), ("터치룸", 3), ("비키니룸", 3), ("미러초이스", 3), ("북창동식", 3), ("룸빵", 3), ("호빠", 2), ("호스트빠", 3),
     ("노브라룸", 3), ("레깅스룸", 3), ("교복룸", 3), ("컨셉룸", 3), ("하드풀", 3),
     ("마사지", 1),  # 안마사 직업훈련 등 정상 글이 많아 단독은 약하게
     # 불법 금융
@@ -145,6 +145,10 @@ def _disguised(t):
 COMMON_LABELS = {"www", "m", "co", "or", "go", "ac", "re", "ne", "kr", "com", "net", "org", "html", "http", "https"}
 
 
+# 주소 안내 어휘: 자기 기관 주소만 적힌 문구면 광고 근거로 세지 않는다 (공고의 '3. 접속주소 : http://jeonbuk.npagoda.com')
+ADDRESS_WORDS = {"주소", "접속주소", "새주소", "평생주소", "빠른주소", "우회주소", "주소검색", "최신링크", "링크모음"}
+
+
 def _own_domain(text, site):
     """문구의 도메인이 모두 점검 중인 사이트 자신이거나 그 기관 이름을 담고 있으면 True
     ('효재 자사몰(www.hyojae.com)', hrd.jeonbuk.go.kr 페이지의 'jeonbuk.npagoda.com' 교육 접속 주소)."""
@@ -158,7 +162,7 @@ def _own_domain(text, site):
 def explain(norm_text, site=None):
     """(점수, 항목별 점수 [(근거 이름, 가중치)]) — 감점 항목은 가중치가 음수. 판정 근거를 항목별로 남기기 위한 것.
     site(점검 중인 사이트 호스트)를 주면 그 사이트·기관 이름이 든 도메인은 광고 도메인으로 세지 않는다."""
-    plain = korean_digit_phone(deobfuscate_digits(norm_text))  # 'l9금', 'o6o-5oo-266o', '공60- 오0이' 같은 숫자 위장 복원
+    plain = spaced_phone(korean_digit_phone(deobfuscate_digits(norm_text)))  # 'l9금', 'o6o-5oo-266o', '공60- 오0이' 같은 숫자 위장 복원
     c = KO_EXCLUDE.sub("", compact(plain))
     ct = KO_EXCLUDE.sub("", joined(plain))
     # 두 글자 키워드는 단어 경계를 넘지 않게(ct), 세 글자 이상은 '출장 안마'처럼 나눠 쓴 것도 잡도록 완전 압축(c)에서 찾는다
@@ -169,6 +173,8 @@ def explain(norm_text, site=None):
     detail += [(re.sub(r"\\b|\(.*|\?", "", pat), w) for pat, w in EN_KEYWORDS if re.search(pat, words)]
     no_mail = EMAIL.sub(" ", plain)  # 연락처 안내의 이메일은 광고 신호가 아니다 (메신저 ID·도메인으로 세지 않음)
     own = _own_domain(no_mail, site)
+    if own:  # 라벨 데이터 4,863개 중 이 경우 광고 라벨 0건 (npagoda 교육 접속 안내 1건만 해당)
+        detail = [(k, w) for k, w in detail if k not in ADDRESS_WORDS]
     detail += [(name, w) for pat, w, name in PATTERNS if pat.search(no_mail) and not (name == "domain" and own)]
     if plain != norm_text and _disguised(norm_text) < _disguised(plain):
         detail.append(("digit-obfuscation", 2))  # 연락처·'19금'을 글자로 위장해 적은 흔적 자체가 스팸 신호
