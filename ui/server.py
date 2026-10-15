@@ -83,7 +83,7 @@ def list_runs():
         except (OSError, json.JSONDecodeError):
             review = {}
         ads = [c for c in rep["candidates"] if c["verdict"] == "ad"]
-        # 처리 필요 = 미검토 + 불법광고 확인 (화면의 광고 청정도 등급 계산용 — 페이지 비율·페이지 수·건수·숨김형 여부)
+        # 처리 필요 = 미검토 + 불법광고 확인 (화면의 광고 청정도 계산용 — 오염 페이지 비율·오염 페이지 수·문구 수·숨김형 건수)
         pending_ads = [c for c in ads if review.get(cand_key(c), {}).get("status", "new") in ("new", "confirmed")]
         runs.append({"id": d.parent.name, "entry_url": rep["meta"]["entry_url"],
                      "started_at": rep["meta"]["started_at"], "elapsed_sec": rep["meta"]["elapsed_sec"],

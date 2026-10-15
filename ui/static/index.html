@@ -211,10 +211,21 @@ input[type=number] { width: 84px; }
 .ring .lvl { font-size: 46px; font-weight: 900; line-height: 1.05; color: var(--c); letter-spacing: -.03em; }
 .ring .pct { margin-top: 4px; font-size: 17px; font-weight: 800; color: color-mix(in srgb, var(--c) 80%, #0f2f2a); }
 .ring .cap { margin-top: 4px; font-size: 12px; color: var(--muted); }
-.gauge .gauge-why { margin: 14px 0 0; font-size: 13px; font-weight: 700; color: color-mix(in srgb, var(--c) 80%, #0f2f2a); }
+.gauge .gauge-why { list-style: none; margin: 16px 0 0; padding: 0; width: 100%; max-width: 320px; display: grid; gap: 7px; text-align: left; }
 .gauge .gauge-why:empty { display: none; }
+.gauge .gauge-why li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 8px; font-size: 12px; color: var(--muted); }
+.gauge .gauge-why li em { font-style: normal; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.gauge .gauge-why li i { grid-column: 1 / -1; height: 5px; border-radius: 5px; background: var(--line);
+  background-image: linear-gradient(90deg, var(--c), var(--c)); background-size: var(--w) 100%; background-repeat: no-repeat; opacity: .55; }
+.gauge .gauge-why li.top span, .gauge .gauge-why li.top em { color: color-mix(in srgb, var(--c) 80%, #0f2f2a); font-weight: 800; }
+.gauge .gauge-why li.top i { opacity: 1; }
 .gauge .gauge-why + .gauge-note { margin-top: 6px; }
-.gauge .gauge-note { margin: 16px 0 0; font-size: 12px; color: var(--muted); max-width: 300px; }
+.gauge .gauge-note { margin: 16px 0 0; width: 100%; max-width: 320px; padding: 12px 14px; border-radius: 12px;
+  background: color-mix(in srgb, var(--cw) 60%, #fff); text-align: left; font-size: 12px; line-height: 1.55; color: var(--muted); word-break: keep-all; }
+.gauge .gauge-note h4 { margin: 0 0 6px; padding-bottom: 6px; border-bottom: 1px solid var(--line); font-size: 13px; font-weight: 800; color: var(--text); }
+.gauge .gauge-note ul { margin: 0; padding-left: 16px; }
+.gauge .gauge-note li + li { margin-top: 2px; }
+.gauge .gauge-note li b { color: var(--text); }
 .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 16px; }
 @media (max-width: 560px) { .stats { gap: 10px; } }
 .tile { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 112px; padding: 18px 20px; }
@@ -449,11 +460,11 @@ tr.detail td { background: #f7fbfa; }
 
     <section class="card guide" id="guidePanel" hidden>
       <h3>이렇게 사용하세요</h3>
-      <p>URL 하나만 넣으면 하위 페이지·게시글·iframe까지 자동으로 점검합니다.</p>
+      <p>URL 하나만 넣으면 하위 페이지와 게시글, iframe까지 자동으로 점검합니다.</p>
       <ol>
         <li>점검할 웹사이트의 <b>시작 주소</b>를 넣고 <b>탐지 시작</b>을 누릅니다.</li>
-        <li>불법광고가 <b>탐지 유형</b>(닮은꼴 글자·자모 분해·투명 텍스트·화면 밖 은닉, 그리고 숨기지 않고 게시된 광고)별로 걸러집니다.</li>
-        <li>항목을 누르면 <b>판정 근거</b>를 확인하고 <b>검토 상태·메모</b>를 남길 수 있습니다.</li>
+        <li>불법광고가 <b>탐지 유형</b>(닮은꼴 글자, 자모 분해, 투명 텍스트, 화면 밖 은닉, 숨기지 않고 게시된 광고)별로 걸러집니다.</li>
+        <li>항목을 누르면 <b>판정 근거</b>를 확인하고 <b>검토 상태</b>와 <b>메모</b>를 남길 수 있습니다.</li>
         <li><b>조치 완료</b>할수록 <b>청정도</b>가 올라갑니다. 결과는 <b>엑셀(CSV)</b>로 전달하세요.</li>
       </ol>
     </section>
@@ -474,8 +485,15 @@ tr.detail td { background: #f7fbfa; }
               <div class="cap" id="gaugeCap"></div>
             </div>
           </div>
-          <p class="gauge-why" id="gaugeWhy"></p>
-          <p class="gauge-note">오염 페이지 비율·오염 페이지 수·처리할 광고 문구 수·숨김형 광고 여부 중 <b>가장 나쁜 기준</b>으로 등급을 매깁니다. 항목을 <b>조치 완료</b>·<b>오탐</b>으로 처리하면 올라갑니다.</p>
+          <ul class="gauge-why" id="gaugeWhy" aria-label="청정도 세부 지표"></ul>
+          <div class="gauge-note">
+            <h4>청정도 산정 기준</h4>
+            <ul>
+              <li>위 네 가지 지표를 함께 보고, 상태가 나쁜 지표를 더 크게 반영합니다.</li>
+              <li>막대가 길수록 청정도를 많이 낮춘 지표입니다.</li>
+              <li>광고를 <b>조치 완료</b>나 <b>오탐</b>으로 처리하면 청정도가 올라갑니다.</li>
+            </ul>
+          </div>
         </section>
         <div class="stats" id="tiles"></div>
       </div>
@@ -483,12 +501,12 @@ tr.detail td { background: #f7fbfa; }
       <div class="row2" style="margin-top:22px">
         <section class="card">
           <h3><svg class="i"><use href="#ic-chart"/></svg>오염원 분석</h3>
-          <p>탐지 유형별 건수 · 누르면 해당 유형만 걸러 봅니다.</p>
+          <p>탐지 유형별 건수입니다. 누르면 해당 유형만 걸러 봅니다.</p>
           <div class="src-list" id="techTiles"></div>
         </section>
         <section class="card">
           <h3><svg class="i"><use href="#ic-wind"/></svg>탐지 로그</h3>
-          <p>처리가 필요한 항목부터 보여 줍니다 · 누르면 상세 근거로 이동합니다.</p>
+          <p>처리가 필요한 항목부터 보여 줍니다. 누르면 상세 근거로 이동합니다.</p>
           <ul class="log" id="logList"></ul>
           <div class="log-more"><button type="button" class="ghost small" id="logMore">전체 결과 보기 →</button></div>
         </section>
@@ -500,7 +518,7 @@ tr.detail td { background: #f7fbfa; }
         <div><h3><svg class="i"><use href="#ic-list"/></svg>탐지 결과</h3><p id="resultTitle"></p></div>
         <div class="export-btns">
           <button id="jsonBtn" type="button" class="ghost" title="요강 붙임4 표준 형식 (실행 폴더에 저장된 제출용 파일과 같은 내용)"><svg class="i"><use href="#ic-pages"/></svg>result.json 다운로드</button>
-          <button id="csvBtn" type="button" class="ghost" title="검토·조치 관리용 엑셀 파일 (앞 6열은 result.json과 같은 필드)"><svg class="i"><use href="#ic-download"/></svg>엑셀(CSV) 내보내기</button>
+          <button id="csvBtn" type="button" class="ghost" title="검토와 조치 관리용 엑셀 파일 (앞 6열은 result.json과 같은 필드)"><svg class="i"><use href="#ic-download"/></svg>엑셀(CSV) 내보내기</button>
         </div>
       </div>
       <div class="toolbar">
@@ -511,7 +529,7 @@ tr.detail td { background: #f7fbfa; }
           <option value="false_positive">오탐</option>
           <option value="resolved">조치 완료</option>
         </select>
-        <input type="search" id="search" placeholder="문구·페이지·위치 검색" aria-label="검색">
+        <input type="search" id="search" placeholder="문구, 페이지, 위치 검색" aria-label="검색">
         <label class="inline"><input type="checkbox" id="showExcluded"> 정상 판정 후보도 보기</label>
       </div>
       <div class="table-wrap">
@@ -537,44 +555,58 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 const icon = (id, cls = "i") => `<svg class="${cls}"><use href="#ic-${id}"/></svg>`;
 
-/* 오염 지수(0~100): 아래 기준 중 가장 나쁜 값을 따른다(미세먼지 통합지수처럼).
-   페이지 비율만 보면 큰 사이트는 광고가 수백 건이어도 '양호'가 나오므로 건수·페이지 수도 함께 본다.
-   ① 오염 페이지 비율(%)
-   ② 오염 페이지 수: 1쪽 10 · 3쪽 30 · 9쪽 50 · 27쪽 70 · 81쪽 90 (3배마다 +20)
-   ③ 처리할 광고 문구 수(같은 글이 목록·상세에 중복으로 잡힌 건 1건): 1건 5 · 9건 35 · 27건 50 · 81건 65 · 243건 80 (3배마다 +15)
-   ④ 숨김형(적격 4종) 광고가 남아 있으면 최소 31(=주의) — 사이트가 변조됐다는 뜻이므로 */
-const log3 = n => Math.log(Math.max(1, n)) / Math.log(3);
+/* 광고청정기 청정도 기준 — 청정도(%) = 100 − 오염 지수, 소수 첫째 자리까지.
+   네 기준을 각각 0~100 세부 지수(높을수록 나쁨)로 바꾼 뒤 3제곱 평균으로 합친다: ((a³+b³+c³+d³)/4)^(1/3)
+   - 가장 나쁜 기준 하나만 따르면 광고가 많은 사이트가 모두 0%로 붙어 서로 구분되지 않고,
+     단순 평균이면 큰 사이트는 광고가 수백 건이어도 페이지 비율이 낮아 '양호'가 나온다. 3제곱 평균은 그 사이 —
+     나쁜 기준에 무게가 실리고, 여러 기준이 함께 나빠야 0%에 가까워진다.
+   - 어느 기준이든 나빠지면 청정도는 내려가기만 한다(광고가 늘었는데 오르는 일이 없음).
+   - 세부 지수는 개수가 커질수록 100에 다가가기만 하고 닿지 않는 곡선(H) — 수천 건 사이트끼리도 차이가 남는다.
+   ① 오염 페이지 비율: 오염 페이지 / (점검 페이지 + 4) × 100 (몇 쪽만 본 점검에서 비율이 튀지 않게 +4)
+   ② 오염 페이지 수: 1쪽 10 · 3쪽 25 · 9쪽 50 · 27쪽 75 · 81쪽 90 · 243쪽 96
+   ③ 처리할 광고 문구 수(같은 문구는 1건): 1건 7 · 9건 29 · 27건 50 · 81건 71 · 243건 85 · 2,000건 97
+   ④ 숨김형(적격 4종) 광고: 1건 35 · 27건 65 · 1,000건 97. 1건이라도 남으면 청정도는 최대 70%(주의) — 사이트가 변조됐다는 뜻 */
+const H = (n, half, k) => (n > 0 ? 100 * (1 - 1 / (1 + (n / half) ** k)) : 0);  // n = half일 때 50
+const HIDDEN_CAP = 70;
 function pollution({ pages, dirtyPages, pending, hidden }) {
-  if (!pending) return { value: 0, why: "" };  // pending = 처리할 고유 문구 수
+  if (!pending) return { value: 0, parts: [] };  // pending = 처리할 고유 문구 수
   const parts = [
-    [pages ? dirtyPages / pages * 100 : 100, `오염 페이지 비율 ${pages ? Math.round(dirtyPages / pages * 100) : 100}%`],
-    [10 + 20 * log3(dirtyPages), `오염 페이지 ${dirtyPages}개`],
-    [5 + 15 * log3(pending), `처리할 광고 문구 ${pending}건`],
-    [hidden ? 31 : 0, `숨김형 광고 ${hidden}건`],
+    { name: "오염 페이지 비율", value: 100 * dirtyPages / ((pages || 0) + 4),
+      text: `${pages ? (dirtyPages / pages * 100).toFixed(1) : 100}% (${dirtyPages.toLocaleString()}/${(pages || 0).toLocaleString()}쪽)` },
+    { name: "오염 페이지 수", value: H(dirtyPages, 9, 1), text: `${dirtyPages.toLocaleString()}쪽` },
+    { name: "처리할 광고 문구", value: H(pending, 27, 0.8),
+      text: `${pending.toLocaleString()}건` + (pages ? ` (쪽당 ${(pending / pages).toFixed(1)})` : "") },
+    { name: "숨김형 광고", value: hidden ? 30 + 0.7 * H(hidden, 27, 0.8) : 0, text: `${hidden.toLocaleString()}건` },
   ];
-  const [value, why] = parts.reduce((a, b) => (b[0] > a[0] ? b : a));
-  return { value: Math.min(100, value), why };
+  let value = Math.cbrt(parts.reduce((a, x) => a + x.value ** 3, 0) / parts.length);
+  if (hidden) value = Math.max(value, 100 - HIDDEN_CAP);
+  return { value: Math.min(100, value), parts, top: parts.reduce((a, b) => (b.value > a.value ? b : a)) };
 }
-/* 청정도(%) = 100 − 오염 지수. 1건이라도 남으면 100%로 반올림되지 않게 99%가 상한 */
-const cleanPct = p => (p.value ? Math.min(99, Math.round(100 - p.value)) : 100);
+/* 1건이라도 남으면 100%가 되지 않게 99.9%가 상한 */
+const cleanPct = p => (p.value ? Math.min(99.9, Math.round((100 - p.value) * 10) / 10) : 100);
+const pctText = v => (v === 100 ? "100" : v.toFixed(1));
 const isHidden = c => c.technique !== "POSTED";
 const phraseKey = c => (c.evidence_text || "").replace(/\s+/g, " ").trim();  // 서버 list_runs의 pending_unique와 같은 기준
 // 광고가 실제로 있는 페이지들: 대표 페이지 + 여러 페이지 반복으로 합친 페이지(also_on) — 오염 페이지 수에 모두 센다
 const pagesOf = c => [c.url, ...(c.also_on || []).map(x => x.url)];
-/* 청정 등급: 청정도 10%마다 한 단계씩 초록 → 빨강 (100% 초록, 90~99% 거의 초록 … 0~10% 빨강) */
-const WORDS = [  // [최소 단계, 게이지 문구, 등급 이름] — 미세먼지 예보처럼 4단계, 색 구간과 맞춤
-  [7, "오염", "매우 나쁨"],  // 0~39%  주황 → 빨강
-  [4, "주의", "나쁨"],       // 40~69% 연두 → 노랑
-  [1, "양호", "좋음"],       // 70~99% 초록
-  [0, "청정", "매우 좋음"],  // 100%
+/* 청정 등급 7단계 (미세먼지 8단계 예보처럼 세분화). 색은 청정도에 따라 초록 → 노랑 → 주황 → 빨강으로 연속 변화 */
+const GRADES = [  // [청정도 하한, 게이지 문구, 등급 이름]
+  [100, "청정", "매우 좋음"],
+  [90, "양호", "좋음"],
+  [75, "보통", "보통"],
+  [55, "주의", "약간 나쁨"],
+  [35, "나쁨", "나쁨"],
+  [15, "위험", "매우 나쁨"],
+  [0, "심각", "최악"],
 ];
 function levelOf(pct) {
-  const step = Math.min(10, Math.ceil((100 - pct) / 10));  // 0(100%) ~ 10(0~10%)
-  const t = step / 10;
+  const i = GRADES.findIndex(([min]) => pct >= min);
+  const [, word, name] = GRADES[i];
+  const t = 1 - pct / 100;
   const hue = 148 - 150 * t;  // 초록(148) → 노랑 → 주황 → 빨강(-2)
-  const [, word, name] = WORDS.find(([min]) => step >= min);
-  return { key: `s${step}`, word, name,
-           color: `hsl(${hue.toFixed(0)} ${(62 + 10 * t).toFixed(0)}% ${(42 + 8 * t).toFixed(0)}%)`,
+  return { key: `g${i}`, word, name,
+           // 노랑 부근(중간)은 흰 배경에서 글자가 흐려지므로 조금 어둡게
+           color: `hsl(${hue.toFixed(0)} ${(62 + 10 * t).toFixed(0)}% ${(40 + 8 * t - 7 * Math.sin(Math.PI * t)).toFixed(0)}%)`,
            weak: `hsl(${hue.toFixed(0)} 70% 94%)` };
 }
 // 진입 페이지에 접속하지 못한 점검: 0건이어도 '청정'이 아니라 판단 불가
@@ -626,8 +658,8 @@ async function loadHistory(selectId) {
                                                                        pending: r.pending_unique ?? pending, hidden: r.pending_hidden ?? 0 })));
     return `<li data-id="${esc(r.id)}" tabindex="0" class="lv-${lv.key} ${current && current.id === r.id ? "active" : ""}" style="--c:${lv.color}">
       <b title="${esc(r.entry_url)}">${esc(r.entry_url)}</b>
-      <span>${esc(r.started_at.replace("T", " ").slice(0, 16))} · ${r.pages}페이지</span>
-      <span>탐지 ${r.findings}건 · <em>${lv.word}</em></span>
+      <span>${esc(r.started_at.replace("T", " ").slice(0, 16))}, ${r.pages}페이지</span>
+      <span>탐지 ${r.findings}건, <em>${lv.word}</em></span>
       <button type="button" class="del" data-del="${esc(r.id)}" aria-label="이 점검 이력 삭제" title="삭제">${icon("trash")}</button>
     </li>`;
   }).join("");
@@ -715,8 +747,8 @@ function render() {
   const r = current;
   $("dashboard").hidden = false;
   $("resultPanel").hidden = false;
-  $("resultTitle").textContent = `${r.meta.entry_url} · ${r.meta.started_at.replace("T", " ").slice(0, 16)} 점검`
-    + (r.model ? ` · 판정 모델 ${r.model}` : "");
+  $("resultTitle").textContent = `${r.meta.entry_url}, ${r.meta.started_at.replace("T", " ").slice(0, 16)} 점검`
+    + (r.model ? `, 판정 모델 ${r.model}` : "");
   const ads = r.candidates.filter(c => c.verdict === "ad");
   const pendingList = ads.filter(isPending);
   const pending = pendingList.length;
@@ -734,21 +766,24 @@ function render() {
   $("gaugeVal").style.opacity = r.entry_failed ? 0 : 1;  // 둥근 선 끝이 점으로 남지 않게
   $("gaugeLvl").textContent = lv.word;
   $("gaugeLvl").classList.toggle("na", !!r.entry_failed);
-  $("gaugePct").textContent = r.entry_failed ? "청정도 -" : `청정도 ${clean}%`;
+  $("gaugePct").textContent = r.entry_failed ? "청정도 -" : `청정도 ${pctText(clean)}%`;
   $("gaugeCap").textContent = r.entry_failed ? "사이트에 접속하지 못했습니다"
     : pending ? `오염 페이지 ${dirtyPages} / ${r.pages}` : (ads.length ? "모든 불법광고 처리 완료" : "숨겨진 불법광고 없음");
-  $("gaugeWhy").textContent = !r.entry_failed && pending ? `등급 기준: ${pol.why}` : "";
+  // 세부 지표: 네 기준의 세부 지수(0~100, 높을수록 나쁨)를 막대로. 가장 크게 끌어내린 기준을 강조
+  $("gaugeWhy").innerHTML = !r.entry_failed && pending ? pol.parts.map(x => `
+    <li class="${x === pol.top ? "top" : ""}"><span>${x.name}</span><em>${esc(x.text)}</em>
+      <i style="--w:${x.value.toFixed(1)}%" title="오염 지수 ${x.value.toFixed(1)}"></i></li>`).join("") : "";
 
   // 통계 카드 (두 번째 카드 = 처리 필요). 접속 실패면 0이 아니라 '-'
   const na = !!r.entry_failed;
   $("tiles").innerHTML = na ? `
     <div class="card tile t-found"><div><small>탐지된 불법광고</small><b>-</b></div><div class="ico">${icon("search")}</div></div>
     <div class="card tile t-pending zero" style="--c:var(--dim)"><div><small>처리 필요</small><b style="color:var(--dim)">-</b></div><div class="ico" style="background:#eef2f1;color:var(--dim)">${icon("alert")}</div></div>
-    <div class="card tile t-pages"><div><small>점검 페이지 · ${mmss(r.meta.elapsed_sec)}</small><b>0<u>개</u></b></div><div class="ico">${icon("pages")}</div></div>
+    <div class="card tile t-pages"><div><small>점검 페이지 (${mmss(r.meta.elapsed_sec)})</small><b>0<u>개</u></b></div><div class="ico">${icon("pages")}</div></div>
     <div class="card tile t-grade"><div><small>청정 등급</small><b style="color:var(--dim)">확인 불가</b></div><div class="ico" style="background:#eef2f1;color:var(--dim)">${icon("shield")}</div></div>` : `
     <div class="card tile t-found"><div><small>탐지된 불법광고</small><b>${ads.length}<u>건</u></b></div><div class="ico">${icon("search")}</div></div>
     <div class="card tile t-pending ${pending ? "" : "zero"}"><div><small>처리 필요</small><b>${pending}<u>건</u></b></div><div class="ico">${icon(pending ? "alert" : "shield")}</div></div>
-    <div class="card tile t-pages"><div><small>점검 페이지 · ${mmss(r.meta.elapsed_sec)}</small><b>${r.pages}<u>개</u></b></div><div class="ico">${icon("pages")}</div></div>
+    <div class="card tile t-pages"><div><small>점검 페이지 (${mmss(r.meta.elapsed_sec)})</small><b>${r.pages}<u>개</u></b></div><div class="ico">${icon("pages")}</div></div>
     <div class="card tile t-grade" style="--c:${lv.color}"><div><small>청정 등급</small><b style="color:${lv.color}">${lv.name}</b></div><div class="ico" style="background:${lv.weak};color:${lv.color}">${icon("shield")}</div></div>`;
 
   // 오염원 분석
@@ -780,14 +815,14 @@ function renderWarnings(r) {
   if (r.entry_failed) {
     critical = true;
     const reason = (failed.find(f => f.url === r.meta.entry_url) || {}).reason || "";
-    html = `<b>진입 페이지에 접속하지 못했습니다.</b>주소가 맞는지, 네트워크·사이트가 정상인지 확인한 뒤 다시 탐지하세요. 이 점검의 결과(0건)는 신뢰할 수 없습니다.${reason ? list([reason], esc) : ""}`;
+    html = `<b>진입 페이지에 접속하지 못했습니다.</b>주소가 맞는지, 네트워크와 사이트가 정상인지 확인한 뒤 다시 탐지하세요. 이 점검의 결과(0건)는 신뢰할 수 없습니다.${reason ? list([reason], esc) : ""}`;
   } else if (entryHttp) {
     html = `<b>진입 페이지가 HTTP ${entryHttp.status} 오류를 반환했습니다.</b>주소를 다시 확인하세요. 오류 화면의 내용만 검사되었을 수 있습니다.`;
   } else if (failed.length) {
     html = `<b>${failed.length}개 페이지에 접속하지 못해 검사에서 빠졌습니다.</b>나머지 ${r.pages}개 페이지의 결과만 반영되었습니다.${list(failed, f => esc(f.url))}`;
   }
   if (!r.entry_failed && r.stopped_by_time) {
-    html += `${html ? "<br>" : ""}<b>시간 한도에 도달해 탐색을 멈췄습니다.</b>게시판·수상한 글을 먼저 살펴봤고, 아직 보지 못한 주소 ${r.left_in_queue}개가 남았습니다.`;
+    html += `${html ? "<br>" : ""}<b>시간 한도에 도달해 탐색을 멈췄습니다.</b>게시판과 수상한 글을 먼저 살펴봤고, 아직 보지 못한 주소 ${r.left_in_queue}개가 남았습니다.`;
   }
   box.hidden = !html;
   box.className = `warn-banner ${critical ? "critical" : ""}`;
@@ -808,7 +843,7 @@ function renderLog(ads) {
   $("logList").innerHTML = items.map(c => `
     <li class="t-${esc(c.technique)} ${c.review === "resolved" ? "done" : ""}" data-key="${c.key}" tabindex="0">
       <span class="pt"></span>
-      <span class="msg"><b>${esc(c.evidence_text)}</b><span>${TECH[c.technique] || esc(c.technique)} · ${esc(pathOf(c.url))}</span></span>
+      <span class="msg"><b>${esc(c.evidence_text)}</b><span>${TECH[c.technique] || esc(c.technique)}, ${esc(pathOf(c.url))}</span></span>
       <span class="tag ${c.review}">${REVIEW[c.review]}</span>
     </li>`).join("");
   $("logList").querySelectorAll("li[data-key]").forEach(li => {
@@ -897,7 +932,7 @@ function pendingMemo(c) {
 }
 
 function detailRow(c) {
-  const ml = c.ml_prob != null ? ` · AI 불법광고 확률 <b>${(c.ml_prob * 100).toFixed(1)}%</b>` : "";
+  const ml = c.ml_prob != null ? `, AI 불법광고 확률 <b>${(c.ml_prob * 100).toFixed(1)}%</b>` : "";
   const by = c.decided_by === "laya" ? "AI 보조 판정" : c.verdict === "borderline" ? "규칙(경계 구간, AI 판정 없음 → 정상 처리)" : "규칙";
   const restored = c.normalized && c.normalized !== c.evidence_text
     ? `<div class="restore"><span class="from">${esc(c.evidence_text)}</span><span aria-hidden="true">→</span><span class="to">${esc(c.normalized)}</span></div>`
@@ -914,9 +949,9 @@ function detailRow(c) {
       <dt>판정 근거</dt><dd>${(c.score_detail
         ? c.score_detail.map(([n, w]) => `<code>${esc(n)} ${w > 0 ? "+" : "−"}${Math.abs(w)}</code>`)
         : (c.hits || []).map(h => `<code>${esc(h)}</code>`)).join(" ") || "-"}</dd>
-      <dt>점수</dt><dd>규칙 점수 <b>${esc(c.score)}</b>${ml} · 판정 주체: ${by}</dd>
+      <dt>점수</dt><dd>규칙 점수 <b>${esc(c.score)}</b>${ml}, 판정 주체: ${by}</dd>
     </dl>
-    ${c.verdict === "ad" ? `<div class="memo"><textarea id="memoText" placeholder="조치 내용·담당자 메모" aria-label="메모">${esc(c.memo)}</textarea>
+    ${c.verdict === "ad" ? `<div class="memo"><textarea id="memoText" placeholder="조치 내용, 담당자 메모" aria-label="메모">${esc(c.memo)}</textarea>
       <button type="button" data-memo="${c.key}">메모 저장</button></div>` : ""}
   </td></tr>`;
 }
@@ -956,7 +991,7 @@ async function pollStatus() {
     const limit = crawl && s.crawl_limit ? ` / 최대 ${Math.round(s.crawl_limit / 60)}분` : "";  // 크롤링 시간 한도
     // 페이지 수 제한이 없으므로 '전체 중 몇 쪽'이 아니라 '본 페이지 · 아직 볼 주소'로 보여 준다
     const waiting = Math.max(0, s.pages_found - s.pages_done);
-    $("progText").textContent = `${PHASE[s.phase] || s.phase} · ${s.pages_done}페이지 점검${crawl && waiting ? ` · 대기 ${waiting}개` : ""} · ${mmss(s.elapsed)}${limit}`;
+    $("progText").textContent = `${PHASE[s.phase] || s.phase}, ${s.pages_done}페이지 점검${crawl && waiting ? `, 대기 ${waiting}개` : ""}, ${mmss(s.elapsed)}${limit}`;
     $("progUrl").textContent = s.current_url;
     return null;
   }
