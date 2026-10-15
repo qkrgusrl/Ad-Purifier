@@ -77,7 +77,7 @@ KO_KEYWORDS = [
 ]
 # 키워드를 품고 있지만 광고와 무관한 단어 — 키워드 비교 전에 지운다 ('오피' ⊂ '오피니언', '토토' ⊂ '토토로')
 # 광고주의 → '주의' 감점 오인 / 유흥주점업·사행업은 지원사업 공고의 '제외 업종' 표준 분류명
-KO_EXCLUDE = re.compile("오피니언|오피스|오피셜|에티오피아|토토로|포토토|작대기|광고주|유흥주점업|유흥주점영업|포커스")  # 진흥원포커스(focus) ⊃ 포커
+KO_EXCLUDE = re.compile("오피니언|오피스|오피셜|에티오피아|토토로|포토토|작대기|광고주|유흥주점업|유흥주점영업|포커스|채팅상담")  # 진흥원포커스(focus) ⊃ 포커, 민원 메뉴 "온라인 화상·채팅상담" ⊃ 화상채팅
 EN_KEYWORDS = [  # 단어 앞 경계 필수 ('better'의 bet, 'timeslots'의 slot 같은 부분일치 방지)
     (r"\bcasino", 3), (r"\bbaccarat", 3), (r"\bslots?\b", 3), (r"\btoto\b", 3), (r"\bbet(s|ting)?\b", 3),
     (r"\bpoker", 2), (r"\bholdem", 3), (r"\bjackpot", 2), (r"\bporn", 3), (r"\bxxx\b", 2),
@@ -190,6 +190,29 @@ def page_context(title_norm):
         return []
     neg = -sum(w for _, w in explain(title_norm)[1] if w < 0)
     return [("page-context", -min(PAGE_CONTEXT_MAX, neg))] if neg >= 2 else []
+
+
+BODY_CONTEXT_MIN = 8    # 본문 맥락: 감점 맥락 문장이 이만큼 이상이고
+BODY_CONTEXT_RATIO = 4  # 광고 점수 문장의 이 배수 이상이면 페이지 전체가 광고를 '다루는' 글
+# 구인 공고용 감점은 본문 맥락으로 세지 않는다: 스팸 구인글(고액알바·재택부업)도 '채용'을 반복해 맥락 문장으로 잘못 세진다
+BODY_CONTEXT_IGNORE = {"채용", "업종제외", "제외업종"}
+
+
+def body_context(norm_texts):
+    """제목 요소가 없어(일반 span 제목) page_context가 못 잡는 교육·보도 글을 본문 문장들로 판단한다.
+    감점 맥락(합 2 이상) 문장 수가 BODY_CONTEXT_MIN 이상이고 광고 점수(HIGH 이상) 문장의 BODY_CONTEXT_RATIO배 이상이면 감점.
+    스팸 글도 '사기·신고·피해' 같은 말을 섞지만 광고 문장이 함께 많아 비율에서 걸러진다
+    (근거: 저장 크롤링 14개 사이트·외부 89·미지 68·팀원 27페이지 — 스팸 페이지는 한 곳도 해당 없음)."""
+    neg = ad = 0
+    for t in set(norm_texts):  # 메뉴·목록처럼 페이지에 여러 번 나오는 문구는 한 번만
+        if len(t) < 15:
+            continue
+        s, det = explain(t)
+        # 맥락 문장은 25자 이상만: 공공기관 메뉴의 '○○ 신고센터' 같은 짧은 항목이 모든 페이지에서 맥락으로 세지지 않게
+        neg += len(t) >= 25 and -sum(w for n, w in det if w < 0 and n not in BODY_CONTEXT_IGNORE) >= 2
+        ad += s >= HIGH
+    ok = neg >= BODY_CONTEXT_MIN and neg >= BODY_CONTEXT_RATIO * ad
+    return [("body-context", -PAGE_CONTEXT_MAX)] if ok else []
 
 
 def score(norm_text):

@@ -344,6 +344,7 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
                    "external_skipped": external, "slow_mode": state["slow"], "retried": len(retried)}
 
 
+BODY_CONTEXT = True  # 본문 맥락 감점 사용 (평가 비교용 스위치)
 LINK_FARM_MIN = 3      # 같은 외부 사이트로 가는 본문 링크가 이만큼 이상이고
 LINK_FARM_TEXT_MAX = 30  # 링크 글자가 짧은 키워드(이 글자 수 이하)이며
 LINK_FARM_BONUS = 3    # 그중 하나라도 광고 키워드면 → 그 사이트로 가는 링크 전부에 가산점
@@ -411,6 +412,9 @@ def candidates_from(pages, detect_posted=True):
             is_title = lambda t: t["tag"] == "h1" or any(k in str(t.get("cls", "")).lower() for k in ("tit", "subject", "headline"))
             headings = ([t["text"] for t in heads if is_title(t)] + [t["text"] for t in heads if t["tag"] in ("h2", "h3") and not is_title(t)])[:3]
             page_ctx = adscore.page_context(normalize(" ".join([title] + headings))) if detect_posted else []
+            # 본문 맥락: 글 제목이 span이라 위에서 못 잡은 예방교육·보도 글 (함께학교 도박 예방 안내의 은어 설명 그림 등)
+            if detect_posted and not page_ctx and BODY_CONTEXT:
+                page_ctx = adscore.body_context([normalize(t["text"]) for t in data["texts"]])
             for t in data["texts"] + head:
                 checks = []
                 hg = homoglyph_signals(t["raw"])
@@ -432,7 +436,7 @@ def candidates_from(pages, detect_posted=True):
                                                    "evidence_text": t["text"], "signals": [f"keyword:{','.join(kw[:6])}"]})
                         context = [(f"link-farm:{farm}", LINK_FARM_BONUS)] if farm else []
                         context += redirect if s > 0 else []
-                        context += page_ctx  # 제목이 경고·보도 글이면 감점 (게시형만 — 숨김형 광고는 그대로)
+                        context += page_ctx  # 제목·본문이 경고·보도·교육 글이면 감점 (게시형만 — 숨김형 광고는 그대로)
                         if context:  # 판정 때 점수에 더할 문맥 가산점 (judge 참고)
                             c["signals"].extend(n for n, _ in context)
                             c["context"] = context
@@ -528,7 +532,11 @@ def judge(cands, model_path, use_ml, deadline=None):
         c["hits"] = [n if w > 0 else "-" + n for n, w in c["score_detail"]]
         c["verdict"] = adscore.verdict(c["score"])
         c["decided_by"] = "rules"
-    border = [c for c in cands if c["verdict"] == "borderline"]
+    # 제목·본문 맥락상 광고를 '다루는' 글(예방교육·보도·법령 안내)로 감점된 경계 문구는 AI가 광고로 올리지 않는다.
+    # 은어 설명·적발 사례는 광고 어휘투성이라 Laya가 확률 1.0을 주기도 한다(함께학교 도박 예방 안내 그림 설명).
+    # 저장 크롤링 14개 스팸 사이트에서 이 조건의 경계 문구는 0건 — 스팸을 놓치는 경우 없음. 남는 판단은 LLM 검증 단계 몫.
+    about = lambda c: any(n in ("page-context", "body-context") for n, _ in c.get("context", []))
+    border = [c for c in cands if c["verdict"] == "borderline" and not about(c)]
     if border and use_ml:
         try:
             from laya.agent import Agent
