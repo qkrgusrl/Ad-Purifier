@@ -37,7 +37,10 @@ async def _fetch_sitemap(entry: str, timeout_s: float = 8) -> list[str]:
             req = urllib.request.Request(sitemap_url,
                                          headers={"User-Agent": "Mozilla/5.0 Ad-Purifier/0.1"})
             with urllib.request.urlopen(req, timeout=timeout_s) as r:
-                return r.read() if r.status == 200 else None
+                if r.status != 200:
+                    return None
+                data = r.read(SITEMAP_MAX_BYTES + 1)  # 끝없이 큰 응답으로 메모리를 채우지 못하게
+                return data if len(data) <= SITEMAP_MAX_BYTES else None
         except Exception:
             return None
 
@@ -51,6 +54,7 @@ async def _fetch_sitemap(entry: str, timeout_s: float = 8) -> list[str]:
                 if loc.text]
     except Exception:
         return []
+SITEMAP_MAX_BYTES = 20 * 1024 * 1024
 TOPIC = "불법광고"  # 요강 예시는 "TOPIC" 문자열 — 주최 측 확인 필요
 KST = timezone(timedelta(hours=9))
 EXTRACT_JS = (Path(__file__).parent / "extract.js").read_text(encoding="utf-8")
@@ -156,6 +160,85 @@ def slash_variant(url):
     return urlunparse(p._replace(path=p.path + "/"))
 
 
+# ---------- 크롤러 보안: 점검하는 페이지에 심어진 악성 코드로부터 이 컴퓨터를 지킨다 ----------
+# 불법광고가 심어진 페이지에는 도박·성인 사이트의 스크립트나 iframe이 함께 들어 있을 수 있다. 크롤러는 글자만 읽으면 되므로
+# 그 밖의 브라우저 기능은 최대한 닫는다. 같은 사이트 문서의 스크립트는 그대로 둔다 — 스크립트로 늦게 끼워 넣는 광고도 봐야 하므로.
+# 다른 사이트 iframe 문서: 글자는 읽되 스크립트·플러그인은 못 돌게 하는 보안 정책(CSP)을 붙여 준다
+FOREIGN_FRAME_CSP = "script-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+FOREIGN_FRAME_TIMEOUT_MS = 10000
+# 글자 탐지에 필요 없고 공격 면만 넓히는 요청 종류 (동영상·음성, 웹 앱 매니페스트)
+BLOCKED_TYPES = {"media", "manifest"}
+# 팝업 창(window.open)으로 다른 사이트를 여는 것을 막는다. 그래도 열린 창은 on_popup이 바로 닫는다
+NO_POPUP_JS = "window.open = () => null;"
+# 다시 보낼 때 빼는 응답 헤더: route.fetch가 압축을 풀어 주므로 원래 길이·압축 표시가 남으면 문서가 깨진다
+HOP_HEADERS = {"content-encoding", "content-length", "transfer-encoding", "connection"}
+
+
+async def launch_browser(pw):
+    """Chromium을 운영체제 샌드박스 안에서 실행한다 (Playwright 기본값은 샌드박스 꺼짐).
+
+    샌드박스는 브라우저 취약점이 뚫려도 페이지 코드가 파일·프로그램에 손대지 못하게 막는 마지막 방어선이다.
+    샌드박스를 지원하지 않는 환경(일부 리눅스 컨테이너 등)에서는 경고를 남기고 끈 채로 실행한다.
+    """
+    try:
+        return await pw.chromium.launch(headless=True, chromium_sandbox=True)
+    except Exception as e:
+        print(f"[warn] 브라우저 샌드박스를 켤 수 없어 끄고 실행합니다: {str(e).splitlines()[0]}")
+        return await pw.chromium.launch(headless=True)
+
+
+async def secure_context(browser, user_agent):
+    """크롤링용 브라우저 컨텍스트. 다운로드·서비스 워커·팝업을 막고 요청마다 secure_route를 거친다.
+
+    권한(위치·카메라·알림 등)은 하나도 주지 않는다(기본값). 쿠키·저장소는 이 컨텍스트에만 있고 점검이 끝나면 사라진다.
+    """
+    ctx = await browser.new_context(viewport={"width": 1280, "height": 900}, ignore_https_errors=True,
+                                    accept_downloads=False, service_workers="block",
+                                    user_agent=user_agent, locale="ko-KR",
+                                    extra_http_headers={"Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7"})
+    await ctx.add_init_script(NO_POPUP_JS)
+    ctx.on("page", on_popup)
+    await ctx.route("**/*", secure_route)
+    return ctx
+
+
+async def on_popup(page):
+    """크롤러가 연 페이지가 아니라 페이지 스크립트가 띄운 창이면 바로 닫는다."""
+    try:
+        if await page.opener() is not None:
+            await page.close()
+    except Exception:
+        pass
+
+
+async def secure_route(route, request):
+    """모든 요청이 마지막으로 거치는 보안 규칙 (guard_navigation 다음)."""
+    try:
+        if request.resource_type in BLOCKED_TYPES:
+            return await route.abort()
+        frame = request.frame
+        if request.is_navigation_request() and frame.parent_frame is not None:
+            top = urlparse(frame.page.url).netloc
+            if top and site_key(urlparse(request.url).netloc) != site_key(top):
+                return await fulfill_without_scripts(route)
+    except Exception:  # 서비스 워커 요청 등 frame이 없는 요청은 그대로 보낸다
+        pass
+    await route.continue_()
+
+
+async def fulfill_without_scripts(route):
+    """다른 사이트 iframe 문서를 대신 받아, 스크립트를 금지하는 CSP를 붙여 돌려준다. 받지 못하면 iframe을 비운다."""
+    try:
+        resp = await route.fetch(timeout=FOREIGN_FRAME_TIMEOUT_MS)
+    except Exception:
+        return await route.fulfill(status=204, body="")
+    headers = {k: v for k, v in resp.headers.items() if k.lower() not in HOP_HEADERS}
+    old = headers.pop("content-security-policy", None)
+    # 정책을 쉼표로 이으면 둘 다 적용된다 — 사이트 원래 정책을 약하게 바꾸지 않고 우리 정책만 더한다
+    headers["content-security-policy"] = f"{old}, {FOREIGN_FRAME_CSP}" if old else FOREIGN_FRAME_CSP
+    await route.fulfill(response=resp, headers=headers)
+
+
 async def guard_navigation(page, on_site, blocked):
     """페이지가 스크립트로 다른 사이트로 넘어가려 하면 막는다(blocked에 그 주소를 기록).
 
@@ -170,7 +253,7 @@ async def guard_navigation(page, on_site, blocked):
             # abort하면 크롬이 오류 화면으로 바꿔 원래 문서가 사라진다. 204(내용 없음)로 답하면 이동만 취소되고 그대로 남는다.
             await route.fulfill(status=204, body="")
         else:
-            await route.continue_()
+            await route.fallback()  # 크롤러 보안 규칙(secure_route)으로 넘김
     await page.route("**/*", handler)
 
 
@@ -285,10 +368,8 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
     t_start = time.perf_counter()
     visit_log = []  # [크롤링 시작 후 초, 최종 URL, 요청 URL] — 시간에 따라 무엇을 찾았는지(발견 곡선)·리디렉트 분석용
     async with async_playwright() as pw:
-        browser = await pw.chromium.launch(headless=True)
-        ctx = await browser.new_context(viewport={"width": 1280, "height": 900}, ignore_https_errors=True,
-                                         user_agent=user_agent, locale="ko-KR",
-                                         extra_http_headers={"Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7"})
+        browser = await launch_browser(pw)
+        ctx = await secure_context(browser, user_agent)
 
         async def worker(idx):
             while True:
