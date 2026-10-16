@@ -146,7 +146,6 @@ label.inline { display: inline-flex; align-items: center; gap: 6px; color: var(-
 .url-box svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--teal); }
 .url-box input { width: 100%; padding: 13px 14px 13px 42px; border-radius: 999px; font-size: 15px; }
 input[type=number] { width: 84px; }
-#maxPages { width: 104px; }  /* "제한 없음" 안내 글자가 잘리지 않게 */
 #startBtn { display: inline-flex; flex-direction: column; align-items: center; line-height: 1.2; padding: 10px 30px;
   border: 0; border-radius: 999px; color: #fff; font-size: 16px; font-weight: 800;
   background: linear-gradient(90deg, #0f9e8e, #22b47d); box-shadow: 0 8px 20px rgba(15, 158, 142, .35); }
@@ -450,7 +449,7 @@ tr.row.in-page td:first-child { padding-left: 28px; }
     <section class="card history-card">
       <div class="history-head">
         <h2><svg class="i"><use href="#ic-clock"/></svg>점검 이력</h2>
-        <button type="button" class="link" id="clearAll" hidden>전체 삭제</button>
+        <span><button type="button" class="link" id="deselect" hidden title="결과를 닫고 처음 화면으로">선택 해제</button><button type="button" class="link" id="clearAll" hidden>전체 삭제</button></span>
       </div>
       <div class="clear-confirm" id="clearConfirm" hidden>
         <div class="confirm-row"><span id="clearText">점검 이력을 모두 삭제할까요?</span>
@@ -470,7 +469,6 @@ tr.row.in-page td:first-child { padding-left: 28px; }
       <form class="scan-form" id="scanForm">
         <div class="url-box"><svg class="i"><use href="#ic-search"/></svg>
           <input type="url" id="url" placeholder="점검할 웹사이트 주소 (https://...)" required aria-label="점검할 웹사이트 주소"></div>
-        <label class="inline">최대 페이지 <input type="number" id="maxPages" value="" placeholder="제한 없음" min="1" max="20000" title="비워 두면 시간 한도 안에서 사이트 전체를 탐색합니다"></label>
         <label class="inline" id="mlLabel"><input type="checkbox" id="useMl" checked> AI 보조 판정</label>
         <button id="startBtn" type="submit">탐지 시작</button>
       </form>
@@ -497,7 +495,7 @@ tr.row.in-page td:first-child { padding-left: 28px; }
         <li>점검할 웹사이트의 <b>시작 주소</b>를 넣고 <b>탐지 시작</b>을 누릅니다.</li>
         <li>불법광고가 <b>탐지 유형</b>(닮은꼴 글자, 자모 분해, 투명 텍스트, 화면 밖 은닉, 숨기지 않고 게시된 광고)별로 걸러집니다.</li>
         <li>항목을 누르면 <b>판정 근거</b>를 확인하고 <b>검토 상태</b>와 <b>메모</b>를 남길 수 있습니다.</li>
-        <li><b>조치 완료</b>할수록 <b>청정도</b>가 올라갑니다. 결과는 <b>엑셀(CSV)</b>로 전달하세요.</li>
+        <li>광고를 <b>조치 완료</b>로 처리할수록 <b>청정도</b>가 올라갑니다. 결과는 <b>엑셀(CSV)</b>로도 확인할 수 있습니다.</li>
       </ol>
     </section>
 
@@ -683,20 +681,18 @@ function toast(msg, isError = false) {
 async function loadHistory(selectId) {
   const runs = await api("/api/runs");
   const ul = $("history");
-  $("guidePanel").hidden = runs.length > 0;
   $("clearAll").hidden = !runs.length;
   if (!runs.length) $("clearConfirm").hidden = true;
   if (!runs.length) {
     ul.innerHTML = '<li class="empty">아직 점검 이력이 없습니다.<br>첫 점검을 시작해 보세요.</li>';
-    current = null; openKey = null; techFilter.clear();
-    $("dashboard").hidden = true; $("resultPanel").hidden = true;
+    showHome();
     return;
   }
   ul.innerHTML = runs.map(r => {
     const pending = r.pending ?? r.findings;
     const lv = r.entry_failed ? LEVEL_NA : levelOf(cleanPct(pollution({ pages: r.pages, dirtyPages: r.dirty_pages ?? pending,
                                                                        pending: r.pending_unique ?? pending, hidden: r.pending_hidden ?? 0 })));
-    return `<li data-id="${esc(r.id)}" tabindex="0" class="lv-${lv.key} ${current && current.id === r.id ? "active" : ""}" style="--c:${lv.color}">
+    return `<li data-id="${esc(r.id)}" tabindex="0" title="누르면 결과를 열고, 한 번 더 누르면 닫습니다" class="lv-${lv.key} ${current && current.id === r.id ? "active" : ""}" style="--c:${lv.color}">
       <b title="${esc(r.entry_url)}">${esc(r.entry_url)}</b>
       <span>${esc(r.started_at.replace("T", " ").slice(0, 16))}, ${r.pages}페이지</span>
       <span>탐지 ${r.findings}건, <em>${lv.word}</em></span>
@@ -704,13 +700,25 @@ async function loadHistory(selectId) {
     </li>`;
   }).join("");
   ul.querySelectorAll("li[data-id]").forEach(li => {
-    li.onclick = e => { if (!e.target.closest(".del, .confirm-row")) openRun(li.dataset.id); };
-    li.onkeydown = e => { if (e.target === li && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openRun(li.dataset.id); } };
+    li.onclick = e => { if (!e.target.closest(".del, .confirm-row")) toggleRun(li.dataset.id); };
+    li.onkeydown = e => { if (e.target === li && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toggleRun(li.dataset.id); } };
   });
   ul.querySelectorAll("button[data-del]").forEach(b => b.onclick = e => { e.stopPropagation(); askDelete(b.closest("li")); });
   if (selectId) await openRun(selectId);
-  else if (!current) await openRun(runs[0].id);
+  else if (!current) showHome();
 }
+
+/* 처음 화면(사용 안내): 결과를 고르지 않았을 때, 탐지를 시작했을 때. 지난 결과를 진행 중인 탐지 결과로 착각하지 않게 */
+function showHome() {
+  current = null; openKey = null; techFilter.clear();
+  $("dashboard").hidden = true; $("resultPanel").hidden = true;
+  $("guidePanel").hidden = false;
+  $("deselect").hidden = true;
+  document.querySelectorAll("#history li").forEach(li => li.classList.remove("active"));
+}
+/* 이력 카드: 누르면 열고, 이미 열린 카드를 다시 누르면 닫고 처음 화면으로 */
+const toggleRun = id => (current && current.id === id ? showHome() : openRun(id));
+$("deselect").onclick = () => showHome();
 
 async function openRun(id) {
   try {
@@ -719,6 +727,8 @@ async function openRun(id) {
     current = rep;
   } catch (e) { toast(`이력을 열 수 없습니다: ${e.message}`, true); return; }
   document.querySelectorAll("#history li").forEach(li => li.classList.toggle("active", li.dataset.id === id));
+  $("guidePanel").hidden = true;
+  $("deselect").hidden = false;
   render();
 }
 
@@ -1089,7 +1099,7 @@ function setRunning(running) {
   b.textContent = !running ? "탐지 시작" : stopMode === "stopping" ? "중지하는 중…" : "탐지 중지";
   $("stopConfirm").hidden = !(running && stopMode === "confirm");
   $("stopYes").disabled = false;
-  ["url", "maxPages"].forEach(id => $(id).disabled = running);
+  $("url").disabled = running;
   $("useMl").disabled = running || !modelAvailable;
   $("progress").style.display = running ? "block" : "none";
 }
@@ -1164,8 +1174,9 @@ $("scanForm").onsubmit = async e => {
   try {
     await api("/api/scan", {
       method: "POST", headers: JSON_HEADERS,
-      body: JSON.stringify({ url: $("url").value.trim(), use_ml: $("useMl").checked, max_pages: +$("maxPages").value || 0 }),
+      body: JSON.stringify({ url: $("url").value.trim(), use_ml: $("useMl").checked }),
     });
+    showHome();
     setRunning(true);
     $("progText").textContent = PHASE.start;
     $("progUrl").textContent = "";
@@ -1182,14 +1193,16 @@ document.querySelectorAll(".seg button[data-view]").forEach(b => {
     if (current) renderRows();
   };
 });
-const exportCsv = () => { if (current) location.href = `/api/runs/${encodeURIComponent(current.id)}/export.csv`; else toast("먼저 점검을 실행하세요.", true); };
+const NEED_RUN = "먼저 점검을 실행하거나 점검 이력을 선택해 주세요.";  // 결과를 고르지 않은 처음 화면에서 결과·내보내기를 누를 때
+const exportCsv = () => { if (current) location.href = `/api/runs/${encodeURIComponent(current.id)}/export.csv`; else toast(NEED_RUN, true); };
 $("csvBtn").onclick = exportCsv;
 $("jsonBtn").onclick = () => { if (current) location.href = `/api/runs/${encodeURIComponent(current.id)}/result.json`; };
 $("navCsv").onclick = e => { e.preventDefault(); exportCsv(); };
 $("logMore").onclick = () => { techFilter.clear(); render(); $("resultPanel").scrollIntoView({ behavior: "smooth" }); };
 
 // 메뉴: 보이는 영역에 맞춰 강조
-document.querySelectorAll(".nav a[data-nav]").forEach(a => a.addEventListener("click", () => {
+document.querySelectorAll(".nav a[data-nav]").forEach(a => a.addEventListener("click", e => {
+  if (a.dataset.nav === "resultPanel" && !current) { e.preventDefault(); toast(NEED_RUN, true); return; }
   document.querySelectorAll(".nav a").forEach(x => x.classList.toggle("on", x === a));
 }));
 
