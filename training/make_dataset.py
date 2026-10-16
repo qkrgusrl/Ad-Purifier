@@ -16,6 +16,11 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+try:
+    from .long_cases import LONG_POOLS, long_negative, long_positive
+except ImportError:  # python training/make_dataset.py 로 직접 실행할 때
+    from long_cases import LONG_POOLS, long_negative, long_positive
+
 QUESTION = {
     "is_illegal_ad": {
         "type": "noul",
@@ -24,7 +29,8 @@ QUESTION = {
 }
 
 HERE = Path(__file__).resolve().parent
-N_TRAIN, N_DEV = 1600, 300
+N_TRAIN, N_DEV = 2000, 300
+P_LONG_POS, P_LONG_NEG = 0.30, 0.40  # v3 유형(긴 글·연락처·앵커·위장 숫자) 비율 — long_cases.py
 DEV_FRAC = 0.2
 
 # ------------------------------------------------------------------ 광고 어휘
@@ -45,10 +51,10 @@ ETC = ["운전면허 위조 제작", "졸업증명서 위조", "개인정보 DB 
        "해외 스포츠 무료 중계 링크", "주민등록증 위조"]
 BENEFIT = ["첫충 20%", "매충 10%", "꽁머니 3만원 지급", "가입 즉시 보너스", "무제한 환전", "롤링 100%",
            "신규 가입코드 777", "무료 스핀 50회", "당일 승인", "무서류 즉시 입금", "100% 비밀 보장", "익명 배송",
-           "첫 이용 할인", "VIP 혜택", "첫 입금 보너스 30%", "24시간 상담", "먹튀 시 전액 보상", "최대 500만원",
+           "첫 이용 할인", "VIP 혜택", "첫 입금 보너스 30%", "24시간 상담", "먹튀 시 전액 보상", "한도 500만원",
            "후불 가능", "신분 확인 없음", "출금 5분 완료", "첫 거래 50% 할인", "전국 퀵 배송", ""]
 CONTACT = ["텔레그램 @{id}", "텔레 {id}", "카톡 {id}", "오픈채팅 문의", "라인 {id}", "문의 010-{a}-{b}",
-           "{id}.xyz 접속", "주소 {id}{n}.com", "상담 @{id}", "디엠 주세요", "{id}.vip 검색", "링크는 프로필에",
+           "{id}.xyz 접속", "주소 {id}{n}.com", "상담 @{id}", "디엠 주세요", "{id}.vip 검색", "링크는 프로필에", "문의 메일 {id}@gmail.com", "{id}@naver.com 으로 문의",
            "주소창에 {id}{n}.club", "상담원 연결 1:1", ""]
 IDS = ["luckyday", "bigwin", "vipclub", "jackpot", "goldline", "sunny", "kingbet", "moon", "starz", "fastcash",
        "ace", "royal", "dragon", "money", "happy", "nightowl", "blue", "tiger"]
@@ -61,7 +67,7 @@ FOREIGN = ["best online casino {pct} welcome bonus visit {id}{n}.com", "situs ju
            "crypto casino {pct} rakeback"]
 POS_TEMPLATES = ["{core} {benefit} {contact}", "{core} {contact} {benefit}", "{core} 찾으세요? {benefit} {contact}",
                  "{contact} 연락주시면 {core} 바로 안내", "{core} ▶ {benefit} ◀ {contact}",
-                 "지금 {core} 가입하면 {benefit}", "검증된 {core}, {benefit}, 문의 {contact}", "{core} {contact}",
+                 "지금 {core} 가입하면 {benefit}", "안전 {core}, {benefit}, 문의 {contact}", "{core} {contact}",
                  "{core}", "{benefit} {core} 여기서만"]
 
 # ------------------------------------------------------------------ 정상 어휘
@@ -171,7 +177,7 @@ SPACED_P = 0.08  # 글자마다 띄어 쓰는 우회 흔적 (양쪽 동일)
 def split_pools(rng):
     """어휘 목록마다 DEV_FRAC를 떼어 dev 전용으로 둔다."""
     pools = {"gamble": GAMBLE, "adult": ADULT, "loan": LOAN, "drug": DRUG, "etc": ETC, "foreign": FOREIGN,
-             **NEG_POOLS}
+             **NEG_POOLS, **LONG_POOLS}
     train, dev = {}, {}
     for name, items in pools.items():
         items = items[:]
@@ -189,12 +195,18 @@ def fill(rng, text):
 
 def decorate(rng, text):
     text = fill(rng, rng.choice(WRAPPERS).replace("{x}", "\0")).replace("\0", text)
-    if rng.random() < SPACED_P:
+    if rng.random() < SPACED_P and len(text) <= 80:  # 긴 글을 글자마다 띄우지는 않는다
         text = " ".join(text.replace(" ", ""))
     return text
 
 
 def positive(rng, pools):
+    if rng.random() < P_LONG_POS:
+        return long_positive(rng, pools, fill, short_positive)
+    return short_positive(rng, pools)
+
+
+def short_positive(rng, pools):
     if rng.random() < 0.08:
         return fill(rng, rng.choice(pools["foreign"]))
     cat = rng.choice(["gamble"] * 3 + ["adult", "loan", "drug"] + ["etc"] * (rng.random() < 0.5))
@@ -204,6 +216,8 @@ def positive(rng, pools):
 
 
 def negative(rng, pools):
+    if rng.random() < P_LONG_NEG:
+        return long_negative(rng, pools, fill)
     kind = rng.choice([k for k, w in NEG_WEIGHTS.items() for _ in range(w)])
     text = fill(rng, rng.choice(pools[kind]))
     # 광고 문장(평균 약 25자)과 길이 분포를 맞추려고 일부는 두 문장을 잇는다.
@@ -231,9 +245,9 @@ def compact(s):
 
 
 def leak_check(rows, refs, k=8):
-    """참조 문구(검증셋·모의 사이트)와 공백 제거 기준 k글자 이상 겹치는 학습 문장. 영단어 하나(copyright 등)는 제외."""
+    """참조 문구(검증셋·모의 사이트·real_cases)와 공백 제거 기준 k글자 이상 겹치는 학습 문장. 한글이 3자 미만인 조각(URL·영단어 등)은 제외."""
     grams = {r[i:i + k] for r in map(compact, refs) for i in range(len(r) - k + 1)}
-    grams = {g for g in grams if not re.fullmatch(r"[a-z]+", g)}
+    grams = {g for g in grams if len(re.findall("[가-힣]", g)) >= 3}  # 'https://'·'@incruit' 같은 기호·영문 조각은 제외
     out = []
     for row in rows:
         c = compact(row["state"])
@@ -251,7 +265,8 @@ def stats(name, rows):
     pos = [r["state"] for r in rows if r["expected"]["is_illegal_ad"]]
     neg = [r["state"] for r in rows if not r["expected"]["is_illegal_ad"]]
     print(f"\n[{name}] {len(rows)}건 (광고 {len(pos)} / 정상 {len(neg)}), 평균 길이 광고 "
-          f"{sum(map(len, pos)) / len(pos):.1f}자 / 정상 {sum(map(len, neg)) / len(neg):.1f}자")
+          f"{sum(map(len, pos)) / len(pos):.1f}자 / 정상 {sum(map(len, neg)) / len(neg):.1f}자, "
+          f"100자 이상 광고 {sum(len(t) >= 100 for t in pos) / len(pos):.2f} / 정상 {sum(len(t) >= 100 for t in neg) / len(neg):.2f}")
     feats = {"영문": r"[a-zA-Z]", "숫자": r"\d", "@아이디": r"@\w{3,}", "전화번호": r"01\d-\d{3,4}-\d{4}",
              "띄어 쓴 글자": r"(\S ){5,}", "[공지]": r"\[공지\]", "날짜": r"2026"}
     print("  특징            광고    정상   (양쪽이 비슷해야 지름길이 안 생김)")
@@ -283,7 +298,9 @@ def main():
     site_texts = re.findall(r">([^<>{}]{8,})<", site)
     dup = {r["state"] for r in train} & {r["state"] for r in dev}
     print(f"\n[중복 점검] train∩dev 동일 문장 {len(dup)}건")
-    for name, refs in (("eval_set", eval_texts), ("testsite", site_texts)):
+    real = HERE / "real_cases.jsonl"  # 28개 URL에서 뽑은 실제 문구 — 평가 전용이라 학습 데이터와 겹치면 안 된다
+    real_texts = [json.loads(l)["text"] for l in real.read_text(encoding="utf-8").splitlines() if l.strip()] if real.exists() else []
+    for name, refs in (("eval_set", eval_texts), ("testsite", site_texts), ("real_cases", real_texts)):
         hits = leak_check(train + dev, refs)
         print(f"[누수 점검] {name}와 8글자 이상 겹침: {len(hits)}건")
         for gram, text in hits[:10]:

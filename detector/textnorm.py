@@ -50,6 +50,8 @@ def homoglyph_signals(raw):
             sig.append("lookalike-script:" + tok)
     if ZERO_WIDTH.search(raw):
         sig.append("zero-width")
+    # 숫자 자리에 닮은 글자('O'→0, 'l'→1)를 써서 전화번호·'19금'을 위장한 것도 닮은꼴 글자 위장이다 (요강: 숫자 또는 닮은 문자를 섞음)
+    sig.extend("digit-disguise:" + d for d in dict.fromkeys(digit_disguise(raw)))
     return sig
 
 
@@ -100,6 +102,24 @@ def korean_digit_phone(text):
         conv = "".join(KO_DIGIT.get(c, c) for c in span)
         return conv if _PHONE_LIKE.search(re.sub(r"\s", "", conv)) else span
     return _KO_PHONE_SPAN.sub(fix, text)
+
+
+def digit_disguise(raw):
+    """숫자 자리에 닮은 글자를 써서 전화번호·'19금'을 위장한 표기 목록 (닮은꼴 글자 위장, HOMOGLYPH 근거).
+
+    'l9금', 'O6O-5OO-266O', '0lO-1234-5678'처럼 복원했을 때 전화번호나 '19금'이 되고 원문과 다른 것만 센다.
+    deobfuscate_digits는 판정 점수용이라 'i7 CPU'·'Wi-Fi 6'도 바꾸므로, 기법 분류에는 이 결과가 전화번호 꼴일 때만 쓴다.
+    """
+    low = raw.lower()
+    restored = deobfuscate_digits(low)
+    if restored == low:
+        return []
+    found = []
+    for pat in (_PHONE_LIKE, re.compile(r"(?<!\d)19금")):
+        for m in pat.finditer(restored):
+            if low[m.start():m.end()] != m.group(0):
+                found.append(low[m.start():m.end()].strip())
+    return found
 
 
 _SEP = r"[\s.,·]{0,3}"  # 숫자 한 자리마다 끼우는 구분자
