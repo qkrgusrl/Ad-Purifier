@@ -136,6 +136,10 @@ ENTRY_TIMEOUT_MS = 45000  # 시작 페이지 접속 제한 시간 (일반 페이
 SLOW_WINDOW, SLOW_TIMEOUT_MS, SLOW_CONCURRENCY = 10, 45000, 2
 
 
+class ScanCancelled(Exception):
+    """사용자가 탐지를 취소함. 결과 파일(result.json·report.json)은 쓰지 않는다."""
+
+
 class PageLoadError(Exception):
     """페이지에 접속하지 못함(연결 거부·DNS 실패·시간 초과 등). 브라우저 오류 화면을 '깨끗한 페이지'로 오판하지 않기 위해 구분한다."""
 
@@ -327,12 +331,14 @@ async def scan_page(ctx, url, timeout_ms, on_site=None, guard=None):
         await close_page(page)
 
 
-async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_agent=DEFAULT_UA, deadline=None):
+async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_agent=DEFAULT_UA, deadline=None,
+                cancel=None):
     """(페이지 목록, 문제 목록). progress(완료 페이지 수, 발견 페이지 수, 방금 끝난 URL) — UI 진행률 표시용.
 
     방문 순서는 Frontier가 정한다(게시판·수상한 제목 우선, 나머지도 버리지 않음 — frontier.py 참고).
     max_pages: 방문할 최대 페이지 수(0 = 제한 없음). deadline: time.perf_counter() 기준 크롤링 마감 시각(None = 없음).
     마감이 되면 새 페이지는 열지 않고, 열어 둔 페이지만 마저 검사한 뒤 끝낸다.
+    cancel: threading.Event. 켜지면 브라우저를 바로 닫아 열려 있던 페이지 대기까지 끊고 돌아온다(결과는 버림 — run이 처리).
     문제 목록: {"failed": 접속 실패 [{url, reason}], "http_errors": 4xx/5xx 응답 [{url, status}],
                "external_skipped": 다른 사이트로 넘어가 제외한 페이지 [{url, final_url}],
                "stopped_by_time": 마감으로 멈췄는지, "left_in_queue": 못 본 대기 주소 수, "dropped_endless": 버린 검색·정렬 주소 수}
@@ -373,6 +379,8 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
 
         async def worker(idx):
             while True:
+                if cancel is not None and cancel.is_set():
+                    return
                 if deadline is not None and time.perf_counter() >= deadline:
                     state["stopped_by_time"] = state["stopped_by_time"] or len(frontier) > 0
                     return
@@ -433,7 +441,15 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
                     if progress:
                         progress(len(results) + len(failed) + len(external), len(frontier.seen), url)
 
+        async def watch_cancel():
+            while not cancel.is_set():
+                await asyncio.sleep(0.2)
+            await browser.close()  # 열려 있던 페이지 접속·대기가 곧바로 오류로 끝나 작업자들이 빠져나온다
+
+        watcher = asyncio.create_task(watch_cancel()) if cancel is not None else None
         await asyncio.gather(*(worker(i) for i in range(concurrency)))
+        if watcher:
+            watcher.cancel()
         await browser.close()
     # 순서상 iframe 문서가 먼저 큐에 들어갔던 경우까지 정리
     pages = [(u, f) for u, f in results if norm_url(u) not in frame_urls]
@@ -612,7 +628,7 @@ def collapse_repeats(cands):
     return [c for c in cands if id(c) not in drop], len(drop)
 
 
-def judge(cands, model_path, use_ml, deadline=None):
+def judge(cands, model_path, use_ml, deadline=None, cancel=None):
     """룰 점수로 1차 판정, 경계 구간만 Laya로 2차 판정.
 
     deadline(time.perf_counter() 기준)을 넘기면 남은 경계 문구는 Laya 없이 규칙 판정(정상 처리)으로 둔다.
@@ -639,7 +655,9 @@ def judge(cands, model_path, use_ml, deadline=None):
             agent = Agent(model_path, device="cpu")
             texts = sorted({c["normalized"] for c in border})
             prob = {}
-            for i in range(0, len(texts), 64):  # 64개씩 끊어서, 마감이 지나면 멈춤
+            for i in range(0, len(texts), 64):  # 64개씩 끊어서, 마감이 지나거나 취소되면 멈춤
+                if cancel is not None and cancel.is_set():
+                    break
                 if deadline is not None and time.perf_counter() >= deadline:
                     print(f"[warn] 판정 시간 제한: 경계 문구 {len(texts) - i}개는 AI 판정 없이 정상 처리")
                     break
@@ -682,13 +700,14 @@ LLM_RESERVE = 6 * 60    # 나중에 붙일 LLM 최종 검증 몫(아직 미구�
 
 def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT_MODEL, use_ml=True,
         progress=None, phase=None, user_agent=DEFAULT_UA, detect_posted=True,
-        time_budget=TIME_BUDGET, llm_reserve=LLM_RESERVE, collapse=False):
+        time_budget=TIME_BUDGET, llm_reserve=LLM_RESERVE, collapse=False, cancel=None):
     """크롤링 → 판정 → result.json/report.json 저장. report 딕셔너리를 돌려준다.
 
     phase(단계명): UI에 현재 단계(crawl/judge/save)를 알리는 콜백.
     detect_posted: 게시형(은닉 없는) 불법광고도 탐지해 result_extra.json으로 분리 저장.
     max_pages: 0이면 페이지 수 제한 없이 시간 예산 안에서 전부 탐색.
     time_budget: 전체 목표 시간(초). 크롤링은 time_budget - llm_reserve - 판정 몫까지만 한다.
+    cancel: threading.Event. 켜지면 ScanCancelled를 일으키고 결과 파일은 건드리지 않는다(지난 제출용 result.json 보존).
     """
     phase = phase or (lambda name: None)
     started = datetime.now(KST)
@@ -696,10 +715,16 @@ def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT
     crawl_deadline = t0 + max(60, time_budget - llm_reserve - JUDGE_RESERVE)
     judge_deadline = t0 + max(90, time_budget - llm_reserve - 30)
     phase("crawl")
-    pages, issues = asyncio.run(crawl(entry_url, max_pages, concurrency, timeout, progress, user_agent, crawl_deadline))
+    pages, issues = asyncio.run(crawl(entry_url, max_pages, concurrency, timeout, progress, user_agent, crawl_deadline,
+                                      cancel))
+    cancelled = lambda: cancel is not None and cancel.is_set()
+    if cancelled():
+        raise ScanCancelled()
     t_crawl = time.perf_counter() - t0
     phase("judge")
-    cands = judge(candidates_from(pages, detect_posted), str(model), use_ml, judge_deadline)
+    cands = judge(candidates_from(pages, detect_posted), str(model), use_ml, judge_deadline, cancel)
+    if cancelled():
+        raise ScanCancelled()
     cands, dups = dedupe(cands)
     # 여러 페이지 반복 합치기는 기본으로 끔(팀 결정: 다른 페이지의 같은 문구는 따로 센다). --collapse-repeats로 켬
     cands, n_repeats = collapse_repeats(cands) if collapse else (cands, 0)

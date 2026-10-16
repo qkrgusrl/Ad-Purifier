@@ -24,7 +24,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
-from detector.main import DEFAULT_MODEL, JUDGE_RESERVE, KST, LLM_RESERVE, TIME_BUDGET, app_dir, run
+from detector.main import DEFAULT_MODEL, JUDGE_RESERVE, KST, LLM_RESERVE, TIME_BUDGET, ScanCancelled, app_dir, run
 
 CRAWL_LIMIT = TIME_BUDGET - LLM_RESERVE - JUDGE_RESERVE  # 화면 진행률에 쓰는 크롤링 최대 시간(초)
 
@@ -35,8 +35,9 @@ CAND_KEY = re.compile(r"[0-9a-f]{12}")
 REVIEW_STATES = {"new", "confirmed", "false_positive", "resolved"}
 
 state_lock = threading.Lock()
-state = {"running": False, "phase": "idle", "pages_done": 0, "pages_found": 0, "current_url": "",
-         "started": None, "run_id": None, "error": None}
+state = {"running": False, "phase": "idle", "entry_url": "", "pages_done": 0, "pages_found": 0, "current_url": "",
+         "started": None, "run_id": None, "error": None, "cancelling": False}
+cancel_event = threading.Event()  # 탐지 취소 신호 (진행 중인 점검 하나에만 쓰고, 새 점검을 시작할 때 비운다)
 
 
 def cand_key(c):
@@ -50,24 +51,29 @@ def scan_job(entry_url, use_ml, max_pages):
 
     def phase(name):
         with state_lock:
-            state["phase"] = name
+            if not state["cancelling"]:
+                state["phase"] = name
 
     run_id = datetime.now(KST).strftime("%Y%m%d-%H%M%S")
     try:
-        run(entry_url, app_dir(), max_pages=max_pages, use_ml=use_ml, progress=progress, phase=phase)
+        run(entry_url, app_dir(), max_pages=max_pages, use_ml=use_ml, progress=progress, phase=phase,
+            cancel=cancel_event)
         dest = HISTORY / run_id
         dest.mkdir(parents=True, exist_ok=True)
         for name in ("result.json", "report.json"):
             shutil.copy2(app_dir() / name, dest / name)
         with state_lock:
             state.update(phase="done", run_id=run_id)
+    except ScanCancelled:  # 결과 파일·이력은 만들지 않는다 (지난 점검의 result.json 그대로)
+        with state_lock:
+            state.update(phase="cancelled")
     except Exception as e:
         traceback.print_exc()
         with state_lock:
             state.update(phase="error", error=f"{type(e).__name__}: {e}")
     finally:
         with state_lock:
-            state["running"] = False
+            state.update(running=False, cancelling=False)
 
 
 def list_runs():
@@ -263,9 +269,17 @@ class Handler(BaseHTTPRequestHandler):
             with state_lock:
                 if state["running"]:
                     return self.send(409, {"error": "이미 탐지가 진행 중입니다."})
-                state.update(running=True, phase="start", pages_done=0, pages_found=1, current_url=url,
-                             started=time.time(), run_id=None, error=None)
+                state.update(running=True, phase="start", entry_url=url, pages_done=0, pages_found=1, current_url=url,
+                             started=time.time(), run_id=None, error=None, cancelling=False)
+                cancel_event.clear()
             threading.Thread(target=scan_job, args=(url, use_ml, max_pages), daemon=True).start()
+            return self.send(202, {"ok": True})
+        if path == "/api/scan/cancel":
+            with state_lock:
+                if not state["running"]:
+                    return self.send(409, {"error": "진행 중인 탐지가 없습니다."})
+                state.update(cancelling=True, phase="cancelling")
+                cancel_event.set()
             return self.send(202, {"ok": True})
         if path == "/api/history/clear":
             with state_lock:

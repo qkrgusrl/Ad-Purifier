@@ -152,6 +152,10 @@ input[type=number] { width: 84px; }
   background: linear-gradient(90deg, #0f9e8e, #22b47d); box-shadow: 0 8px 20px rgba(15, 158, 142, .35); }
 #startBtn::after { content: "Purify Now"; font-size: 11px; font-weight: 600; opacity: .85; letter-spacing: .04em; }
 #startBtn:hover:not(:disabled) { background: linear-gradient(90deg, #0b8a7c, #1ea06f); box-shadow: 0 10px 24px rgba(15, 158, 142, .45); }
+/* 탐지 중에는 같은 자리의 버튼이 '탐지 중지'로 바뀐다 */
+#startBtn.stop { background: linear-gradient(90deg, #e2484d, #f0795c); box-shadow: 0 8px 20px rgba(226, 72, 77, .3); }
+#startBtn.stop::after { content: "Stop"; }
+#startBtn.stop:hover:not(:disabled) { background: linear-gradient(90deg, #c93a3f, #e2674b); box-shadow: 0 10px 24px rgba(226, 72, 77, .4); }
 .hint { margin-top: 10px; color: var(--dim); font-size: 12px; overflow-wrap: anywhere; }
 .error { margin-top: 12px; padding: 10px 14px; border-radius: 12px; background: var(--coral-weak); color: #a3262a; }
 .error:empty { display: none; }
@@ -185,6 +189,7 @@ input[type=number] { width: 84px; }
 .progress .line { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; font-size: 12px; color: var(--muted); }
 .progress .line span:first-child { white-space: nowrap; color: var(--teal-dark); font-weight: 700; }
 .progress .line span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#stopConfirm { margin: 14px 0 0; }
 
 /* ---------- 접속 실패 경고 ---------- */
 .warn-banner { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 22px; padding: 14px 18px; border-radius: 16px;
@@ -469,6 +474,10 @@ tr.row.in-page td:first-child { padding-left: 28px; }
         <label class="inline" id="mlLabel"><input type="checkbox" id="useMl" checked> AI 보조 판정</label>
         <button id="startBtn" type="submit">탐지 시작</button>
       </form>
+      <div class="clear-confirm" id="stopConfirm" hidden>
+        <div class="confirm-row"><span>탐지를 중지할까요? 지금까지 점검한 내용은 저장되지 않습니다.</span>
+          <button type="button" class="danger" id="stopYes">중지</button><button type="button" id="stopNo">계속 진행</button></div>
+      </div>
       <div class="hint" id="outHint"></div>
       <div class="error" id="scanError" role="alert"></div>
       <div class="progress" id="progress" aria-live="polite">
@@ -576,7 +585,7 @@ const TECH = { HOMOGLYPH: "닮은꼴 글자", JAMO: "자모 분해", TRANSPARENT
 const TECH_EN = { HOMOGLYPH: "Homoglyph", JAMO: "Jamo", TRANSPARENT: "Transparent", OFFSCREEN: "Offscreen", POSTED: "Posted" };
 const TECH_MARK = { HOMOGLYPH: "Aа", JAMO: "ㄱㅏ", TRANSPARENT: "◌", OFFSCREEN: "⇤", POSTED: "✎" };
 const REVIEW = { new: "미검토", confirmed: "불법광고 확인", false_positive: "오탐", resolved: "조치 완료" };
-const PHASE = { start: "준비 중", crawl: "페이지 수집 중", judge: "불법광고 판정 중", save: "결과 저장 중" };
+const PHASE = { start: "준비 중", crawl: "페이지 수집 중", judge: "불법광고 판정 중", save: "결과 저장 중", cancelling: "중지하는 중" };
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const JSON_HEADERS = { "Content-Type": "application/json" };
@@ -1067,20 +1076,39 @@ async function saveReview(c, status, memo, okMsg) {
 }
 
 /* ---------- 탐지 실행 ---------- */
+// 탐지 중지: 탐지 중에는 시작 버튼이 '탐지 중지'로 바뀐다 → 한 번 더 확인 → 중지 요청.
+// 서버가 브라우저를 닫고 멈출 때까지 '중지하는 중…'
+let stopMode = "idle";  // idle | confirm | stopping
 function setRunning(running) {
+  if (!running) stopMode = "idle";
   document.body.classList.toggle("running", running);
   $("sysText").textContent = running ? "정화 중…" : "대기 중";
-  $("startBtn").disabled = running;
-  $("startBtn").textContent = running ? "탐지 중…" : "탐지 시작";
+  const b = $("startBtn");
+  b.classList.toggle("stop", running);
+  b.disabled = running && stopMode === "stopping";
+  b.textContent = !running ? "탐지 시작" : stopMode === "stopping" ? "중지하는 중…" : "탐지 중지";
+  $("stopConfirm").hidden = !(running && stopMode === "confirm");
+  $("stopYes").disabled = false;
   ["url", "maxPages"].forEach(id => $(id).disabled = running);
   $("useMl").disabled = running || !modelAvailable;
   $("progress").style.display = running ? "block" : "none";
 }
+$("stopNo").onclick = () => { stopMode = "idle"; setRunning(true); $("startBtn").focus(); };
+$("stopYes").onclick = async () => {
+  $("stopYes").disabled = true;
+  try {
+    await api("/api/scan/cancel", { method: "POST", headers: JSON_HEADERS, body: "{}" });
+    stopMode = "stopping";
+    setRunning(true);
+    $("progText").textContent = PHASE.cancelling;
+  } catch (e) { stopMode = "idle"; setRunning(true); toast(`중지하지 못했습니다: ${e.message}`, true); }
+};
 
 async function pollStatus() {
   const s = await api("/api/status");
   setRunning(s.running);
   if (s.running) {
+    if (s.entry_url && !$("url").value) $("url").value = s.entry_url;  // 탐지 중에 새로고침해도 점검 중인 주소가 보이게
     const crawl = s.phase === "crawl" || s.phase === "start";
     $("bar").classList.toggle("indeterminate", !crawl);
     // 페이지 수 제한이 없으면 발견 페이지가 계속 늘어나므로, 시간 한도 대비 경과도 함께 본다
@@ -1091,6 +1119,7 @@ async function pollStatus() {
     const waiting = Math.max(0, s.pages_found - s.pages_done);
     $("progText").textContent = `${PHASE[s.phase] || s.phase}, ${s.pages_done}페이지 점검${crawl && waiting ? `, 대기 ${waiting}개` : ""}, ${mmss(s.elapsed)}${limit}`;
     $("progUrl").textContent = s.current_url;
+    if (s.phase === "cancelling" && stopMode !== "stopping") { stopMode = "stopping"; setRunning(true); }
     return null;
   }
   return s;
@@ -1114,6 +1143,7 @@ function startPolling() {
     if (!s) return;
     clearInterval(polling);
     if (s.phase === "error") $("scanError").textContent = `탐지 중 오류가 발생했습니다: ${s.error}`;
+    if (s.phase === "cancelled") toast("탐지를 중지했습니다. 이전 결과는 그대로 남아 있습니다.");
     if (s.phase === "done") {
       await loadHistory(s.run_id);
       if (current && current.entry_failed) toast("사이트에 접속하지 못했습니다. 주소를 확인하세요.", true);
@@ -1124,6 +1154,12 @@ function startPolling() {
 
 $("scanForm").onsubmit = async e => {
   e.preventDefault();
+  if (document.body.classList.contains("running")) {  // 탐지 중에는 같은 버튼이 '탐지 중지'
+    stopMode = "confirm";
+    setRunning(true);
+    $("stopNo").focus();
+    return;
+  }
   $("scanError").textContent = "";
   try {
     await api("/api/scan", {
