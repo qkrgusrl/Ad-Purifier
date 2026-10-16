@@ -5,7 +5,8 @@
 점검 이력은 history/<실행시각>/ 에 report.json, result.json, review.json(검토 상태·메모)으로 쌓는다.
 이력 삭제는 history/ 아래 실행 ID 형식 폴더만 지운다 (구동 폴더의 제출용 result.json은 그대로).
 
-사용: python -m ui.server [--port 8780] [--no-browser]
+사용: python -m ui.server [--port 8780] [--no-browser] [--no-time-limit]
+      --no-time-limit: 실험용. 시간 한도 없이 대기열이 빌 때까지 사이트 전체를 탐색한다(제출 시간 30분을 넘길 수 있음).
 """
 import argparse
 import csv
@@ -27,6 +28,8 @@ from urllib.parse import urlparse
 from detector.main import DEFAULT_MODEL, JUDGE_RESERVE, KST, LLM_RESERVE, TIME_BUDGET, ScanCancelled, app_dir, run
 
 CRAWL_LIMIT = TIME_BUDGET - LLM_RESERVE - JUDGE_RESERVE  # 화면 진행률에 쓰는 크롤링 최대 시간(초)
+NO_LIMIT_BUDGET = 7 * 24 * 3600  # --no-time-limit: 사실상 무제한(대기열이 비면 끝난다)
+options = {"time_limit": True}
 
 STATIC = Path(__file__).resolve().parent / "static"
 HISTORY = app_dir() / "history"
@@ -56,8 +59,9 @@ def scan_job(entry_url, use_ml, max_pages):
 
     run_id = datetime.now(KST).strftime("%Y%m%d-%H%M%S")
     try:
+        budget = {} if options["time_limit"] else {"time_budget": NO_LIMIT_BUDGET}
         run(entry_url, app_dir(), max_pages=max_pages, use_ml=use_ml, progress=progress, phase=phase,
-            cancel=cancel_event)
+            cancel=cancel_event, **budget)
         dest = HISTORY / run_id
         dest.mkdir(parents=True, exist_ok=True)
         for name in ("result.json", "report.json"):
@@ -227,7 +231,7 @@ class Handler(BaseHTTPRequestHandler):
                 s = dict(state)
             s["elapsed"] = round(time.time() - s["started"], 1) if s["started"] else 0
             s["model_available"] = DEFAULT_MODEL.is_dir()
-            s["crawl_limit"] = CRAWL_LIMIT
+            s["crawl_limit"] = CRAWL_LIMIT if options["time_limit"] else 0  # 0 = 시간 제한 없음(실험)
             s["out_dir"] = str(app_dir())
             return self.send(200, s)
         if path == "/api/runs":
@@ -317,7 +321,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8780)
     ap.add_argument("--no-browser", action="store_true")
+    ap.add_argument("--no-time-limit", action="store_true", help="실험용: 시간 한도 없이 사이트 전체 탐색")
     args = ap.parse_args()
+    options["time_limit"] = not args.no_time_limit
     try:
         httpd = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     except OSError:  # 포트가 사용 중이면 빈 포트로
@@ -325,6 +331,8 @@ def main():
     url = f"http://127.0.0.1:{httpd.server_address[1]}/"
     print(f"광고청정기 실행 중: {url}  (종료: Ctrl+C)")
     print(f"결과 파일 위치: {app_dir()}")
+    if args.no_time_limit:
+        print("[실험] 시간 한도 없이 탐색합니다 — 제출 시간(30분)을 넘길 수 있습니다.")
     if not args.no_browser:
         threading.Timer(0.5, webbrowser.open, args=(url,)).start()
     try:

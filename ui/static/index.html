@@ -1114,7 +1114,7 @@ async function pollStatus() {
     // 페이지 수 제한이 없으면 발견 페이지가 계속 늘어나므로, 시간 한도 대비 경과도 함께 본다
     const ratio = Math.max(s.pages_done / Math.max(1, s.pages_found), s.crawl_limit ? s.elapsed / s.crawl_limit : 0);
     $("bar").firstElementChild.style.width = crawl ? `${Math.min(100, ratio * 100)}%` : "";
-    const limit = crawl && s.crawl_limit ? ` / 최대 ${Math.round(s.crawl_limit / 60)}분` : "";  // 크롤링 시간 한도
+    const limit = !crawl ? "" : s.crawl_limit ? ` / 최대 ${Math.round(s.crawl_limit / 60)}분` : ", 시간 제한 없음(실험)";  // 크롤링 시간 한도
     // 페이지 수 제한이 없으므로 '전체 중 몇 쪽'이 아니라 '본 페이지 · 아직 볼 주소'로 보여 준다
     const waiting = Math.max(0, s.pages_found - s.pages_done);
     $("progText").textContent = `${PHASE[s.phase] || s.phase}, ${s.pages_done}페이지 점검${crawl && waiting ? `, 대기 ${waiting}개` : ""}, ${mmss(s.elapsed)}${limit}`;
