@@ -115,3 +115,33 @@ Microsoft CRT 약관 원본과 배포 고지를 포함한다. 앱 로컬 CRT의 
 이 고지는 프로젝트의 비공개 자체 코드에 라이선스를 새로 부여하지 않는다.
 
 제거 프로그램에는 사용자 result/report/history를 지우는 `UninstallDelete` 규칙을 두지 않는다.
+
+## 단일 오프라인 EXE 재패키징 (preview.2)
+
+기존 preview.1 분할 배포는 유지한다. `.github/workflows/single-installer.yml`은
+`build/single-windows-*` 태그 push에서만 실행하며 Python 3.12 외 모델 빌드 의존성을 설치하지 않는다.
+실행 명령은 `./scripts/build_windows.ps1 -SingleInstaller -Version 0.2.0-preview.2`다.
+
+입력은 공개된 `v0.2.0-preview.1`의 Setup.exe, bin 4개, installer-manifest.json뿐이다.
+manifest SHA256은 `b7e57e0203efba4b63c9a715cede874aa301e1fc17f1f1f2fa1c4da8db97db8e`,
+payload source commit은 `dae7af58e636d3b0438910271de11081f9cbdd01`로 검사한다.
+파일 5개의 크기/해시를 검증한 뒤 저장소의 `dist/AdPurifier`에 silent 설치하고
+동봉 `installed-assets.json`으로 설치 바이트를 검증한다. 입력 다운로드와 루트의
+생성된 unins*.exe/dat를 삭제하고 기존 공통 Inno·설치·오프라인 self-test·UI 종료 검사를 실행한다.
+설치본의 앱/모델은 baseline 바이트이며 packaging commit의 앱 소스로 다시 빌드하지 않는다.
+`payload-source.json`의 `source_sha`는 baseline, `packaging_commit`은 빌드의 `GITHUB_SHA`다.
+
+단일 모드는 `DiskSpanning=no`, `Compression=lzma2/max`, `SolidCompression=yes`를 쓴다.
+컴파일된 Setup.exe 하나만 허용하고 크기는 4,200,000,000 바이트 미만이어야 한다.
+2 GiB 초과는 허용하지만 실제 모델의 압축률과 Inno 컴파일 결과가 상한 통과 여부를 결정한다.
+단일 manifest의 `source_commit`은 packaging SHA, `payload_source_commit`은 baseline SHA다.
+
+부모 담당자가 packaging commit과 일치하는 `v0.2.0-preview.2` 태그와 draft를 먼저 준비한다.
+workflow는 실제 Windows 설치·self-test·UI 성공 및 파일 해시 확인 후 EXE를 Actions raw artifact로
+14일 보관한다. 큰 EXE를 Release 자산으로 직접 업로드하지 않는다.
+Release에는 2 GiB 미만의 명시된 metadata만 올린다. `download-info.json`에는 artifact URL/ID/digest와
+GitHub API가 반환한 실제 만료 시각을 기록한다. 사용자는 URL에서 EXE 하나를 내려받아 설치한다.
+artifact 다운로드에는 GitHub 로그인/저장소 접근이 필요하며 만료 후에는 재빌드가 필요하다.
+다운로드 후 설치·실행은 오프라인으로 가능하다. 원격 태그 SHA와 draft 상태가 다르면 업로드를 중단한다.
+job outputs는 payload source SHA, packaging SHA와 실제 Windows self-test/UI 통과 상태를 제공한다.
+Windows 증거가 생성되기 전에는 단일 설치 성공으로 판정하지 않는다.

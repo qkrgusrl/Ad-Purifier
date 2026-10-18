@@ -1,4 +1,4 @@
-param([string]$Version = '0.2.0-preview.1')
+param([string]$Version = '0.2.0-preview.1', [switch]$SingleInstaller)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $Root = Split-Path -Parent $PSScriptRoot
@@ -20,6 +20,37 @@ try {
     $Drive = Get-PSDrive -Name ([IO.Path]::GetPathRoot($Root).Substring(0,1))
     if ($Drive.Free -lt 14GB) { throw '빌드 시작 시 14 GiB 이상 여유 공간 필요' }
     $Python = (Get-Command python).Source
+    $PayloadSource = 'dae7af58e636d3b0438910271de11081f9cbdd01'
+    if ($SingleInstaller) {
+        $Source = Join-Path $Root 'single-installer-source'
+        if (Test-Path $Source) { Remove-Item $Source -Recurse -Force }
+        if (Test-Path 'dist/AdPurifier') { Remove-Item 'dist/AdPurifier' -Recurse -Force }
+        New-Item -ItemType Directory $Source | Out-Null
+        Invoke-Checked 'gh' @('release', 'download', 'v0.2.0-preview.1', '--repo', $env:GITHUB_REPOSITORY,
+            '--pattern', '*Setup.exe', '--pattern', '*.bin', '--pattern', 'installer-manifest.json', '--dir', $Source)
+        $SourceManifest = Join-Path $Source 'installer-manifest.json'
+        if ((Get-FileHash $SourceManifest -Algorithm SHA256).Hash.ToLowerInvariant() -cne
+            'b7e57e0203efba4b63c9a715cede874aa301e1fc17f1f1f2fa1c4da8db97db8e') { throw '기준 manifest SHA256 불일치' }
+        $Baseline = Get-Content -Raw $SourceManifest | ConvertFrom-Json
+        $Parts = @($Baseline.files | ForEach-Object path)
+        if ($Baseline.source_commit -cne $PayloadSource -or $Baseline.version -cne '0.2.0-preview.1' -or
+            $Parts.Count -ne 5 -or @($Parts | Where-Object { $_ -cmatch '^[^/\\]+Setup\.exe$' }).Count -ne 1 -or
+            @($Parts | Where-Object { $_ -cmatch '^[^/\\]+\.bin$' }).Count -ne 4) { throw '기준 payload 출처/파일 구성 불일치' }
+        Invoke-Checked $Python @('-m', 'scripts.assets', 'verify', '--root', $Source, '--manifest', $SourceManifest)
+        $PayloadRoot = Join-Path $Root 'dist/AdPurifier'
+        $OldSetup = Join-Path $Source ($Parts | Where-Object { $_ -like '*Setup.exe' })
+        $OldInstaller = Start-Process -FilePath $OldSetup -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',
+            "/DIR=`"$PayloadRoot`"", "/LOG=`"$(Join-Path $Diagnostics 'payload-install.log')`"") -PassThru -Wait
+        if ($OldInstaller.ExitCode -ne 0) { throw "기준 설치 실패: $($OldInstaller.ExitCode)" }
+        Invoke-Checked $Python @('-m', 'scripts.assets', 'verify', '--root', $PayloadRoot,
+            '--manifest', (Join-Path $PayloadRoot 'installed-assets.json'))
+        Copy-Item "$PayloadRoot/assets.lock.json", "$PayloadRoot/installed-assets.json", "$PayloadRoot/crt-manifest.json" $Diagnostics
+        Get-ChildItem $PayloadRoot -File | Where-Object { $_.Name -match '^unins.*\.(exe|dat)$' } | Remove-Item -Force
+        Remove-Item $Source -Recurse -Force
+        [ordered]@{ source_sha = $PayloadSource; payload_source_commit = $PayloadSource; packaging_commit = $env:GITHUB_SHA;
+            manifest_sha256 = 'b7e57e0203efba4b63c9a715cede874aa301e1fc17f1f1f2fa1c4da8db97db8e'; validation_status = 'passed' } |
+            ConvertTo-Json | Set-Content (Join-Path $Diagnostics 'payload-source.json') -Encoding utf8
+    } else {
     # DOM 독립 테스트가 PATH=0을 강제한다. 동일한 잠금 브라우저로 검사한 뒤 이동한다.
     $TestBrowsers = & $Python -c "import pathlib,playwright; print(pathlib.Path(playwright.__file__).parent / 'driver/package/.local-browsers')"
     if ($LASTEXITCODE -ne 0) { throw 'Playwright package path lookup failed' }
@@ -69,6 +100,7 @@ try {
     Copy-Item 'dist/AdPurifier/assets.lock.json', 'requirements-windows.lock.txt' $Diagnostics
     # 수집 완료 후 PyInstaller 작업 캐시를 제거한다.
     Remove-Item 'build' -Recurse -Force
+    }
     function Find-Inno {
         $Command = Get-Command 'iscc.exe' -ErrorAction SilentlyContinue
         if ($Command) { return $Command.Source }
@@ -88,9 +120,19 @@ try {
     }
     if (-not $Iscc) { throw '공식 Inno Setup compiler를 찾지 못함' }
     (Get-Item $Iscc).VersionInfo | Format-List | Out-File (Join-Path $Diagnostics 'inno-version.txt')
-    Invoke-Checked $Iscc @('packaging/installer.iss')
-    Invoke-Checked $Python @('-m', 'scripts.release_manifest', '--root', 'release', '--version', $Version)
-    Copy-Item 'requirements-windows.lock.txt', 'THIRD_PARTY_NOTICES.txt' 'release/'
+    $InnoArgs = @('packaging/installer.iss')
+    if ($SingleInstaller) {
+        $InnoArgs = @('/DSingleInstaller', "/DAppVersion=$Version", 'packaging/installer.iss')
+    }
+    Invoke-Checked $Iscc $InnoArgs
+    $ManifestArgs = @('-m', 'scripts.release_manifest', '--root', 'release', '--version', $Version)
+    if ($SingleInstaller) { $ManifestArgs += @('--single', '--payload-source', $PayloadSource) }
+    Invoke-Checked $Python $ManifestArgs
+    if ($SingleInstaller) {
+        Copy-Item 'dist/AdPurifier/THIRD_PARTY_NOTICES.txt' 'release/'
+    } else {
+        Copy-Item 'requirements-windows.lock.txt', 'THIRD_PARTY_NOTICES.txt' 'release/'
+    }
     Copy-Item (Join-Path $Diagnostics 'assets.lock.json') 'release/'
     Copy-Item (Join-Path $Diagnostics 'installed-assets.json') 'release/'
     Copy-Item (Join-Path $Diagnostics 'crt-manifest.json') 'release/'

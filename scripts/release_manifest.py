@@ -73,6 +73,8 @@ def main():
     parser.add_argument('--expected-sha')
     parser.add_argument('--root', type=Path)
     parser.add_argument('--version')
+    parser.add_argument('--single', action='store_true')
+    parser.add_argument('--payload-source')
     args = parser.parse_args()
     if args.verify_tag:
         if not all((args.repo, args.tag, args.expected_sha)):
@@ -82,13 +84,24 @@ def main():
     if args.root is None or not args.version:
         parser.error('--root/--version 필요')
     parts = sorted([*args.root.glob('*Setup.exe'), *args.root.glob('*.bin')])
-    if not any(p.suffix == '.bin' for p in parts) or sum(p.suffix == '.exe' for p in parts) != 1:
+    if args.single:
+        if not args.payload_source or not re.fullmatch(r'[0-9a-f]{40}', args.payload_source):
+            raise ValueError('단일 설치본의 payload source commit SHA 필요')
+        if len(parts) != 1 or parts[0].suffix != '.exe':
+            raise ValueError('단일 Setup.exe만 허용; bin 금지')
+        if parts[0].stat().st_size >= 4_200_000_000:
+            raise ValueError('단일 설치본 4.2 GB 한도 초과')
+    elif not any(p.suffix == '.bin' for p in parts) or sum(p.suffix == '.exe' for p in parts) != 1:
         raise ValueError('단일 Setup.exe와 분할 bin 필요')
     records = [file_record(p, p.name) for p in parts]
-    if any(r['size'] >= 2**31 for r in records):
+    if not args.single and any(r['size'] >= 2**31 for r in records):
         raise ValueError('GitHub 개별 자산 2 GiB 한도 초과')
     result = {'version': args.version, 'source_commit': os.environ.get('GITHUB_SHA'),
-              'installation': 'Setup.exe와 모든 .bin 파일을 같은 폴더에 둔 후 Setup.exe 실행', 'files': records}
+              'installation': ('Setup.exe 하나를 내려받아 실행 (모델 포함, 오프라인 설치)'
+                               if args.single else 'Setup.exe와 모든 .bin 파일을 같은 폴더에 둔 후 Setup.exe 실행'),
+              'files': records}
+    if args.single:
+        result['payload_source_commit'] = args.payload_source
     (args.root / 'installer-manifest.json').write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding='utf-8')
     (args.root / 'SHA256SUMS.txt').write_text(''.join(f"{r['sha256']}  {r['path']}\n" for r in records), encoding='utf-8')
 
