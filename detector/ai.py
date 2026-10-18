@@ -3,6 +3,7 @@ import hashlib
 import html
 import json
 import math
+import re
 import time
 from contextlib import ExitStack
 from html.parser import HTMLParser
@@ -26,23 +27,38 @@ def valid_binding(row, item, owner):
             and item[field][start:end] == row.get("evidence"))
 
 
+_ROOT_ATTR = re.compile(r'''\s+([^\s"'<>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'))?''')
+
+
 class _OwnerText(HTMLParser):
     """하위 요소의 소유 관계를 추측하지 않고 단일 요소의 본문만 읽는다."""
-    def __init__(self):
+    def __init__(self, source):
         super().__init__(convert_charrefs=True)
+        self.source = source
         self.tag = None
         self.closed = False
         self.parts = []
+        self.opening = ""
+        self.body_start = self.body_end = 0
+
+    def _char_offset(self):
+        line, column = self.getpos()
+        return sum(len(part) + 1 for part in self.source.split("\n")[:line - 1]) + column
 
     def handle_starttag(self, tag, attrs):
         if self.tag is not None or tag in ("script", "style", "title", "textarea", "template", "noscript"):
             raise ValueError("본문 소유가 불명확한 HTML")
         self.tag = tag
+        self.has_text_attrs = any(name in ("alt", "title", "aria-label") and value and value.strip()
+                                  for name, value in attrs)
+        self.opening = self.get_starttag_text()
+        self.body_start = self._char_offset() + len(self.opening)
 
     def handle_endtag(self, tag):
         if self.tag != tag or self.closed:
             raise ValueError("단일 요소가 아닌 HTML")
         self.closed = True
+        self.body_end = self._char_offset()
 
     def handle_data(self, data):
         if self.tag is None or self.closed:
@@ -60,21 +76,53 @@ class _OwnerText(HTMLParser):
     def handle_pi(self, data):
         raise ValueError("처리 지시 포함 근거는 재검토")
 
+    def attribute_span(self, name):
+        # outerHTML의 인용된 속성값만 지원하며, 다른 속성값 내부를 재검색하지 않는다.
+        position, matches = len(self.tag) + 1, []
+        while match := _ROOT_ATTR.match(self.opening, position):
+            if match[1].lower() == name:
+                group = 2 if match[2] is not None else 3
+                if match[group] is None:
+                    return None
+                base = self.body_start - len(self.opening)
+                matches.append((base + match.start(group), base + match.end(group), match[group]))
+            position = match.end()
+        if self.opening[position:].strip() not in (">", "/>") or len(matches) != 1:
+            return None
+        return matches[0]
 
-def matching_recovery_text(evidence, row):
-    expected = normalize(row["text"])
-    if normalize(html.unescape(evidence)) == expected:
-        return True  # 기존 태그 없는 원문 binding 호환.
-    if evidence != row.get("source_html") or row.get("attr"):
+
+def matching_recovery_text(binding, row):
+    """검증된 binding의 실제 범위를 현재 본문/속성 소유 단위에 결합한다."""
+    evidence = binding["evidence"]
+    expected = normalize(row["evidence_text"] if "evidence_text" in row else row["text"])
+    bare_match = normalize(html.unescape(evidence)) == expected
+    source = row.get("source_html", "")
+    if binding.get("source_field") != "html":
         return False
-    parser = _OwnerText()
+    parser = _OwnerText(source)
     try:
-        parser.feed(evidence)
+        parser.feed(source)
         parser.close()
     except ValueError:
         return False
-    return (parser.closed and parser.tag == row.get("tag", "").lower()
-            and normalize("".join(parser.parts)) == expected)
+    if parser.tag != row.get("tag", "").lower():
+        return False
+    attr = row.get("attr")
+    if attr:
+        if attr not in ("alt", "title", "aria-label") or not (parser.closed or source == parser.opening):
+            return False
+        span = parser.attribute_span(attr)
+        return (span is not None and bare_match
+                and span[0] <= binding["start_char"] < binding["end_char"] <= span[1]
+                and normalize(html.unescape(span[2])) == expected)
+    if not parser.closed:
+        return False
+    if evidence == source:
+        return not parser.has_text_attrs and normalize("".join(parser.parts)) == expected
+    # 같은 문구라도 선택 offset이 루트 직접 본문에 속해야 한다.
+    return (bare_match
+            and parser.body_start <= binding["start_char"] < binding["end_char"] <= parser.body_end)
 
 
 def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_confidence_threshold=.8, cancel_error=None, detect_posted=True):
@@ -251,7 +299,7 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                         failed[sid] = "회수 근거가 source_html에 없음: 주변 문맥을 현재 위치의 광고로 할당하지 않음"
                     elif not valid_binding(item, input_for(by_id[sid]), sid):
                         failed[sid] = "회수 근거의 원문 결합 실패"
-                    elif not matching_recovery_text(item["evidence"], by_id[sid]):
+                    elif not matching_recovery_text(item, by_id[sid]):
                         failed[sid] = "선택 근거와 선별 문구가 다름: 다른 문구의 Laya 캐시를 재사용하지 않고 재검토"
                     else:
                         # 동일 문구·소유 단위만 회수; model selector/technique는 사용하지 않는다.
@@ -325,6 +373,8 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                     review(c, "Gemma 보류/누락/원문 결합 실패")
                 elif row["verdict"] == "ad" and row.get("source_field") != "html":
                     review(c, "광고 근거가 source_html에 없음: 주변 문맥만으로 현재 위치를 확정할 수 없음")
+                elif row["verdict"] == "ad" and not matching_recovery_text(row, c):
+                    review(c, "선택 광고 근거가 현재 문구의 직접 본문에 결합되지 않음: 소유 관계 재검토")
                 else:
                     c.update(verdict=row["verdict"], decided_by="gemma", processing_status="completed", reason="Gemma v15 원문 결합 검증 완료")
             except Exception as exc:
