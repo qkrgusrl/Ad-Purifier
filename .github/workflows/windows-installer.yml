@@ -1,7 +1,7 @@
 name: Windows installer preview
 on:
   push:
-    branches: [codex/windows-installer]
+    branches: [feature/windows-installer]
   workflow_dispatch:
 permissions:
   contents: write

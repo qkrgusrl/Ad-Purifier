@@ -1,7 +1,7 @@
 # 통합 테스트 인계 계약
 
 trace: windows-installer-20261018 / 사용자 최신 수정 반영.
-검증 기준 HEAD: `e6cd33168c7544019c603af05c789c6d4bed2183`, branch `codex/windows-installer`.
+검증 기준 HEAD: `e6cd33168c7544019c603af05c789c6d4bed2183`, branch `feature/windows-installer`.
 이 worker는 fetch하지 않았다. 다른 worker가 최신 main을 반영하면 아래 명령으로 재검증한다.
 
 ## 실행

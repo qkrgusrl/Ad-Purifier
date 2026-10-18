@@ -17,7 +17,7 @@
 
 ## CI 순서
 
-`.github/workflows/windows-installer.yml`은 `codex/windows-installer` push 및 수동 실행을 지원한다.
+`.github/workflows/windows-installer.yml`은 `feature/windows-installer` push 및 수동 실행을 지원한다.
 Windows-2022 runner에서 잠금 의존성 설치와 `pip check` 후 `scripts/build_windows.ps1`을 실행한다.
 스크립트는 잠금 Chromium 준비 → 전체 unittest → 브라우저 임시 이동 → 라이선스 수집 → PyInstaller → 브라우저 dist 이동 및 모델 자산 직접 다운로드 →
 Inno Setup → 실제 설치 → frozen self-test → UI HTTP smoke 순서로 동작한다.
