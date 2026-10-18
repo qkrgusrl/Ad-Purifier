@@ -497,7 +497,7 @@ def respond(value, code=0, error=""):
 if args[:2] == ["release", "view"]:
     if scenario == "release_forbidden":
         respond({"message": "Forbidden"}, 1, "gh: Forbidden (HTTP 403)")
-    respond({"isDraft": True, "targetCommitish": expected})
+    respond({"isDraft": scenario != "public_release", "targetCommitish": expected})
 if args and args[0] == "api":
     endpoint = next((a.lstrip("/") for a in args if a.lstrip("/").startswith("repos/")), "")
     if any(a in {"POST", "PATCH", "DELETE", "--input"} for a in args):
@@ -526,6 +526,48 @@ respond({"message": "unrecognized fixture command"}, 92)
 
 
 class WorkflowUploadContractTests(ContractCase):
+    def test_draft_stage_has_manifest_before_install_and_runs_after_failed_validation(self):
+        import yaml
+
+        workflow = yaml.load((ROOT / ".github/workflows/windows-installer.yml").read_text(
+            encoding="utf-8"), Loader=yaml.BaseLoader)
+        upload = next(step for step in workflow["jobs"]["build"]["steps"]
+                      if "release upload" in step.get("run", ""))
+        with self.subTest(stage="workflow_failure_preservation"):
+            self.assertIn("always()", upload.get("if", ""))
+            self.assertIn("release/installer-manifest.json", upload["if"])
+        script = "\n".join(line for line in (ROOT / "scripts/build_windows.ps1").read_text(
+            encoding="utf-8").splitlines() if not line.lstrip().startswith("#"))
+        compile_at = script.index("Invoke-Checked $Iscc")
+        install_at = script.index("$Installer = Start-Process")
+        stage = script[compile_at:install_at]
+        with self.subTest(stage="installer_manifest_and_checksums"):
+            self.assertIn("scripts.release_manifest", stage,
+                          "Inno 성공 직후 installer-manifest/SHA256SUMS 생성이 설치 시험보다 앞서야 함")
+        for name in ("assets.lock.json", "installed-assets.json", "crt-manifest.json"):
+            with self.subTest(stage="preserve_input_manifest", manifest=name):
+                self.assertTrue(any("Copy-Item" in line and name in line and "release/" in line
+                                    for line in stage.splitlines()), name + "을 설치 전에 release에 보존해야 함")
+
+    def test_draft_stage_accepts_failed_validation_but_rejects_invalid_artifacts(self):
+        for scenario in ("validation_failed", "manifest_missing", "part_corrupt", "part_size",
+                         "source_mismatch", "public_release"):
+            with self.subTest(case=scenario):
+                result, calls = self.run_workflow(scenario)
+                uploads = [c for c in calls if c[:2] == ["release", "upload"]]
+                if scenario == "validation_failed":
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    self.assertEqual(len(uploads), 1, "검증 실패해도 무결한 installer는 draft로 보존")
+                    names = {Path(a).name for a in uploads[0]}
+                    self.assertTrue({"AdPurifier-fixture-Setup.exe", "fixture-1.bin",
+                                     "installer-manifest.json", "SHA256SUMS.txt", "validation-status.json"} <= names)
+                    self.assertTrue(any(c[:2] == ["release", "view"] for c in calls))
+                    self.assertTrue(any(c[0] == "api" and any("/git/ref/tags/" in a for a in c) for c in calls))
+                else:
+                    self.assertEqual(uploads, [], scenario + ": 검증되지 않은 산출물/public release 업로드 금지")
+                    if scenario != "manifest_missing":
+                        self.assertNotEqual(result.returncode, 0)
+
     def test_workflow_runs_only_for_explicit_build_tags_or_dispatch(self):
         import yaml
 
@@ -589,6 +631,28 @@ class WorkflowUploadContractTests(ContractCase):
         (work / "release").mkdir()
         (work / "release/AdPurifier-fixture-Setup.exe").write_bytes(b"not an executable")
         (work / "release/fixture-1.bin").write_bytes(b"not a model")
+        # 실제 canonical 생성기를 사용해 dummy installer/part의 크기·해시·소스 SHA를 결합한다.
+        release_manifest = importlib.import_module("scripts.release_manifest")
+        with patch.dict(os.environ, {"GITHUB_SHA": SHA}), patch.object(sys, "argv", [
+                "release_manifest", "--root", str(work / "release"), "--version", "0.2.0-preview.1"]):
+            release_manifest.main()
+        manifest_path = work / "release/installer-manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        self.assertEqual(manifest["source_commit"], SHA)
+        importlib.import_module("scripts.assets").verify_assets(work / "release", manifest)
+        (work / "release/validation-status.json").write_text(json.dumps({
+            "validation_status": "failed" if scenario == "validation_failed" else "ok",
+            "source_commit": SHA}), encoding="utf-8")
+        if scenario == "manifest_missing":
+            manifest_path.unlink()
+        elif scenario == "source_mismatch":
+            manifest["source_commit"] = OTHER_SHA
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        elif scenario in ("part_corrupt", "part_size"):
+            part = work / "release/fixture-1.bin"
+            original = part.read_bytes()
+            part.write_bytes(bytes([original[0] ^ 1]) + original[1:] if scenario == "part_corrupt"
+                             else original + b"extra")
         commands = work / "fixture-bin"
         commands.mkdir()
         gh_script = commands / "gh_double.py"
@@ -661,7 +725,10 @@ class WorkflowUploadContractTests(ContractCase):
             result = subprocess.run([pwsh, "-NoLogo", "-NoProfile", "-NonInteractive", "-File", str(script)],
                                     cwd=work, env=env, capture_output=True, text=True, timeout=30)
         calls = [json.loads(line) for line in log.read_text(encoding="utf-8").splitlines()] if log.exists() else []
-        self.assertTrue(calls, f"gh double에 도달하지 못한 fixture 오류: {result.stderr}")
+        if scenario not in {"manifest_missing", "part_corrupt", "part_size", "source_mismatch"}:
+            self.assertTrue(calls, f"gh double에 도달하지 못한 fixture 오류: {result.stderr}")
+        self.assertFalse(any(c[:2] in (["release", "edit"], ["release", "create"]) for c in calls),
+                         "draft 보존 중 release 생성/편집/publish 금지")
         print("RAW workflow_fixture " + json.dumps({"scenario": scenario,
               "python_launcher": (launcher.stdout + launcher.stderr).strip(),
               "launcher_returncode": launcher.returncode, "workflow_returncode": result.returncode,

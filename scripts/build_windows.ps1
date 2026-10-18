@@ -6,6 +6,9 @@ Set-Location $Root
 $Diagnostics = Join-Path $Root 'build-diagnostics'
 New-Item -ItemType Directory -Force $Diagnostics | Out-Null
 Start-Transcript -Path (Join-Path $Diagnostics 'build.log')
+$Packaged = $false
+$ValidationStatus = 'not_passed'
+$Smoke = $null
 function Invoke-Checked {
     param([string]$Program, [string[]]$Arguments)
     & $Program @Arguments
@@ -13,6 +16,7 @@ function Invoke-Checked {
 }
 try {
     if (-not $IsWindows) { throw 'Windows runner required' }
+    if (Test-Path 'release') { Remove-Item 'release' -Recurse -Force }
     $Drive = Get-PSDrive -Name ([IO.Path]::GetPathRoot($Root).Substring(0,1))
     if ($Drive.Free -lt 14GB) { throw '빌드 시작 시 14 GiB 이상 여유 공간 필요' }
     $Python = (Get-Command python).Source
@@ -85,6 +89,12 @@ try {
     if (-not $Iscc) { throw '공식 Inno Setup compiler를 찾지 못함' }
     (Get-Item $Iscc).VersionInfo | Format-List | Out-File (Join-Path $Diagnostics 'inno-version.txt')
     Invoke-Checked $Iscc @('packaging/installer.iss')
+    Invoke-Checked $Python @('-m', 'scripts.release_manifest', '--root', 'release', '--version', $Version)
+    Copy-Item 'requirements-windows.lock.txt', 'THIRD_PARTY_NOTICES.txt' 'release/'
+    Copy-Item (Join-Path $Diagnostics 'assets.lock.json') 'release/'
+    Copy-Item (Join-Path $Diagnostics 'installed-assets.json') 'release/'
+    Copy-Item (Join-Path $Diagnostics 'crt-manifest.json') 'release/'
+    $Packaged = $true
     # 설치 시험 전 dist 삭제: 모델 두 사본 + 설치압축을 동시에 보유하지 않는다.
     Remove-Item 'dist/AdPurifier' -Recurse -Force
     $Install = Join-Path $env:LOCALAPPDATA '설치 시험/광고청정기'
@@ -108,6 +118,7 @@ try {
     # 사용자 Python을 PATH에서 제거한 frozen 실행. 동봉된 Python DLL만 사용한다.
     $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
     $Smoke = Join-Path $Diagnostics 'self-test.json'
+    if (Test-Path $Smoke) { Remove-Item $Smoke }
     try {
         $Exe = Join-Path $Install 'AdPurifier.exe'
         $Process = Start-Process -FilePath $Exe -WorkingDirectory $Elsewhere -ArgumentList @('--self-test',
@@ -157,13 +168,13 @@ try {
             }
         }
     } finally { $env:PATH = $OldPath }
-    Invoke-Checked $Python @('-m', 'scripts.release_manifest', '--root', 'release', '--version', $Version)
-    Copy-Item 'requirements-windows.lock.txt', 'THIRD_PARTY_NOTICES.txt' 'release/'
-    Copy-Item (Join-Path $Diagnostics 'assets.lock.json') 'release/'
-    Copy-Item (Join-Path $Diagnostics 'installed-assets.json') 'release/'
-    Copy-Item (Join-Path $Diagnostics 'crt-manifest.json') 'release/'
-    Copy-Item $Smoke 'release/self-test.json'
+    $ValidationStatus = 'passed'
 } finally {
+    if ($Packaged) {
+        [ordered]@{ source_commit = $env:GITHUB_SHA; validation_status = $ValidationStatus } |
+            ConvertTo-Json | Set-Content 'release/validation-status.json' -Encoding utf8
+        if ($Smoke -and (Test-Path $Smoke)) { Copy-Item $Smoke 'release/self-test.json' }
+    }
     # 세션 키와 토큰은 진단물에 포함하지 않는다.
     $RuntimeLogs = Join-Path $env:LOCALAPPDATA 'AdPurifier/logs'
     if (Test-Path $RuntimeLogs) {

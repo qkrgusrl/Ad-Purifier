@@ -53,7 +53,8 @@ self-test는 생산 경로의 `LayaRunner`를 통해 별도 spawn 자식에서 �
 종료 후 PID가 살아 있지 않은지 확인한 뒤 Gemma를 호출한다. Chromium으로 로컬 HTTP fixture도 읽는다.
 Windows Gemma 자식이 살아 있는 동안 `psutil.Process(pid).memory_maps()`를 검사하여
 필수 MSVCP/VCRUNTIME과 llama-server-impl.dll이 `runtime/llama`에서 로드됐는지 확인한다.
-System32·다른 bundle 위치의 해당 DLL로 통과시키지 않는다. 이는 깨끗한 VM 검증을 뜻하지 않는다.
+필수 DLL과 알려진 140 계열 재배포 DLL은 System32·다른 bundle 위치에서 로드되면 실패한다.
+Windows OS DLL인 msvcp_win.dll·ucrtbase.dll은 허용한다. 이는 깨끗한 VM 검증을 뜻하지 않는다.
 UI 스모크는 `/api/shutdown`에 JSON `{}`를 POST하고 30초 내 종료 코드 0을 확인한다.
 강제 종료는 실패 후 정리에만 사용한다.
 각 phase 원시 반환값/오류/시간을 JSON에 보존한다. 모델 정확도를 평가하거나 보장하는 검사가 아니다.
@@ -82,10 +83,14 @@ GemmaClient deadline은 time.perf_counter() 기준 절대시각이며 점검 전
 빌드한 assets.lock.json의 UI/JS 해시도 현재 소스로 갱신하여 설치본과 릴리스에 함께 넣는다.
 릴리스에서 실제 설치본 전체를 판정하는 기준은 같은 릴리스의 `installed-assets.json`이다.
 
-Inno는 `DiskSpanning=yes`, `DiskSliceSize=1800000000`으로 분할한다.
+preview는 `Compression=none`으로 압축 시간을 줄이는 대신 배포 파일 크기가 증가한다.
+실제 크기는 Windows 패키징 결과로 확인한다. `DiskSpanning=yes`, `DiskSliceSize=1800000000`으로 분할한다.
 사용자는 Setup.exe와 모든 .bin을 같은 폴더에 내려받아 설치한다.
 `installer-manifest.json`과 `SHA256SUMS.txt`가 각 조각의 크기/해시 및 소스 commit을 기록한다.
-모든 게이트 성공 후에만 `v0.2.0-preview.1`에 업로드하고 **draft를 유지**한다.
+Inno 성공 직후 manifest와 배포 입력을 보존한다. 패키징 완료 후에는 검사 실패에도
+`validation-status.json`에 소스 SHA와 `passed`/`not_passed`를 기록하며 job 실패는 유지한다.
+현재 소스 SHA와 파일 크기·해시가 검증된 설치본은 검사 실패 시에도 `v0.2.0-preview.1`의 **draft에만 보존**한다.
+목록 밖 파일은 거부하며 빌드 시작 시 이전 release 산출물을 제거한다. draft 보존은 검증 승인이 아니다.
 릴리스 업로드 전에 실제 원격 태그 ref를 조회한다. annotated tag는 commit까지 해석하고
 빌드의 `GITHUB_SHA`와 일치하는지 검사한다. 기존 draft 여부도 확인한다.
 태그 없음(404), 권한 오류(403), 서버 오류, 잘못된 ref/응답, commit 불일치, 공개 릴리스는 모두 업로드를 중단한다.
@@ -100,7 +105,7 @@ Inno는 `DiskSpanning=yes`, `DiskSliceSize=1800000000`으로 분할한다.
 
 수동 빌드 태그로 실행해도 릴리스 태그·draft 준비 전에는 릴리스 업로드가 차단된다.
 새 버전 태그는 릴리스 계획에서 별도로 확정한 후 변경한다.
-검토 후 수동으로 게시한다. 실패 시 설치 파일은 업로드하지 않고 진단 artifact만 보존한다.
+모든 검사의 실제 증거를 부모가 검토한 뒤 수동으로 게시한다. 자동 게시하지 않는다.
 
 ## 라이선스
 

@@ -33,11 +33,31 @@ jobs:
       - name: Unit tests, frozen build, installation and offline smoke
         shell: pwsh
         run: ./scripts/build_windows.ps1
-      - name: Upload tested installer to draft release
+      - name: Preserve packaged installer in draft release
+        if: ${{ always() && hashFiles('release/installer-manifest.json') != '' }}
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $Tag = 'v0.2.0-preview.1'
+          $Manifest = Get-Content -Raw 'release/installer-manifest.json' | ConvertFrom-Json
+          $Validation = Get-Content -Raw 'release/validation-status.json' | ConvertFrom-Json
+          if ($env:GITHUB_SHA -cnotmatch '^[0-9a-f]{40}$' -or
+              $Manifest.source_commit -cne $env:GITHUB_SHA -or
+              $Validation.source_commit -cne $env:GITHUB_SHA) { throw '현재 소스 SHA 불일치' }
+          if ($Validation.validation_status -notin @('passed', 'failed', 'not_passed', 'ok')) { throw '검증 상태 누락/오류' }
+          $Parts = @($Manifest.files | ForEach-Object path)
+          if (@($Parts | Where-Object { $_ -cmatch '^[^/\\]+Setup\.exe$' }).Count -ne 1 -or
+              @($Parts | Where-Object { $_ -cmatch '^[^/\\]+\.bin$' }).Count -lt 1 -or
+              @($Parts | Where-Object { $_ -cnotmatch '^[^/\\]+(Setup\.exe|\.bin)$' }).Count) { throw '불완전한 설치 파일 목록' }
+          python -m scripts.assets verify --root release --manifest release/installer-manifest.json
+          if ($LASTEXITCODE -ne 0) { throw '설치 파일 누락/hash/size 검증 실패' }
+          if (-not (Test-Path 'release/SHA256SUMS.txt' -PathType Leaf)) { throw 'SHA256SUMS 누락' }
+          $Allowed = @($Parts) + @('installer-manifest.json', 'SHA256SUMS.txt', 'validation-status.json',
+              'requirements-windows.lock.txt', 'THIRD_PARTY_NOTICES.txt', 'assets.lock.json',
+              'installed-assets.json', 'crt-manifest.json', 'self-test.json')
+          if (@(Get-ChildItem release -Force | Where-Object { $_.PSIsContainer -or $_.Name -cnotin $Allowed }).Count) {
+              throw '목록에 없는 기존/부분 배포 파일'
+          }
           python -m scripts.release_manifest --verify-tag --repo $env:GITHUB_REPOSITORY --tag $Tag --expected-sha $env:GITHUB_SHA
           if ($LASTEXITCODE -ne 0) { throw '실제 원격 태그 commit 검증 실패; 업로드 중단' }
           $Raw = gh release view $Tag --repo $env:GITHUB_REPOSITORY --json isDraft,targetCommitish

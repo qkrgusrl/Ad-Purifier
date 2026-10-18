@@ -254,6 +254,24 @@ class DistributionTests(unittest.TestCase):
                 get_process.assert_called_with(child_pid)
                 process.memory_maps.assert_called()
 
+    def test_child_module_audit_allows_windows_os_crt_beside_app_local_140(self):
+        audit = required_module("scripts.self_test").verify_child_runtime_modules
+        runtime = self.install / "runtime/llama"
+        runtime.mkdir(parents=True)
+        app_local = ("llama-server-impl.dll", "MSVCP140.dll", "VCRUNTIME140.dll", "VCRUNTIME140_1.dll")
+        paths = [runtime / name for name in app_local]
+        paths += [self.base / "Windows/System32" / name for name in ("msvcp_win.dll", "ucrtbase.dll")]
+        process = Mock()
+        process.exe.return_value = str(runtime / "llama-server.exe")
+        process.memory_maps.return_value = [types.SimpleNamespace(path=str(p)) for p in paths]
+        print("RAW os_crt_modules " + json.dumps([str(p) for p in paths], ensure_ascii=False), flush=True)
+        with patch("psutil.Process", return_value=process) as get_process:
+            result = audit(424242, runtime)
+        get_process.assert_called_once_with(424242)
+        process.memory_maps.assert_called_once()
+        self.assertIs(result["app_local_verified"], True,
+                      "Windows OS DLL은 System32에서 허용하고 versioned 140 CRT만 app-local 요구")
+
     def assets(self):
         fixture = {
             "models/laya-illegal-ad-long2/config.json": b'{"model_type":"bert"}',

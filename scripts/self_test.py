@@ -27,11 +27,17 @@ def verify_child_runtime_modules(pid, runtime_dir):
         raise RuntimeError(f'Gemma 자식 실행 경로 불일치: {executable}')
     modules = sorted({str(Path(item.path).resolve()) for item in process.memory_maps()})
     required = {'llama-server-impl.dll', 'msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll'}
+    redistributable = {
+        'msvcp140.dll', 'msvcp140_1.dll', 'msvcp140_2.dll',
+        'msvcp140_atomic_wait.dll', 'msvcp140_codecvt_ids.dll',
+        'vcruntime140.dll', 'vcruntime140_1.dll', 'vcruntime140_threads.dll',
+        'concrt140.dll', 'vccorlib140.dll',
+    }
     found = set()
     for module in modules:
         path = Path(module)
         name = path.name.casefold()
-        if name in required or (name.endswith('.dll') and name.startswith(('msvcp', 'vcruntime'))):
+        if name in required or name in redistributable:
             if str(path.parent).casefold() != str(runtime).casefold():
                 raise RuntimeError(f'앱 로컬 DLL 외부 로드: {module}')
             found.add(name)
