@@ -1,0 +1,37 @@
+{
+  "status": "frozen_waiting_for_stable_runtime",
+  "frozen_at": "2026-10-18T10:52:06.032269+00:00",
+  "fixture_count": 5,
+  "fixture_ids": [
+    "P03",
+    "P11",
+    "S06",
+    "S07",
+    "R01"
+  ],
+  "fixtures_sha256": "e6b4609fb9a72c41f519c446b29da004144902ef25fa2d9df7012b3714829e11",
+  "previous_four_case_plan_sha256": "a43cd7d77e8d4f532201b8e4398f621af116f75dec001da3f0f6ff554b17cdcc",
+  "purpose": "실제 production 경로 관찰; 모델 품질 추정 아님",
+  "run_started": false,
+  "model_calls_in_preparation": 0,
+  "additional_probe_search": false,
+  "runtime_condition": "source/recovery 수정 완료 및 stable 신호 후 실행",
+  "constraints": {
+    "laya_threshold": 0.8,
+    "full_diagnostic_mode": false,
+    "mock_model_outputs": false,
+    "extra_test_cases": false,
+    "external_sites": false,
+    "max_simultaneous_gemma_servers": 1
+  },
+  "raw_capture_requirements": [
+    "실제 적용된 소스 commit 및 파일 해시",
+    "HTTP fixture → extract.js 원문·source binding",
+    "LayaRunner 자식 PID·실제 protocol 입력/응답·종료 상태: 누락 시 누락 기록",
+    "실제 Laya Ptrue/confidence·토큰·시간·오류",
+    "Gemma 요청/응답·회수 결과·재합류·원문 binding",
+    "report/result 및 잔여 항목별 처리 상태",
+    "서버·자식 프로세스 종료 증거"
+  ],
+  "raw_artifacts_state": "원시 응답 파일 미생성; 실행 전 빈 값을 실측으로 저장하지 않음"
+}

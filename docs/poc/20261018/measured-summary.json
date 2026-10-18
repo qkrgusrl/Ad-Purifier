@@ -1,0 +1,20 @@
+{
+  "cases": 24,
+  "laya_candidates": 11,
+  "laya_unique_inputs": 8,
+  "laya_three_class_matches": 7,
+  "gemma_diagnostic_matches": 8,
+  "initial_low_confidence_count": 0,
+  "off_policy_gemma_calls": 11,
+  "route_counts": {
+    "not_candidate": 3,
+    "rule_ad": 7,
+    "rule_clean": 1,
+    "context_bypass": 2,
+    "laya": 11
+  },
+  "gemma_input_tokens": 12186,
+  "gemma_output_tokens": 282,
+  "gemma_errors": 0,
+  "unlabeled_real_cases": 3
+}

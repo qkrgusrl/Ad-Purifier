@@ -246,6 +246,94 @@ class OutputDirectoryContractTests(ContractCase):
         self.assertEqual(snapshot(self.install), before)
         self.assertFalse((self.base / "appdata").exists())
 
+    def test_output_probe_windows_permission_error_stops_after_one_attempt(self):
+        ensure = self.helper("app_paths", "ensure_writable_output")
+        before = self.existing_results()
+        platform_name = os.name
+        real_tempfile_os = tempfile._os
+        with denied_writes(self.install) as attempted:
+            # patched open/access를 그대로 위임하되 tempfile의 Windows 분기만 켠다.
+            # 전역 os.name을 바꾸면 호스트의 pathlib까지 WindowsPath로 바뀐다.
+            windows_os = types.SimpleNamespace(**{**vars(os), "name": "nt"})
+            self.assertIs(windows_os.open, os.open)
+            self.assertTrue(windows_os.path.isdir(self.install))
+            self.assertTrue(windows_os.access(self.install, windows_os.W_OK))
+            with patch.object(tempfile, "_os", windows_os), patch.object(tempfile, "TMP_MAX", 5):
+                self.assertEqual(os.name, platform_name)
+                with self.assertRaises(OSError) as caught:
+                    ensure(self.install)
+        self.assertIs(tempfile._os, real_tempfile_os)
+        self.assertEqual(os.name, platform_name)
+        self.assertEqual(snapshot(self.install), before)
+        self.assertFalse((self.base / "appdata").exists())
+        self.assertIn(str(self.install), str(caught.exception))
+        cause = caught.exception
+        chain = []
+        while cause is not None:
+            chain.append({"type": type(cause).__name__, "message": str(cause)})
+            last_cause = cause
+            cause = cause.__cause__
+        print("RAW windows_permission_probe " + json.dumps({
+            "python": sys.version, "host_os_name": platform_name, "tempfile_os_name": "nt",
+            "TMP_MAX": 5, "attempt_count": len(attempted), "attempted": attempted,
+            "exception_chain": chain, "existing_files_preserved": snapshot(self.install) == before,
+        }, ensure_ascii=False), flush=True)
+        self.assertEqual(len(attempted), 1,
+                         "PermissionError는 이름 충돌이 아님: os.access=True여도 즉시 중단해야 함")
+        self.assertIsInstance(last_cause, PermissionError,
+                              "권한 오류를 재시도 한도 소진/FileExistsError로 바꾸면 안 됨")
+
+    def test_output_probe_retries_only_bounded_exclusive_collisions_without_overwrite(self):
+        ensure = self.helper("app_paths", "ensure_writable_output")
+        self.existing_results()
+        real_open = os.open
+        for persistent in (False, True):
+            with self.subTest(persistent_collision=persistent):
+                before = snapshot(self.install)
+                attempted, occupied = [], {}
+
+                def exclusive_open(path, flags, *args, **kwargs):
+                    target = Path(path)
+                    self.assertTrue(target.is_relative_to(self.install))
+                    self.assertEqual(flags & (os.O_CREAT | os.O_EXCL), os.O_CREAT | os.O_EXCL,
+                                     "검사 파일은 기존 경로를 덮어쓸 수 없는 exclusive create여야 함")
+                    self.assertFalse(flags & os.O_TRUNC)
+                    attempted.append({"path": str(path), "flags": flags})
+                    self.assertLessEqual(len(attempted), 5, "이름 충돌 재시도도 소수로 제한해야 함")
+                    if persistent or len(attempted) == 1:
+                        # 선택된 경로를 다른 주체가 먼저 만든 상황. 실제 O_EXCL 오류를 사용한다.
+                        if target not in occupied:
+                            fd = real_open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+                            try:
+                                payload = b"existing collision owner: must survive\n"
+                                os.write(fd, payload)
+                            finally:
+                                os.close(fd)
+                            occupied[target] = payload
+                    return real_open(path, flags, *args, **kwargs)
+
+                with patch.object(os, "open", side_effect=exclusive_open):
+                    windows_os = types.SimpleNamespace(**{**vars(os), "name": "nt"})
+                    with patch.object(tempfile, "_os", windows_os), patch.object(tempfile, "TMP_MAX", 5):
+                        if persistent:
+                            with self.assertRaises(OSError) as caught:
+                                ensure(self.install)
+                            self.assertIn(str(self.install), str(caught.exception))
+                        else:
+                            self.assertEqual(ensure(self.install), self.install)
+                expected = {**before, **{p.relative_to(self.install).as_posix(): data
+                                        for p, data in occupied.items()}}
+                self.assertEqual(snapshot(self.install), expected,
+                                 "기존 결과와 충돌 경로는 보존하고 자신이 만든 probe만 제거해야 함")
+                self.assertGreater(len(attempted), 1, "FileExistsError에 한해 제한된 재시도 필요")
+                self.assertLessEqual(len(attempted), 5)
+                self.assertFalse((self.base / "appdata").exists())
+                print("RAW exclusive_collision_probe " + json.dumps({
+                    "persistent": persistent, "TMP_MAX": 5, "attempt_count": len(attempted),
+                    "attempted": attempted, "occupied_files": [str(p) for p in occupied],
+                    "existing_files_preserved": snapshot(self.install) == expected,
+                }, ensure_ascii=False), flush=True)
+
     def test_unwritable_app_root_blocks_actual_entrypoint_before_ui_or_self_test(self):
         app = importlib.import_module("app")
         self.frozen()

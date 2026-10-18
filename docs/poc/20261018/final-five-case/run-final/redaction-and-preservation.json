@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "private_path_credentials_or_signed_url_found": false,
+  "actual_pid_preserved_for_spawn_evidence": true,
+  "temporary_runtime_logs_removed": true,
+  "previous_experiment_data_unchanged": true,
+  "additional_model_calls_after_scan": 0
+}

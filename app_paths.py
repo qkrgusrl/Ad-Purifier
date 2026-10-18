@@ -42,18 +42,28 @@ def ensure_writable_output(root=None):
     if not chosen.is_absolute():
         chosen = chosen.absolute()
     probes = []
+
+    def create_probe(prefix):
+        flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, 'O_BINARY', 0)
+        for attempt in range(5):
+            path = chosen / (prefix + os.urandom(16).hex())
+            try:
+                fd = os.open(path, flags, 0o600)
+            except FileExistsError:
+                if attempt == 4:
+                    raise
+            else:
+                probes.append(path)
+                return fd, path
+
     try:
         try:
-            fd, name = tempfile.mkstemp(prefix='.adpurifier-write-', dir=chosen)
-            source = Path(name)
-            probes.append(source)
+            fd, source = create_probe('.adpurifier-write-')
             with os.fdopen(fd, 'wb') as stream:
                 stream.write(b'AdPurifier output permission probe\n')
                 stream.flush()
                 os.fsync(stream.fileno())
-            fd, name = tempfile.mkstemp(prefix='.adpurifier-replace-', dir=chosen)
-            target = Path(name)
-            probes.append(target)
+            fd, target = create_probe('.adpurifier-replace-')
             os.close(fd)
             source.replace(target)
             target.unlink()

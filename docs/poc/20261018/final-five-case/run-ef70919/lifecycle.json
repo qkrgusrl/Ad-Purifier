@@ -1,0 +1,29 @@
+{
+  "started_at": "2026-10-18T11:17:31.634087+00:00",
+  "finished_at": "2026-10-18T11:18:03.712475+00:00",
+  "execution_pid": 21329,
+  "exit_code": 0,
+  "watchdog_timeout": false,
+  "forced_cleanup": [
+    {
+      "pid": 21363,
+      "name": "Python"
+    }
+  ],
+  "execution_process_absent": true,
+  "observed_child_pids": [
+    21352,
+    21353,
+    21354,
+    21355,
+    21356,
+    21357,
+    21358,
+    21361,
+    21362,
+    21363,
+    21364,
+    21369
+  ],
+  "all_observed_children_absent": true
+}

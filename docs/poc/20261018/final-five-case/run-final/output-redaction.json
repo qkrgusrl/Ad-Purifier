@@ -1,0 +1,8 @@
+{
+  "pre_redaction_file_hashes": {
+    "report.json": "2f82f9562d9e042a9c04e9b744db215482f1bc3aa6f6cec42b61fb1b9b6ba662",
+    "result.json": "3ef3d327042829e44b0bb3d21170e3029bbec31d5e2d9f638c178e0bb053bb12",
+    "result_extra.json": "bfe49be45c88befae179c4a6952a5cdbe5f8854a4b52dfe830d7126dd1c47508"
+  },
+  "transformation": "workspace absolute path prefix replaced by <WORKSPACE>; content/usage/binding unchanged"
+}

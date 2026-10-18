@@ -1,0 +1,155 @@
+{
+  "attempts": {
+    "attempt1-observer-failure": {
+      "status": "observer_induced_import_failure",
+      "visited_pages": 2,
+      "targets": [
+        {
+          "id": "S06",
+          "gold": "clean",
+          "initial_score": 2,
+          "observed_context_signal": [
+            [
+              "page-context",
+              -4
+            ]
+          ],
+          "laya_bypassed": true,
+          "verdict": "clean",
+          "decided_by": "gemma",
+          "source_html_matches_frozen": true,
+          "source_context_matches_frozen": false,
+          "source_sha256": "c95424929ad94beeccc00312dc7fdd28326b9dd5d5e5d8873ce5b6895b4dfcbd",
+          "binding_verified": true,
+          "evidence": "도박 예방교육 자료의 용어 목록입니다.",
+          "evidence_id": "c0004",
+          "source_field": "context",
+          "start_char": 50,
+          "end_char": 71
+        },
+        {
+          "id": "S07",
+          "gold": "clean",
+          "initial_score": 2,
+          "observed_context_signal": [
+            [
+              "page-context",
+              -4
+            ]
+          ],
+          "laya_bypassed": true,
+          "verdict": "clean",
+          "decided_by": "gemma",
+          "source_html_matches_frozen": true,
+          "source_context_matches_frozen": false,
+          "source_sha256": "6b97cfb4674c3e416ce67e3a1c61a3b65e44b529afb1bb3a1bb07c1df5ef3458",
+          "binding_verified": true,
+          "evidence": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+          "evidence_id": "c0003",
+          "source_field": "context",
+          "start_char": 27,
+          "end_char": 71
+        }
+      ],
+      "laya_inputs": 0,
+      "observed_laya_batches": 0,
+      "residual_screened_clean": 0,
+      "gemma_target_verify": 2,
+      "gemma_residual_extract": 12,
+      "gemma_actual_inference_requests": 14,
+      "gemma_prompt_tokens": 18391,
+      "gemma_completion_tokens": 434,
+      "ai_failure_records": 12,
+      "needs_review": false,
+      "result_findings": 0,
+      "elapsed_seconds": 57.51,
+      "max_observed_gemma_servers": 1,
+      "gemma_entry_laya_objects_alive": [
+        0
+      ],
+      "no_remaining_processes": true,
+      "production_source_changed_during_run": [],
+      "shared_laya_bundle_unchanged": true,
+      "all_browser_requests_loopback": true
+    },
+    "confirmed": {
+      "status": "confirmed_with_documented_concurrent_bootstrap_file_change",
+      "visited_pages": 2,
+      "targets": [
+        {
+          "id": "S06",
+          "gold": "clean",
+          "initial_score": 2,
+          "observed_context_signal": [
+            [
+              "page-context",
+              -4
+            ]
+          ],
+          "laya_bypassed": true,
+          "verdict": "clean",
+          "decided_by": "gemma",
+          "source_html_matches_frozen": true,
+          "source_context_matches_frozen": false,
+          "source_sha256": "c95424929ad94beeccc00312dc7fdd28326b9dd5d5e5d8873ce5b6895b4dfcbd",
+          "binding_verified": true,
+          "evidence": "도박 예방교육 자료의 용어 목록입니다.",
+          "evidence_id": "c0004",
+          "source_field": "context",
+          "start_char": 50,
+          "end_char": 71
+        },
+        {
+          "id": "S07",
+          "gold": "clean",
+          "initial_score": 2,
+          "observed_context_signal": [
+            [
+              "page-context",
+              -4
+            ]
+          ],
+          "laya_bypassed": true,
+          "verdict": "clean",
+          "decided_by": "gemma",
+          "source_html_matches_frozen": true,
+          "source_context_matches_frozen": false,
+          "source_sha256": "6b97cfb4674c3e416ce67e3a1c61a3b65e44b529afb1bb3a1bb07c1df5ef3458",
+          "binding_verified": true,
+          "evidence": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+          "evidence_id": "c0003",
+          "source_field": "context",
+          "start_char": 27,
+          "end_char": 71
+        }
+      ],
+      "laya_inputs": 12,
+      "observed_laya_batches": 1,
+      "residual_screened_clean": 12,
+      "gemma_target_verify": 2,
+      "gemma_residual_extract": 0,
+      "gemma_actual_inference_requests": 2,
+      "gemma_prompt_tokens": 2537,
+      "gemma_completion_tokens": 57,
+      "ai_failure_records": 0,
+      "needs_review": false,
+      "result_findings": 0,
+      "elapsed_seconds": 32.8,
+      "max_observed_gemma_servers": 1,
+      "gemma_entry_laya_objects_alive": [
+        0
+      ],
+      "no_remaining_processes": true,
+      "production_source_changed_during_run": [
+        "app_paths.py"
+      ],
+      "shared_laya_bundle_unchanged": true,
+      "all_browser_requests_loopback": true
+    }
+  },
+  "total_integration_stage_gemma_requests_including_failed_observation": 16,
+  "production_source_hashes_identical_at_both_attempt_starts": true,
+  "no_production_source_patch_by_this_worker": true,
+  "initial_24_case_metrics_unchanged": true,
+  "body_context_specific_branch_independently_exercised": false
+}

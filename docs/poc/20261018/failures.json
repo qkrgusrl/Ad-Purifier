@@ -1,0 +1,20 @@
+{
+  "failures": [
+    {
+      "stage": "HTML extraction attempt 1",
+      "error": "TypeError: Cannot set properties of undefined (setting frame_url)",
+      "cause": "Node Playwright evaluate(string) returned function without calling it",
+      "fix": "Invoke unmodified extractor as (source)()",
+      "models_loaded": false,
+      "first_extracted_count": 0
+    },
+    {
+      "stage": "route replay attempt 1",
+      "error": "NameError: name _is_hash_route is not defined",
+      "fix": "Include unchanged _is_hash_route dependency in AST extraction",
+      "models_loaded": false
+    }
+  ],
+  "labels_changed_after_inference": false,
+  "pre_inference_dataset_revision": "S05 changed from already filtered prevention sentence to casino with prevention page title, to exercise an actual rule_clean candidate; label clean unchanged. Final dataset frozen before model process start."
+}

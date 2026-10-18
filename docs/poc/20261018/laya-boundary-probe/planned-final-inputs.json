@@ -1,0 +1,87 @@
+{
+  "status": "prepared_not_executed",
+  "probe_selection_ids": [
+    "P03",
+    "P11"
+  ],
+  "selection_reason": "서로 다른 어휘의 실제 저신뢰 예시 중 confidence가 가장 낮은 두 개. 추가 탐색 없음.",
+  "selected_probes": [
+    {
+      "id": "P03",
+      "purpose": "최종 production 자동 저신뢰 경로 검증 입력; 의미 gold 없음",
+      "fixture": {
+        "id": "P03",
+        "text": "홀덤 동호회 참가 문의",
+        "html": "<p id=\"target\">홀덤 동호회 참가 문의</p>",
+        "document": "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\"><title>자료</title></head><body><p id=\"target\">홀덤 동호회 참가 문의</p></body></html>",
+        "gold": null,
+        "purpose": "운영 confidence<0.8 경로 exercise용 입력 탐색; 탐지 정확도 평가 아님"
+      },
+      "rule_score": 3,
+      "p_true": 0.4854,
+      "confidence": 0.5146,
+      "current_source_binding": {
+        "source_id": "dom-1",
+        "source_html": "<p id=\"target\">홀덤 동호회 참가 문의</p>",
+        "source_context": "<p id=\"target\">홀덤 동호회 참가 문의</p>",
+        "source_sha256": "d3db6d4010824e93f4b22ddfb6b1fe4290adf5516bfa1ac4225e16e1678b76e9"
+      },
+      "gemma_input_contract": {
+        "candidate_id": "P03",
+        "html": "<p id=\"target\">홀덤 동호회 참가 문의</p>",
+        "context": "<p id=\"target\">홀덤 동호회 참가 문의</p>"
+      }
+    },
+    {
+      "id": "P11",
+      "purpose": "최종 production 자동 저신뢰 경로 검증 입력; 의미 gold 없음",
+      "fixture": {
+        "id": "P11",
+        "text": "홈타이 예약 문의",
+        "html": "<p id=\"target\">홈타이 예약 문의</p>",
+        "document": "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\"><title>자료</title></head><body><p id=\"target\">홈타이 예약 문의</p></body></html>",
+        "gold": null,
+        "purpose": "운영 confidence<0.8 경로 exercise용 입력 탐색; 탐지 정확도 평가 아님"
+      },
+      "rule_score": 3,
+      "p_true": 0.4658,
+      "confidence": 0.5342,
+      "current_source_binding": {
+        "source_id": "dom-1",
+        "source_html": "<p id=\"target\">홈타이 예약 문의</p>",
+        "source_context": "<p id=\"target\">홈타이 예약 문의</p>",
+        "source_sha256": "cc90b184dc510c5a7874b9e5193efac813636e538c364f0b3b971dba70219846"
+      },
+      "gemma_input_contract": {
+        "candidate_id": "P11",
+        "html": "<p id=\"target\">홈타이 예약 문의</p>",
+        "context": "<p id=\"target\">홈타이 예약 문의</p>"
+      }
+    }
+  ],
+  "education_fixtures": [
+    {
+      "id": "S06",
+      "source": "synthetic",
+      "label": "clean",
+      "label_reason": "예방 교육 제목 아래 용어 인용",
+      "html": "<p id=\"target\">카지노 바카라</p>",
+      "context": "도박 예방교육 자료의 용어 목록입니다.",
+      "target_text": "카지노 바카라",
+      "page_url": "https://poc.invalid/item",
+      "document": "<!doctype html><html><head><title>도박 예방교육</title></head><body><p id=\"target\">카지노 바카라</p><aside class=\"related\">도박 예방교육 자료의 용어 목록입니다.</aside></body></html>"
+    },
+    {
+      "id": "S07",
+      "source": "synthetic",
+      "label": "clean",
+      "label_reason": "본문 예방 문맥 8개 안의 인용",
+      "html": "<p id=\"target\">카지노 바카라</p>",
+      "context": "예방 교육 본문의 인용 용어입니다.",
+      "target_text": "카지노 바카라",
+      "page_url": "https://poc.invalid/item",
+      "document": "<!doctype html><html><head><title>자료</title></head><body><p id=\"target\">카지노 바카라</p><p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p><p>제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p><p>제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p><p>제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p><p>제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p><p>제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p><p>제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p><p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p><aside class=\"related\">예방 교육 본문의 인용 용어입니다.</aside></body></html>"
+    }
+  ],
+  "production_runtime_reverification_required": true
+}

@@ -1,0 +1,24 @@
+[
+  {
+    "id": "S06",
+    "source": "synthetic",
+    "label": "clean",
+    "label_reason": "예방 교육 제목 아래 용어 인용",
+    "html": "<p id=\"target\">카지노 바카라</p>",
+    "context": "도박 예방교육 자료의 용어 목록입니다.",
+    "target_text": "카지노 바카라",
+    "page_url": "https://poc.invalid/item",
+    "document": "<!doctype html><html><head><title>도박 예방교육</title></head><body><p id=\"target\">카지노 바카라</p><aside class=\"related\">도박 예방교육 자료의 용어 목록입니다.</aside></body></html>"
+  },
+  {
+    "id": "S07",
+    "source": "synthetic",
+    "label": "clean",
+    "label_reason": "본문 예방 문맥 8개 안의 인용",
+    "html": "<p id=\"target\">카지노 바카라</p>",
+    "context": "예방 교육 본문의 인용 용어입니다.",
+    "target_text": "카지노 바카라",
+    "page_url": "https://poc.invalid/item",
+    "document": "<!doctype html><html><head><title>자료</title></head><body><p id=\"target\">카지노 바카라</p><p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p><p>제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p><p>제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p><p>제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p><p>제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p><p>제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p><p>제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p><p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p><aside class=\"related\">예방 교육 본문의 인용 용어입니다.</aside></body></html>"
+  }
+]

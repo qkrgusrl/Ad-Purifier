@@ -1,0 +1,10 @@
+{
+  "attempt1-observer-failure.json": "c265960f258f9c3e6b980fe321a88965e53bd98d1fd5c1998ce29f8c554d7f84",
+  "confirmed.json": "e9b1beafcf82d3713da6f9a6641d39deca7d590bd90f8666b53896926bfd2c4f",
+  "fixture-inputs.json": "80776172aefd76bd532c4e235855bcd90a3bfc12b8fbb1bc59ec792820cff46c",
+  "import-diagnostics.json": "ee88938ca5c12acac741ab3905c57e43a13802277d2b0dfb99ed8f0043f5af52",
+  "redaction-check.json": "390cd73ac24929b5696394307be58adce0b1df1740631aee7e9252ee7d001dfd",
+  "source-drift.json": "64dd449d63774540276a9205ce69b702ff1b4da3d3d6c068226d8878e4cd886c",
+  "summary.json": "5ce871a2d7f80166b004e9f5e0849e96f519496fdafb56a5f1763c3c0473b747",
+  "verify.py": "abd9bf2a7a57e2900310618661c6f32e238b97af607be6445c20c6b80af5f8d7"
+}
