@@ -13,11 +13,13 @@ import os
 from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
 import socket
+import struct
 import sys
 import tempfile
 import types
 import unittest
-from unittest.mock import patch
+import zipfile
+from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS = (
@@ -31,6 +33,35 @@ def required_module(name):
     assert path.is_file(), f"배포 계약 미구현: {path.relative_to(ROOT)} 필요"
     importlib.invalidate_caches()
     return importlib.import_module(name)
+
+
+def pe_import_names(blob):
+    """오프라인 공식 PE의 import directory만 읽는다. DLL을 로드하지 않는다."""
+    assert blob[:2] == b"MZ"
+    pe = struct.unpack_from("<I", blob, 0x3c)[0]
+    assert blob[pe:pe + 4] == b"PE\0\0"
+    count = struct.unpack_from("<H", blob, pe + 6)[0]
+    optional_size = struct.unpack_from("<H", blob, pe + 20)[0]
+    optional = pe + 24
+    magic = struct.unpack_from("<H", blob, optional)[0]
+    assert magic in (0x10b, 0x20b)
+    sections = optional + optional_size
+
+    def offset(rva):
+        for i in range(count):
+            virtual_size, virtual_address, raw_size, raw_offset = struct.unpack_from("<IIII", blob, sections + i * 40 + 8)
+            if virtual_address <= rva < virtual_address + max(virtual_size, raw_size):
+                return raw_offset + rva - virtual_address
+        raise AssertionError(f"PE RVA를 해석할 수 없음: {rva}")
+
+    import_rva = struct.unpack_from("<I", blob, optional + (112 if magic == 0x20b else 96) + 8)[0]
+    cursor = offset(import_rva)
+    names = set()
+    while any(blob[cursor:cursor + 20]):
+        name = offset(struct.unpack_from("<I", blob, cursor + 12)[0])
+        names.add(blob[name:blob.index(b"\0", name)].decode("ascii").lower())
+        cursor += 20
+    return names
 
 
 class DistributionTests(unittest.TestCase):
@@ -154,6 +185,74 @@ class DistributionTests(unittest.TestCase):
         self.assertNotIn("{#", installer_version, "설치 버전 전처리 상수를 해석하지 못함")
         self.assertEqual(main.TOOL_VERSION, installer_version,
                          "result.json에 사용하는 TOOL_VERSION이 설치 앱의 AppVersion과 다름")
+
+    def test_postgate_readiness_accepts_official_b11429_cpu_dll_names(self):
+        ui = required_module("ui.server")
+        evidence = ROOT.parent / "build_review/20261018/windows-llama-files.json"
+        # 로컬 독립 검증은 실제 공식 manifest. Windows checkout은 동일한 잠금 목록 사용.
+        manifest = json.loads((evidence if evidence.is_file() else ROOT / "assets.lock.json").read_text())
+        names = {Path(r["path"]).name for r in manifest["files"] if r["path"].startswith("runtime/llama/")}
+        self.assertTrue({"ggml-cpu-x64.dll", "ggml-cpu-sse42.dll"} <= names)
+        self.assertNotIn("ggml-cpu.dll", names, "공식 b11429 manifest에 없는 DLL을 fixture에 추가하면 안 됨")
+        runtime = self.install / "runtime/llama"
+        runtime.mkdir(parents=True)
+        # CRT 결함과 CPU DLL 이름 결함을 분리하기 위해 app-local CRT는 이 fixture에 제공.
+        for name in names | {"MSVCP140.dll", "VCRUNTIME140.dll", "VCRUNTIME140_1.dll"}:
+            (runtime / name).write_bytes(b"\x00fixture\xff")
+        laya = self.install / "models/laya-illegal-ad-long2"
+        for name in ("model.safetensors", "rl_agent_config.json", "questions.json", "encoder/config.json",
+                     "tokenizer/tokenizer.json", "tokenizer/tokenizer_config.json"):
+            path = laya / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"fixture")
+        gemma = self.install / "model.gguf"
+        gemma.write_bytes(b"fixture-not-a-model")
+        with patch.object(ui, "DEFAULT_MODEL", laya), patch.object(ui, "gemma_model", return_value=gemma), \
+                patch.object(ui, "llama_server", return_value=runtime / "llama-server.exe"), \
+                patch.object(sys, "platform", "win32"), patch.object(ui.importlib.util, "find_spec", return_value=object()):
+            readiness = ui.model_readiness()
+        missing = [name for name, present in readiness["files"].items() if not present]
+        self.assertEqual(missing, [], f"실제 공식 Windows CPU DLL 집합을 준비 불가로 오판: {missing}")
+        self.assertTrue(readiness["files_present"])
+
+    def test_postgate_official_pe_imports_require_crt_family(self):
+        required = {"msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll"}
+        archive = ROOT.parent / "build_review/20261018/llama-b11429-bin-win-cpu-x64.zip"
+        if not archive.is_file():
+            self.skipTest("공식 PE ZIP 로컬 검증자료 없음; 복사/설치 manifest는 packaging 행동 테스트가 검증")
+        with zipfile.ZipFile(archive) as bundle:
+            actual = pe_import_names(bundle.read("llama-server-impl.dll"))
+        self.assertTrue(required <= actual, f"공식 PE import 증거와 CRT 계약 불일치: {actual}")
+
+    def test_postgate_installed_child_module_audit_checks_actual_pid_and_paths(self):
+        smoke = required_module("scripts.self_test")
+        audit = getattr(smoke, "verify_child_runtime_modules", None)
+        self.assertTrue(callable(audit),
+                        "Windows 설치 self-test의 공개 verify_child_runtime_modules(pid, runtime_dir) 감사 계약 부재")
+        runtime = self.install / "runtime/llama"
+        runtime.mkdir(parents=True)
+        required = ("llama-server-impl.dll", "MSVCP140.dll", "VCRUNTIME140.dll", "VCRUNTIME140_1.dll")
+        for name in required:
+            (runtime / name).write_bytes(b"fixture")
+        child_pid = 424242
+        for fault in (None, "system", "internal", "missing"):
+            with self.subTest(fault=fault):
+                paths = [runtime / name for name in required]
+                if fault in ("system", "internal"):
+                    paths[-1] = self.base / ("Windows/System32" if fault == "system" else "_internal") / required[-1]
+                if fault == "missing":
+                    paths.pop()
+                process = Mock()
+                process.exe.return_value = str(runtime / "llama-server.exe")
+                process.memory_maps.return_value = [types.SimpleNamespace(path=str(p)) for p in paths]
+                with patch("psutil.Process", return_value=process) as get_process:
+                    if fault is None:
+                        audit(child_pid, runtime)
+                    else:
+                        with self.assertRaises((ValueError, RuntimeError)):
+                            audit(child_pid, runtime)
+                get_process.assert_called_with(child_pid)
+                process.memory_maps.assert_called()
 
     def assets(self):
         fixture = {

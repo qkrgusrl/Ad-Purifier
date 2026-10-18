@@ -38,19 +38,14 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $Tag = 'v0.2.0-preview.1'
-          $Raw = gh release view $Tag --json isDraft,targetCommitish 2>$null
-          if ($LASTEXITCODE -eq 0) {
-            $Release = $Raw | ConvertFrom-Json
-            if (-not $Release.isDraft -or $Release.targetCommitish -ne $env:GITHUB_SHA) {
-              throw 'Existing release must be a draft targeting this exact source commit; parent review required'
-            }
-          } else {
-            $Notes = "모델·Chromium 포함 Windows CPU 미리보기. Setup.exe와 모든 .bin을 같은 폴더에 저장하고 실행하세요. 설치 self-test는 동작 검사이며 탐지 정확도 보장이 아닙니다. 최종 검토 전 draft를 유지합니다."
-            gh release create $Tag --target $env:GITHUB_SHA --title 'AdPurifier 0.2.0 preview 1' --notes $Notes --draft --prerelease
-            if ($LASTEXITCODE -ne 0) { throw 'draft release creation failed' }
-          }
+          python -m scripts.release_manifest --verify-tag --repo $env:GITHUB_REPOSITORY --tag $Tag --expected-sha $env:GITHUB_SHA
+          if ($LASTEXITCODE -ne 0) { throw '실제 원격 태그 commit 검증 실패; 업로드 중단' }
+          $Raw = gh release view $Tag --repo $env:GITHUB_REPOSITORY --json isDraft,targetCommitish
+          if ($LASTEXITCODE -ne 0) { throw '릴리스 조회 실패; 생성/업로드 중단' }
+          $Release = $Raw | ConvertFrom-Json
+          if ($Release.isDraft -ne $true) { throw '검증된 태그의 draft 릴리스만 업로드 가능' }
           $Assets = @(Get-ChildItem release -File | ForEach-Object FullName)
-          gh release upload $Tag @Assets --clobber
+          gh release upload $Tag @Assets --repo $env:GITHUB_REPOSITORY --clobber
           if ($LASTEXITCODE -ne 0) { throw 'draft upload failed' }
       - name: Preserve build diagnostics
         if: always()

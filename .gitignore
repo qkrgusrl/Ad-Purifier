@@ -39,3 +39,6 @@ history/
 # 독립 테스트 생성 로그 (test source 자체는 추적 대상)
 /tests/fixtures/*red_output.txt
 /tests/fixtures/ai_red_results.json
+
+/tests/fixtures/reviewer_regression_output.txt
+/tests/fixtures/reviewer_regression_results.json

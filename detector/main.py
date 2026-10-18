@@ -512,7 +512,7 @@ def source_fields(row):
     return result
 
 
-def candidates_from(pages, detect_posted=True):
+def candidates_from(pages, detect_posted=True, *, recover_posted=False):
     """페이지 스캔 결과 → (url, location, technique) 후보.
 
     detect_posted: 숨기지 않고 '게시된' 불법광고도 후보로 잡는다(기법 POSTED). 요강의 추가 탐지 유형.
@@ -526,7 +526,7 @@ def candidates_from(pages, detect_posted=True):
             redirect = [(f"external-redirect:{h}", REDIRECT_BONUS) for h in data.get("blocked_nav", [])][:1]
             for h in data["hidden"]:
                 for tech, why in h["signals"]:
-                    key = (norm_url(url), prefix + h["selector"], tech)
+                    key = (norm_url(url), prefix + h["selector"], tech, h.get("source_id"), h.get("attr", ""), h["text"], h["raw"])
                     c = cands.setdefault(key, {"url": url, "location": prefix + h["selector"], "technique": tech,
                                                "evidence_text": h["text"], "signals": []})
                     c.update(source_fields(h))
@@ -559,7 +559,7 @@ def candidates_from(pages, detect_posted=True):
                 if jamo_signal(t["raw"]):
                     checks.append(("JAMO", ["decomposed-syllables"]))
                 for tech, why in checks:
-                    key = (norm_url(url), prefix + t["selector"], tech)
+                    key = (norm_url(url), prefix + t["selector"], tech, t.get("source_id"), t.get("attr", ""), t["text"], t["raw"])
                     c = cands.setdefault(key, {"url": url, "location": prefix + t["selector"], "technique": tech,
                                                "evidence_text": t["text"], "signals": []})
                     c.update(source_fields(t))
@@ -567,11 +567,14 @@ def candidates_from(pages, detect_posted=True):
                 if detect_posted and not checks:  # 닮은꼴·자모가 아닌 '보이는' 텍스트: 내용이 광고다울 때만
                     s, kw = adscore.score(normalize(t["text"]))
                     farm = farms.get(id(t))
-                    if adscore.verdict(s) != "clean" or farm or (redirect and s > 0):  # 후보 선정은 문장 자체 점수로
-                        key = (norm_url(url), prefix + t["selector"], "POSTED")
+                    selected_by_rules = adscore.verdict(s) != "clean" or farm or (redirect and s > 0)
+                    if selected_by_rules or recover_posted:  # 후보 선정은 문장 자체 점수로
+                        key = (norm_url(url), prefix + t["selector"], "POSTED", t.get("source_id"), t.get("attr", ""), t["text"], t["raw"])
                         c = cands.setdefault(key, {"url": url, "location": prefix + t["selector"], "technique": "POSTED",
                                                    "evidence_text": t["text"], "signals": [f"keyword:{','.join(kw[:6])}"]})
                         c.update(source_fields(t))
+                        if not selected_by_rules:
+                            c["recovered_without_rule_hit"] = True
                         context = [(f"link-farm:{farm}", LINK_FARM_BONUS)] if farm else []
                         context += redirect if s > 0 else []
                         local_ctx = page_ctx
@@ -707,6 +710,9 @@ def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT
     time_budget: 전체 목표 시간(초). 크롤링은 time_budget - llm_reserve - 판정 몫까지만 한다.
     cancel: threading.Event. 켜지면 ScanCancelled를 일으키고 결과 파일은 건드리지 않는다(지난 제출용 result.json 보존).
     """
+    model = Path(model)
+    if not model.is_absolute():
+        model = app_dir() / model
     phase = phase or (lambda name: None)
     started = datetime.now(KST)
     t0 = time.perf_counter()
@@ -724,7 +730,8 @@ def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT
     cands = judge(candidates_from(pages, detect_posted), str(model), False)
     try:
         ai = analyze(cands, pages, str(model), use_ml, judge_deadline, cancel,
-                     laya_confidence_threshold=laya_confidence_threshold, cancel_error=ScanCancelled)
+                     laya_confidence_threshold=laya_confidence_threshold, cancel_error=ScanCancelled,
+                     detect_posted=detect_posted)
     except asyncio.CancelledError as exc:
         # Gemma context 정리 후 UI가 처리하는 취소 예외로 전달하며 저장 단계에 진입하지 않는다.
         raise ScanCancelled() from exc

@@ -35,6 +35,30 @@ try {
                           '--pattern', 'laya-long2-model.zip', '--dir', $env:RUNNER_TEMP)
     Invoke-Checked $Python @('-m', 'scripts.assets', 'prepare', '--root', 'dist/AdPurifier',
                             '--manifest', 'assets.lock.json', '--laya-zip', $LayaZip)
+    # VS 설치의 한 release x64 CRT family를 선택한다. System32/다른 버전에서 보충하지 않는다.
+    $VsWhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+    if (-not (Test-Path $VsWhere)) { throw 'VS 설치 탐색 도구 누락' }
+    $VsRoot = & $VsWhere -latest -products '*' -version '[17.0,18.0)' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+    if ($LASTEXITCODE -ne 0 -or -not $VsRoot) { throw 'VS 2022 C++ release redist 설치를 찾지 못함' }
+    $Redist = Join-Path $VsRoot 'VC/Redist/MSVC'
+    $CrtSource = $null
+    $Versions = @(Get-ChildItem $Redist -Directory | Where-Object { $_.Name -match '^\d+\.\d+\.\d+(\.\d+)?$' } | Sort-Object { [version]$_.Name } -Descending)
+    foreach ($CandidateVersion in $Versions) {
+        $Candidate = Join-Path $CandidateVersion.FullName 'x64/Microsoft.VC143.CRT'
+        if (Test-Path $Candidate -PathType Container) { $CrtSource = $Candidate; break }
+    }
+    if (-not $CrtSource) { throw '단일 x64 Microsoft.VC143.CRT release family를 찾지 못함' }
+    Invoke-Checked $Python @('-m', 'scripts.assets', 'crt', '--root', 'dist/AdPurifier',
+                            '--source-dir', $CrtSource, '--manifest', 'dist/AdPurifier/crt-manifest.json')
+    $CrtMetadata = Get-Content -Raw 'dist/AdPurifier/crt-manifest.json' | ConvertFrom-Json -AsHashtable
+    $FileVersions = [ordered]@{}
+    foreach ($Dll in @(Get-ChildItem $CrtSource -File -Filter '*.dll' | Sort-Object Name)) {
+        $FileVersions[$Dll.Name] = $Dll.VersionInfo.FileVersion
+    }
+    $CrtMetadata.source_family['file_versions'] = $FileVersions
+    $CrtMetadata.source_family['selection_policy'] = 'VS2022 installed latest numeric release family; recorded at build time, not source-pinned'
+    $CrtMetadata | ConvertTo-Json -Depth 20 | Set-Content 'dist/AdPurifier/crt-manifest.json' -Encoding utf8
+    Copy-Item 'dist/AdPurifier/crt-manifest.json' $Diagnostics
     Invoke-Checked $Python @('-m', 'scripts.assets', 'generate', '--root', 'dist/AdPurifier',
                             '--manifest', 'dist/AdPurifier/installed-assets.json')
     Copy-Item 'dist/AdPurifier/installed-assets.json' $Diagnostics
@@ -100,6 +124,7 @@ try {
         $Listener = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, 0)
         $Listener.Start(); $Port = $Listener.LocalEndpoint.Port; $Listener.Stop()
         $UI = Start-Process -FilePath $Exe -WorkingDirectory $Elsewhere -ArgumentList @('--no-browser', '--port', "$Port") -PassThru
+        $NormalExit = $false
         try {
             $Ready = $false
             for ($i = 0; $i -lt 60; $i++) {
@@ -114,14 +139,29 @@ try {
                 } catch { Start-Sleep -Milliseconds 500 }
             }
             if (-not $Ready) { throw 'UI HTTP smoke 실패' }
+            $ShutdownResponse = Invoke-RestMethod -Uri "http://127.0.0.1:$Port/api/shutdown" -Method Post `
+                                -ContentType 'application/json' -Body '{}' -TimeoutSec 10
+            $Shutdown = [ordered]@{ status = 'waiting'; response = $ShutdownResponse; pid = $UI.Id; exit_code = $null }
+            $Shutdown | ConvertTo-Json -Depth 20 | Out-File (Join-Path $Diagnostics 'ui-shutdown.json') -Encoding utf8
+            if (-not $UI.WaitForExit(30000)) { throw 'UI 정상 종료 30초 초과' }
+            $UI.Refresh()
+            $Shutdown.exit_code = $UI.ExitCode
+            $Shutdown.status = if ($UI.ExitCode -eq 0) { 'ok' } else { 'failed' }
+            $Shutdown | ConvertTo-Json -Depth 20 | Out-File (Join-Path $Diagnostics 'ui-shutdown.json') -Encoding utf8
+            if ($UI.ExitCode -ne 0) { throw "UI 정상 종료 코드 불일치: $($UI.ExitCode)" }
+            $NormalExit = $true
         } finally {
-            if (-not $UI.HasExited) { & "$env:SystemRoot/System32/taskkill.exe" /PID $UI.Id /T /F }
+            # 성공 판정은 HTTP 종료 요청 + 실제 exit code 0으로만 한다.
+            if (-not $NormalExit -and -not $UI.HasExited) {
+                Stop-Process -Id $UI.Id -Force -ErrorAction Continue
+            }
         }
     } finally { $env:PATH = $OldPath }
     Invoke-Checked $Python @('-m', 'scripts.release_manifest', '--root', 'release', '--version', $Version)
     Copy-Item 'requirements-windows.lock.txt', 'THIRD_PARTY_NOTICES.txt' 'release/'
     Copy-Item (Join-Path $Diagnostics 'assets.lock.json') 'release/'
     Copy-Item (Join-Path $Diagnostics 'installed-assets.json') 'release/'
+    Copy-Item (Join-Path $Diagnostics 'crt-manifest.json') 'release/'
     Copy-Item $Smoke 'release/self-test.json'
 } finally {
     # 세션 키와 토큰은 진단물에 포함하지 않는다.

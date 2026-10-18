@@ -45,6 +45,36 @@ def verify_assets(root, manifest):
             raise ValueError(f'SHA256 불일치: {name}')
 
 
+def copy_crt_family(source_dir, root):
+    """선택한 x64 release CRT 디렉터리 한 곳의 DLL만 복사한다."""
+    source = Path(source_dir).resolve()
+    required = {'msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll'}
+    if source.parent.name.casefold() != 'x64' or not re.fullmatch(r'Microsoft\.VC[0-9]+\.CRT', source.name, re.I):
+        raise ValueError('x64 Microsoft.VC*.CRT release family 디렉터리 필요')
+    version = source.parent.parent.name
+    if not re.fullmatch(r'[0-9]+(?:\.[0-9]+){2,3}', version):
+        raise ValueError('선택한 CRT family 버전 확인 불가')
+    members = sorted(p for p in source.iterdir() if p.suffix.casefold() == '.dll')
+    names = [p.name.casefold() for p in members]
+    if len(set(names)) != len(names) or not required <= set(names):
+        raise ValueError('단일 CRT family 필수 DLL 누락 또는 중복')
+    records = []
+    for member in members:
+        if not member.is_file() or member.is_symlink() or member.resolve().parent != source:
+            raise ValueError('CRT family 외부 파일 참조 금지')
+        records.append(file_record(member, 'runtime/llama/' + member.name))
+    # 필수 집합과 모든 원본을 확인하기 전에는 목적지에 쓰지 않는다.
+    for member, record in zip(members, records):
+        destination = safe_path(root, record['path'])
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(member, destination)
+    metadata = {'source_family': {'version': version, 'architecture': 'x64', 'family': source.name,
+                                 'relative_source': f'VC/Redist/MSVC/{version}/x64/{source.name}'},
+                'files': records}
+    verify_assets(root, metadata)
+    return metadata
+
+
 def download(entry, destination):
     destination = Path(destination)
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -136,12 +166,16 @@ def generate(root, destination):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('action', choices=('prepare', 'browsers', 'generate', 'verify'))
+    parser.add_argument('action', choices=('prepare', 'browsers', 'generate', 'verify', 'crt'))
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--manifest', type=Path, required=True)
     parser.add_argument('--laya-zip', type=Path)
+    parser.add_argument('--source-dir', type=Path)
     args = parser.parse_args()
-    if args.action == 'generate':
+    if args.action == 'crt':
+        metadata = copy_crt_family(args.source_dir, args.root)
+        args.manifest.write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    elif args.action == 'generate':
         generate(args.root, args.manifest)
     else:
         lock = json.loads(args.manifest.read_text(encoding='utf-8'))

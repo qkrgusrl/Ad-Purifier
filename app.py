@@ -6,7 +6,7 @@ import sys
 import traceback
 from pathlib import Path
 
-from app_paths import app_root, bootstrap, data_root
+from app_paths import app_root, bootstrap, data_root, ensure_writable_output
 
 
 def main(argv=None):
@@ -18,6 +18,7 @@ def main(argv=None):
     parser.add_argument('--port', type=int, default=8780)
     parser.add_argument('--no-time-limit', action='store_true')
     args = parser.parse_args(argv)
+    ensure_writable_output()
     if args.self_test:
         from scripts.self_test import run_self_test
         output = args.self_test_output or app_root() / 'self-test.json'
@@ -46,11 +47,11 @@ if __name__ == '__main__':
             setattr(sys, name, (data_root() / 'app.log').open('a', encoding='utf-8', buffering=1))
     try:
         raise SystemExit(main())
-    except Exception:
+    except Exception as exc:
         error = traceback.format_exc()
         (data_root() / 'startup-error.log').write_text(error, encoding='utf-8')
         print(error, file=sys.stderr)
         if getattr(sys, 'frozen', False) and '--self-test' not in sys.argv:
             import ctypes
-            ctypes.windll.user32.MessageBoxW(None, f'시작하지 못했습니다. 로그: {data_root() / "startup-error.log"}', '광고청정기', 0x10)
+            ctypes.windll.user32.MessageBoxW(None, f'시작하지 못했습니다.\n{exc}\n로그: {data_root() / "startup-error.log"}', '광고청정기', 0x10)
         raise SystemExit(1)

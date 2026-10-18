@@ -1,12 +1,14 @@
 """규칙 경계 검증과 수집된 DOM 잔여 회수. 실모델은 필요한 단계에서만 연다."""
-import gc
 import hashlib
+import html
 import json
 import math
 import time
 from contextlib import ExitStack
+from html.parser import HTMLParser
 
 from .textnorm import normalize
+from .laya_runtime import LayaCleanupError, LayaRunner
 
 
 def digest(item):
@@ -24,7 +26,58 @@ def valid_binding(row, item, owner):
             and item[field][start:end] == row.get("evidence"))
 
 
-def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_confidence_threshold=.8, cancel_error=None):
+class _OwnerText(HTMLParser):
+    """하위 요소의 소유 관계를 추측하지 않고 단일 요소의 본문만 읽는다."""
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.tag = None
+        self.closed = False
+        self.parts = []
+
+    def handle_starttag(self, tag, attrs):
+        if self.tag is not None or tag in ("script", "style", "title", "textarea", "template", "noscript"):
+            raise ValueError("본문 소유가 불명확한 HTML")
+        self.tag = tag
+
+    def handle_endtag(self, tag):
+        if self.tag != tag or self.closed:
+            raise ValueError("단일 요소가 아닌 HTML")
+        self.closed = True
+
+    def handle_data(self, data):
+        if self.tag is None or self.closed:
+            if data.strip():
+                raise ValueError("소유 요소 밖의 본문")
+        else:
+            self.parts.append(data)
+
+    def handle_comment(self, data):
+        raise ValueError("주석 포함 근거는 재검토")
+
+    def handle_decl(self, decl):
+        raise ValueError("선언 포함 근거는 재검토")
+
+    def handle_pi(self, data):
+        raise ValueError("처리 지시 포함 근거는 재검토")
+
+
+def matching_recovery_text(evidence, row):
+    expected = normalize(row["text"])
+    if normalize(html.unescape(evidence)) == expected:
+        return True  # 기존 태그 없는 원문 binding 호환.
+    if evidence != row.get("source_html") or row.get("attr"):
+        return False
+    parser = _OwnerText()
+    try:
+        parser.feed(evidence)
+        parser.close()
+    except ValueError:
+        return False
+    return (parser.closed and parser.tag == row.get("tag", "").lower()
+            and normalize("".join(parser.parts)) == expected)
+
+
+def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_confidence_threshold=.8, cancel_error=None, detect_posted=True):
     from .main import ScanCancelled, candidates_from, judge, source_fields
     ScanCancelled = cancel_error or ScanCancelled
     if not .5 <= laya_confidence_threshold <= 1:
@@ -84,46 +137,51 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
     predictions = {}
     rows_by_key = {key(c): c for c in border if not about(c)}
     rows_by_key.update((key(r), r) for r in residual)
-    agent = None
     try:
         if rows_by_key and check():
-            from laya.agent import Agent
             from training.make_dataset import QUESTION
-            agent = Agent(model_path, device="cpu")
-            keys = sorted(rows_by_key)
-            for offset in range(0, len(keys), 64):
-                if not check():
-                    break
-                chunk = keys[offset:offset + 64]
-                stats["laya_inputs"] += len(chunk)
-                try:
-                    outputs = agent.predict_batch([k[0] for k in chunk], QUESTION, batch_size=16)
+            with LayaRunner(model_path, deadline=deadline, cancel=cancel) as runner:
+                keys = sorted(rows_by_key)
+                for offset in range(0, len(keys), 64):
                     if not check():
                         break
-                    for index, k in enumerate(chunk):
-                        try:
-                            out = outputs[index]
-                            p = float(out["answers"]["is_illegal_ad"]["noul"])
-                            usage = out.get("usage") or {}
-                            if (out.get("truncated") or usage.get("truncated") or usage.get("state_tokens_dropped", 0)
-                                    or usage.get("truncated_questions")
-                                    or out.get("status", "ok") not in ("ok", "completed")):
-                                raise ValueError("잘린 또는 미완료 Laya 출력")
-                            if not math.isfinite(p) or not 0 <= p <= 1:
-                                raise ValueError("잘못된 Laya 확률")
-                            predictions[k] = p
-                        except (IndexError, KeyError, TypeError, ValueError):
-                            stats["failures"].append({"source_id": rows_by_key[k].get("source_id"), "stage": "laya", "reason": "출력 누락/잘림/오류"})
-                except Exception as exc:
-                    check()
-                    stats["failures"].extend({"source_id": rows_by_key[k].get("source_id"), "stage": "laya", "reason": str(exc)} for k in chunk)
+                    chunk = keys[offset:offset + 64]
+                    stats["laya_inputs"] += len(chunk)
+                    try:
+                        outputs = runner.predict_batch([k[0] for k in chunk], QUESTION, batch_size=16)
+                        if not check():
+                            break
+                        for index, k in enumerate(chunk):
+                            try:
+                                out = outputs[index]
+                                p = float(out["answers"]["is_illegal_ad"]["noul"])
+                                usage = out.get("usage") or {}
+                                if (out.get("truncated") or usage.get("truncated") or usage.get("state_tokens_dropped", 0)
+                                        or usage.get("truncated_questions")
+                                        or out.get("status", "ok") not in ("ok", "completed")):
+                                    raise ValueError("잘린 또는 미완료 Laya 출력")
+                                if not math.isfinite(p) or not 0 <= p <= 1:
+                                    raise ValueError("잘못된 Laya 확률")
+                                predictions[k] = p
+                            except (IndexError, KeyError, TypeError, ValueError):
+                                stats["failures"].append({"source_id": rows_by_key[k].get("source_id"), "stage": "laya", "reason": "출력 누락/잘림/오류"})
+                    except LayaCleanupError:
+                        raise
+                    except Exception as exc:
+                        check()
+                        stats["failures"].extend({"source_id": rows_by_key[k].get("source_id"), "stage": "laya", "reason": str(exc)} for k in chunk)
+    except LayaCleanupError as exc:
+        # __enter__ 실패 때도 PID/정리 단계가 포함된 전용 타입으로 Gemma 시작을 차단한다.
+        stats["failures"].extend({"source_id": r.get("source_id"), "stage": "laya_cleanup", "reason": str(exc)}
+                                 for r in rows_by_key.values())
+        for c in border:
+            review(c, str(exc), "error")
+        for row in residual:
+            unresolved(row, str(exc), "error")
+        return stats
     except Exception as exc:
         check()
         stats["failures"].extend({"source_id": r.get("source_id"), "stage": "laya", "reason": str(exc)} for r in rows_by_key.values())
-    finally:
-        # Gemma context가 열리기 전에 encoder/weights 참조를 내린다.
-        agent = None
-        gc.collect()
     check()
 
     pending = []
@@ -187,8 +245,16 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                 recovered = {}
                 for item in response.get("candidates", []):
                     sid = item.get("block_id")
-                    if sid in by_id and valid_binding(item, input_for(by_id[sid]), sid):
-                        # source 하나는 한 번만 회수; model selector/technique는 사용하지 않는다.
+                    if sid not in by_id:
+                        continue
+                    if item.get("source_field") != "html":
+                        failed[sid] = "회수 근거가 source_html에 없음: 주변 문맥을 현재 위치의 광고로 할당하지 않음"
+                    elif not valid_binding(item, input_for(by_id[sid]), sid):
+                        failed[sid] = "회수 근거의 원문 결합 실패"
+                    elif not matching_recovery_text(item["evidence"], by_id[sid]):
+                        failed[sid] = "선택 근거와 선별 문구가 다름: 다른 문구의 Laya 캐시를 재사용하지 않고 재검토"
+                    else:
+                        # 동일 문구·소유 단위만 회수; model selector/technique는 사용하지 않는다.
                         recovered.setdefault(sid, item)
                 cleaned = {}
                 for call in response.get("calls", []):
@@ -204,7 +270,12 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                     elif sid in recovered:
                         data = {"frame_url": row["url"], "hidden": [row] if row.get("signals") else [],
                                 "texts": [] if row.get("signals") else [row], "head": [], "links": []}
-                        new = candidates_from([(row["url"], [(row["prefix"], data)])], detect_posted=True)
+                        new = candidates_from([(row["url"], [(row["prefix"], data)])],
+                                              detect_posted=detect_posted, recover_posted=True)
+                        if not new and not detect_posted:
+                            stats["source_results"].append({"source_id": sid, "processing_status": "excluded",
+                                                            "reason": "게시형 탐지 제외 설정", "extraction": recovered[sid]})
+                            continue
                         if not new:
                             unresolved(row, "광고 근거 회수됨; 원문에서 기법을 확정할 수 없음")
                             stats["source_results"].append({"source_id": sid, "extraction": recovered[sid]})
@@ -212,8 +283,8 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                         judge(new, model_path, False)
                         for c in new:
                             c["extraction"] = recovered[sid]
-                            if c["verdict"] == "borderline":
-                                review(c, "회수 후보 경계 검증 대기")
+                            if c["verdict"] == "borderline" or c.get("recovered_without_rule_hit"):
+                                review(c, "회수된 새 문구 AI 재판정 대기")
                                 route(c)
                             else:
                                 c.update(processing_status="completed", reason="회수 후 기존 규칙 확정")
@@ -252,6 +323,8 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                         or row.get("verdict") not in ("ad", "clean")
                         or not valid_binding(row, item, item["candidate_id"])):
                     review(c, "Gemma 보류/누락/원문 결합 실패")
+                elif row["verdict"] == "ad" and row.get("source_field") != "html":
+                    review(c, "광고 근거가 source_html에 없음: 주변 문맥만으로 현재 위치를 확정할 수 없음")
                 else:
                     c.update(verdict=row["verdict"], decided_by="gemma", processing_status="completed", reason="Gemma v15 원문 결합 검증 완료")
             except Exception as exc:

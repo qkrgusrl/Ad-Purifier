@@ -45,6 +45,17 @@ Python 및 Python 패키지
   PyInstaller의 예외 조항을 포함한 bootloader 라이선스도 위 폴더에 보존한다.
   Python 자체 라이선스: licenses/Python-LICENSE.txt (빌드한 인터프리터의 원문).
 
+Microsoft Visual C++ 2015–2022 Runtime (x64 release CRT)
+  Copyright Microsoft Corporation. All rights reserved.
+  VS 2022 설치의 VC/Redist/MSVC/<version>/x64/Microsoft.VC143.CRT에서
+  단일 release DLL 세트를 원형 그대로 runtime/llama에 동봉한다.
+  이 구성요소는 Microsoft Software License Terms를 따르며 오픈소스가 아니다.
+  공식 약관 원본: licenses/Microsoft-VC-Runtime-2015-2022-License.docx
+  https://visualstudio.microsoft.com/license-terms/vs2022-cruntime/
+  배포 허용 목록: https://learn.microsoft.com/en-us/visualstudio/releases/2022/redistribution
+  선택한 family 버전, DLL 파일 버전 및 실제 해시는 crt-manifest.json에 기록한다.
+  앱 로컬 CRT의 업데이트는 AdPurifier 설치본을 갱신하여 배포한다.
+
 설치 및 정확도
   설치 self-test는 동봉된 구성요소의 로드, 실제 생성, 원문 결합, 브라우저와 파일 I/O를
   확인한다. 불법광고 탐지의 정확도 또는 법적 판단의 정확성을 보장하지 않는다.

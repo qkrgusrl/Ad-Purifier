@@ -13,6 +13,35 @@ from pathlib import Path
 from app_paths import app_root, gemma_model, laya_model, resource_root
 
 
+def verify_child_runtime_modules(pid, runtime_dir):
+    """실행 중인 llama 자식의 실제 DLL 로드 경로를 검사한다."""
+    import psutil
+
+    if type(pid) is not int or pid <= 0:
+        raise ValueError('실제 자식 PID 필요')
+    runtime = Path(runtime_dir).resolve()
+    process = psutil.Process(pid)
+    executable = Path(process.exe()).resolve()
+    expected_executable = runtime / 'llama-server.exe'
+    if str(executable).casefold() != str(expected_executable).casefold():
+        raise RuntimeError(f'Gemma 자식 실행 경로 불일치: {executable}')
+    modules = sorted({str(Path(item.path).resolve()) for item in process.memory_maps()})
+    required = {'llama-server-impl.dll', 'msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll'}
+    found = set()
+    for module in modules:
+        path = Path(module)
+        name = path.name.casefold()
+        if name in required or (name.endswith('.dll') and name.startswith(('msvcp', 'vcruntime'))):
+            if str(path.parent).casefold() != str(runtime).casefold():
+                raise RuntimeError(f'앱 로컬 DLL 외부 로드: {module}')
+            found.add(name)
+    missing = required - found
+    if missing:
+        raise RuntimeError('Gemma 필수 DLL 로드 누락: ' + ', '.join(sorted(missing)))
+    return {'pid': pid, 'executable': str(executable), 'runtime_dir': str(runtime),
+            'required_modules': sorted(required), 'loaded_modules': modules, 'app_local_verified': True}
+
+
 def run_self_test(output):
     output = Path(output).resolve()
     result = {'status': 'running', 'accuracy_guarantee': False, 'frozen': bool(getattr(sys, 'frozen', False)),
@@ -83,22 +112,46 @@ def run_self_test(output):
     phase('chromium_fixture_io', browser_fixture)
 
     def laya():
-        import torch
-        from laya.agent import Agent
+        import multiprocessing
+        from importlib.metadata import version
+        import psutil
+        from detector.laya_runtime import LayaRunner
         from training.make_dataset import QUESTION
-        torch.set_num_threads(2)
-        if torch.version.cuda is not None:
-            raise RuntimeError('CPU 전용 torch가 아님')
-        agent = Agent(str(laya_model()), device='cpu')
-        prediction = agent.predict_batch(['시립 도서관 운영 시간 안내입니다.'], QUESTION, batch_size=1)
-        result['phases']['laya_load_infer']['raw'] = {'prediction': prediction}
+
+        torch_version = version('torch')
+        if sys.platform == 'win32' and not torch_version.endswith('+cpu'):
+            raise RuntimeError('CPU 전용 torch wheel이 아님')
+        runner = LayaRunner(str(laya_model()), deadline=time.perf_counter() + 600, cancel=threading.Event())
+        raw = {'model': str(laya_model()), 'torch': torch_version, 'device': 'cpu',
+               'runtime': 'detector.laya_runtime.LayaRunner', 'start_method': 'spawn'}
+        result['phases']['laya_load_infer']['raw'] = raw
         save()
-        # tensor/NaN 및 반환 구조 오류를 성공으로 표시하지 않는다.
-        json.dumps(prediction, ensure_ascii=False, allow_nan=False)
-        if len(prediction) != 1 or 'answers' not in prediction[0]:
-            raise ValueError('Laya 추론 envelope 오류')
-        return {'model': str(laya_model()), 'prediction': prediction, 'torch': torch.__version__, 'device': 'cpu'}
+        try:
+            with runner:
+                raw['pid'] = runner.pid
+                if type(runner.pid) is not int or runner.pid == os.getpid() or not psutil.pid_exists(runner.pid):
+                    raise RuntimeError('실제 Laya 자식 프로세스 시작 증거 없음')
+                prediction = runner.predict_batch(['시립 도서관 운영 시간 안내입니다.'], QUESTION, batch_size=1)
+                raw['prediction'] = prediction
+                save()
+                json.dumps(prediction, ensure_ascii=False, allow_nan=False)
+                if len(prediction) != 1 or 'answers' not in prediction[0]:
+                    raise ValueError('Laya 추론 envelope 오류')
+        finally:
+            pid = runner.pid
+            raw['pid'] = pid
+            raw['cleanup'] = {'active_child': pid is not None and any(p.pid == pid for p in multiprocessing.active_children()),
+                              'process_running': pid is not None and psutil.pid_exists(pid)}
+            save()
+            if raw['cleanup']['active_child'] or raw['cleanup']['process_running']:
+                raise RuntimeError('Laya 소유 자식 프로세스 정리 실패')
+        return raw
     phase('laya_load_infer', laya)
+    if result['phases']['laya_load_infer']['status'] != 'ok':
+        result['phases']['gemma_load_infer'] = {'status': 'not_run', 'reason': 'Laya 로드/추론/정리 검사 실패'}
+        result['status'] = 'failed'
+        save()
+        return 1
 
     def gemma():
         from local_llm.client import GemmaClient
@@ -107,6 +160,11 @@ def run_self_test(output):
             verify = client.verify({'candidate_id': 'installation-fixture', 'html': '<p>시립 도서관 운영 시간 안내입니다.</p>', 'context': ''})
             extract = client.extract({'blocks': [{'block_id': 'installation-block', 'html': '<p>시립 도서관 운영 시간 안내입니다.</p>', 'context': ''}]})
             raw = {'model': str(gemma_model()), 'verify': verify, 'extract': extract, 'runtime': client.server.provenance()}
+            result['phases']['gemma_load_infer']['raw'] = raw
+            save()
+            # 생성이 끝나도 context 안에서는 자식이 살아 있다. Windows 실제 로드 모듈을 검사한다.
+            if sys.platform == 'win32':
+                raw['module_audit'] = verify_child_runtime_modules(owned.proc.pid, Path(owned.paths['server']).parent)
             # uncertain은 정확도 문제가 아니라 유효한 프로토콜 결과다. 호출 자체 실패는 통과시키지 않는다.
             result['phases']['gemma_load_infer']['raw'] = raw
             save()

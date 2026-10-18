@@ -1,4 +1,5 @@
 """windows-installer-20261018: 오프라인 수집/모델 더블. production 로직은 대체하지 않는다."""
+import asyncio
 import copy
 import hashlib
 import importlib
@@ -12,6 +13,10 @@ from unittest.mock import AsyncMock, Mock, patch
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 URL = "https://fixture.invalid/article"
+
+# runtime 모듈을 stub으로 교체하기 전에 실제 예외 타입을 보존한다.
+# 이 모듈의 import는 모델 로딩이나 자식 프로세스 실행을 하지 않는다.
+from detector.laya_runtime import LayaCleanupError
 
 
 def module(name, **attrs):
@@ -100,15 +105,34 @@ class OfflineRun:
         self.verify_reply = verify or bound_reply
         self.extract_reply = extract or extract_reply
         self.entered = self.exited = 0
+        self.model_paths = []
+        self.laya_entered = self.laya_exited = 0
         self.clock = 100.0
         self.after_crawl = None
         harness = self
 
         class Agent:
             def __init__(self, *args, **kwargs):
-                pass
+                harness.model_paths.append(args[0] if args else kwargs.get("model_path"))
 
             def predict_batch(self, texts, *args, **kwargs):
+                harness.laya_inputs.extend(texts)
+                harness.events.append(("laya", list(texts)))
+                return harness.predict(texts)
+
+        class LayaRunner:
+            def __init__(self, model_path, *, deadline=None, cancel=None, target=None):
+                harness.model_paths.append(model_path)
+
+            def __enter__(self):
+                harness.laya_entered += 1
+                return self
+
+            def __exit__(self, *args):
+                harness.laya_exited += 1
+                return False
+
+            def predict_batch(self, texts, questions, batch_size=16):
                 harness.laya_inputs.extend(texts)
                 harness.events.append(("laya", list(texts)))
                 return harness.predict(texts)
@@ -118,6 +142,7 @@ class OfflineRun:
                 pass
 
             def __enter__(self):
+                assert harness.laya_entered == harness.laya_exited, "LayaRunner context 종료 후 Gemma 진입 필요"
                 harness.entered += 1
                 return self
 
@@ -141,22 +166,33 @@ class OfflineRun:
                     raise AssertionError("같은 source 재진입: extract 호출 상한 초과")
                 return harness.extract_reply(data)
 
-        self.Agent, self.GemmaClient = Agent, GemmaClient
+        self.Agent, self.LayaRunner, self.GemmaClient = Agent, LayaRunner, GemmaClient
 
     def __enter__(self):
         self.stack = ExitStack()
+        # Windows Proactor의 socketpair는 connect를 사용한다. guard 전에 생성하고,
+        # 실제 run에는 준비된 loop의 실행기만 주입한다. 전역 event-loop 정책은 유지한다.
+        self.loop = asyncio.new_event_loop()
+        self.stack.callback(self.loop.close)
+        runtime_asyncio = types.SimpleNamespace(**vars(asyncio))
+        runtime_asyncio.run = self.loop.run_until_complete
+        self.stack.enter_context(patch.object(main, "asyncio", runtime_asyncio))
         la = module("laya.agent", Agent=self.Agent)
+        lr = module("detector.laya_runtime", LayaRunner=self.LayaRunner, LayaCleanupError=LayaCleanupError)
         gc = module("local_llm.client", GemmaClient=self.GemmaClient)
         self.stack.enter_context(patch.dict(sys.modules, {
             "laya": module("laya", agent=la), "laya.agent": la,
+            "detector.laya_runtime": lr,
             "local_llm": module("local_llm", client=gc), "local_llm.client": gc}))
         # 향후 ai 모듈이 모듈 최상단에서 import해도 매 사례의 더블을 사용한다.
         if (ROOT / "detector" / "ai.py").exists():
             ai = importlib.import_module("detector.ai")
+            self.stack.enter_context(patch.object(ai, "LayaRunner", self.LayaRunner, create=True))
+            self.stack.enter_context(patch.object(ai, "LayaCleanupError", LayaCleanupError, create=True))
             for name, value in (("Agent", self.Agent), ("GemmaClient", self.GemmaClient)):
                 if hasattr(ai, name):
                     self.stack.enter_context(patch.object(ai, name, value))
-        for name, value in (("Agent", self.Agent), ("GemmaClient", self.GemmaClient)):
+        for name, value in (("Agent", self.Agent), ("LayaRunner", self.LayaRunner), ("GemmaClient", self.GemmaClient)):
             if hasattr(main, name):
                 self.stack.enter_context(patch.object(main, name, value))
 

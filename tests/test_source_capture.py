@@ -6,6 +6,25 @@ from fixtures.ai_contract import OfflineRun, bound_reply, main, pages, source
 
 
 class SourceCaptureTests(unittest.TestCase):
+    def test_reviewer_dom_body_title_aria_keep_distinct_evidence(self):
+        from fixtures.reviewer_dom import capture
+        expected = {"": "환전 안내 하나", "title": "환전 안내 둘", "aria-label": "환전 안내 셋"}
+        page_data = capture('<a title="환전 안내 둘" aria-label="환전 안내 셋">환전 안내 하나</a>')
+        candidates = main.candidates_from(page_data, detect_posted=True)
+        actual = {(c.get("attr", ""), c["evidence_text"]) for c in candidates}
+        self.assertEqual(actual, set(expected.items()), "같은 DOM 요소의 서로 다른 증거를 첫 문구로 합치면 안 됨")
+
+    def test_reviewer_dom_candidate_raw_and_attr_belong_to_its_evidence(self):
+        from fixtures.reviewer_dom import capture
+        expected = {"": "환전 안내 하나", "title": "환전 안내 둘", "aria-label": "환전 안내 셋"}
+        candidates = main.candidates_from(capture(
+            '<a title="환전 안내 둘" aria-label="환전 안내 셋">환전 안내 하나</a>'), detect_posted=True)
+        self.assertTrue(candidates)
+        for c in candidates:
+            self.assertEqual(c["evidence_text"], expected[c.get("attr", "")],
+                             "첫 evidence에 마지막 attr가 덮어써짐")
+            self.assertEqual(c["raw"], c["evidence_text"], "다른 속성의 raw가 증거에 섞임")
+
     def test_candidate_keeps_raw_html_context_and_owner(self):
         row = source(html='<a data-note="a > b" href="/x?a=1&amp;b=2">환전\u200b  안내</a>',
                      context="앞 문장.\r\n뒤 문장.")

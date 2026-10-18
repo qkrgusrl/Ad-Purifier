@@ -83,7 +83,7 @@ class DOMBrowserTests(unittest.TestCase):
             }""", row["selector"])
             self.assertEqual(selected["count"], 1,
                              "수집기 selector가 정확히 한 요소를 선택해야 함: " + row["selector"])
-            if selected["owner"] == key:
+            if selected["owner"] == key and not row.get("attr"):
                 rows.append(row)
         self.assertEqual(len(rows), 1, f"DOM 소유 요소 {key!r}의 source block이 정확히 하나여야 함")
         return rows[0]
@@ -191,7 +191,7 @@ class DOMBrowserTests(unittest.TestCase):
                 self.assertNotIn("교육전용문맥", advert)
                 self.assertNotIn("교육범위", advert)
 
-    def test_08_hidden_text_and_attribute_records_share_their_actual_owner_id(self):
+    def test_08_hidden_and_direct_text_share_their_body_source_id(self):
         self.content('''<article><p>근접 안내
           <a data-test-owner="hidden" href="/x" title="속성의 다른 문구"
              style="opacity:0;position:absolute;left:-10000px">숨긴 원문</a>
@@ -208,7 +208,7 @@ class DOMBrowserTests(unittest.TestCase):
         self.assertTrue(any(r.get("attr") == "title" for r in texts), "속성 텍스트 캡처 누락")
         self.assertTrue(any(not r.get("attr") for r in texts), "직접 텍스트 캡처 누락")
         self.assertTrue({"TRANSPARENT", "OFFSCREEN"} <= {s[0] for r in hidden for s in r["signals"]})
-        for row in hidden + texts:
+        for row in hidden + [r for r in texts if not r.get("attr")]:
             self.assertEqual(row.get("source_id"), block["source_id"])
             self.assertEqual(row.get("source_html"), expected)
             self.assertEqual(row.get("source_context"), block["source_context"])
@@ -232,6 +232,27 @@ class DOMBrowserTests(unittest.TestCase):
         self.assertIn("하위프레임전용문맥", child_row["source_context"])
         self.assertNotIn("상위프레임전용문맥", child_row["source_context"])
         # frame-local ID는 서로 같아도 된다. 전역화/iframe 접두어는 scan_page 통합 계약이다.
+
+    def test_10_body_title_and_aria_label_survive_as_distinct_source_units(self):
+        self.content('''<article>근접 문맥
+          <a data-test-owner="multi" href="/offer" style="opacity:0"
+             title="카지노 가입 첫충 혜택" aria-label="불법 약물 판매 주문">환전 안내</a>
+        </article>''')
+        expected_html = self.original("multi")
+        result = self.capture()
+        body = self.owner(result, "multi")
+        rows = [row for row in result["source_blocks"] if row["selector"] == body["selector"]]
+        self.assertEqual({row.get("attr", ""): row["text"] for row in rows},
+                         {"": "환전 안내", "title": "카지노 가입 첫충 혜택", "aria-label": "불법 약물 판매 주문"},
+                         "같은 요소의 title/aria-label 광고 문구가 본문 ID로 합쳐져 source_blocks에서 누락됨")
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(len({row["source_id"] for row in rows}), 3)
+        by_attr = {row.get("attr", ""): row for row in rows}
+        for row in rows:
+            self.assertEqual(row["source_html"], expected_html)
+        for row in result["hidden"] + result["texts"]:
+            if row["selector"] == body["selector"]:
+                self.assertEqual(row["source_id"], by_attr[row.get("attr", "")]["source_id"])
 
 
 if __name__ == "__main__":

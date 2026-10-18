@@ -46,6 +46,19 @@ state = {"running": False, "phase": "idle", "entry_url": "", "pages_done": 0, "p
 cancel_event = threading.Event()  # 탐지 취소 신호 (진행 중인 점검 하나에만 쓰고, 새 점검을 시작할 때 비운다)
 
 
+def join_scan_worker(httpd):
+    """취소 후 scan context가 자식을 정리하고 반환할 때까지 기다린다."""
+    cancel_event.set()
+    worker = getattr(httpd, "scan_worker", None)
+    if worker is not None:
+        worker.join()
+
+
+def shutdown_server(httpd):
+    join_scan_worker(httpd)
+    httpd.shutdown()
+
+
 def model_readiness():
     """파일 준비와 실제 실행 검증은 다르다. 상태 API에서 모델을 실행하지 않는다."""
     files = {
@@ -58,7 +71,10 @@ def model_readiness():
         "gemma_weights": gemma_model(), "llama_server": llama_server(),
     }
     if sys.platform == "win32":
-        for name in ("llama.dll", "ggml.dll", "ggml-base.dll", "ggml-cpu.dll"):
+        # b11429 공식 CPU 배포물의 기본 backend와 서버 실행 의존 파일.
+        for name in ("llama.dll", "ggml.dll", "ggml-base.dll", "ggml-cpu-x64.dll", "ggml-cpu-sse42.dll",
+                     "llama-common.dll", "mtmd.dll", "libomp.dll", "llama-server-impl.dll",
+                     "MSVCP140.dll", "VCRUNTIME140.dll", "VCRUNTIME140_1.dll"):
             files[name] = llama_server().parent / name
     available = {name: path.is_file() and path.stat().st_size > 0 for name, path in files.items()}
     dependencies = {}
@@ -73,7 +89,14 @@ def model_readiness():
 
 
 def cand_key(c):
-    return hashlib.sha1(f"{c['url']}|{c['location']}|{c['technique']}".encode()).hexdigest()[:12]
+    if c.get("source_id"):
+        # 새 문구에 이전 위치 단위의 검토 상태를 일괄 적용하지 않는다.
+        identity = [c["url"], c["location"], c["technique"], c["source_id"],
+                    c.get("attr", ""), c["evidence_text"]]
+        payload = json.dumps(identity, ensure_ascii=False, separators=(",", ":"))
+    else:
+        payload = f"{c['url']}|{c['location']}|{c['technique']}"
+    return hashlib.sha1(payload.encode()).hexdigest()[:12]
 
 
 def scan_job(entry_url, use_ml, max_pages):
@@ -109,11 +132,38 @@ def scan_job(entry_url, use_ml, max_pages):
             state.update(running=False, cancelling=False)
 
 
+def restore_review_state(rep):
+    """이전 보고서의 미판정 상태를 조회 메모리에서만 복원한다."""
+    for c in rep.get("candidates", []):
+        if c.get("verdict") not in ("ad", "clean") or c.get("processing_status") in ("review", "error", "timeout", "cancelled"):
+            c["verdict"] = "uncertain"
+            if c.get("processing_status") in (None, "completed"):
+                c["processing_status"] = "review"
+            c.setdefault("reason", "이전 보고서의 미판정 항목: 재검토 필요")
+    pending = sum(c.get("verdict") == "uncertain" for c in rep.get("candidates", []))
+    pending += len(rep.get("ai", {}).get("unresolved_sources", []))
+    rep["unresolved_count"] = max(rep.get("unresolved_count", 0), pending)
+    failures = rep.get("failed_pages", [])
+    frames = rep.get("failed_frames", [])
+    queued = rep.get("left_in_queue", 0)
+    incomplete = bool(rep.get("crawl_incomplete") or rep.get("entry_failed") or failures or frames
+                      or queued or rep.get("stopped_by_time") or rep.get("http_errors"))
+    rep["crawl_incomplete"] = incomplete
+    rep["needs_review"] = bool(rep.get("needs_review") or rep["unresolved_count"] or incomplete
+                               or rep.get("ai", {}).get("mode") == "diagnostic")
+    if "coverage" not in rep:
+        rep["coverage"] = {"visited_pages": rep.get("pages", 0), "pending_pages": queued,
+                           "failed_pages": len(failures), "failed_frames": len(frames),
+                           "stopped_by_time": rep.get("stopped_by_time", False),
+                           "discovered_pages": rep.get("pages", 0) + queued + len(failures)}
+    return rep
+
+
 def list_runs():
     runs = []
     for d in sorted(HISTORY.glob("*/report.json"), reverse=True):
         try:
-            rep = json.loads(d.read_text(encoding="utf-8"))
+            rep = restore_review_state(json.loads(d.read_text(encoding="utf-8")))
         except (OSError, json.JSONDecodeError):
             continue
         review_path = d.parent / "review.json"
@@ -147,7 +197,7 @@ def load_run(run_id):
     d = run_dir(run_id)
     if not d:
         return None
-    rep = json.loads((d / "report.json").read_text(encoding="utf-8"))
+    rep = restore_review_state(json.loads((d / "report.json").read_text(encoding="utf-8")))
     review_path = d / "review.json"
     review = json.loads(review_path.read_text(encoding="utf-8")) if review_path.is_file() else {}
     for c in rep["candidates"]:
@@ -291,6 +341,16 @@ class Handler(BaseHTTPRequestHandler):
         if not self.trusted():
             return self.send(403, {"error": "forbidden"})
         path = urlparse(self.path).path
+        if path == "/api/shutdown":
+            with state_lock:
+                if not getattr(self.server, "closing", False):
+                    self.server.closing = True
+                    state.update(cancelling=True, phase="closing")
+                    cancel_event.set()
+                    self.server.shutdown_worker = threading.Thread(target=shutdown_server, args=(self.server,),
+                                                                   name="app-shutdown")
+                    self.server.shutdown_worker.start()
+            return self.send(202, {"ok": True, "status": "closing"})
         if path == "/api/scan":
             req = self.body()
             url = (req.get("url") or "").strip()
@@ -304,12 +364,17 @@ class Handler(BaseHTTPRequestHandler):
             except (TypeError, ValueError):
                 return self.send(400, {"error": "최대 페이지는 숫자로 입력하세요."})
             with state_lock:
-                if state["running"]:
+                if getattr(self.server, "closing", False):
+                    return self.send(409, {"error": "프로그램 종료 중입니다."})
+                previous_worker = getattr(self.server, "scan_worker", None)
+                if state["running"] or (previous_worker is not None and previous_worker.is_alive()):
                     return self.send(409, {"error": "이미 탐지가 진행 중입니다."})
                 state.update(running=True, phase="start", entry_url=url, pages_done=0, pages_found=1, current_url=url,
                              started=time.time(), run_id=None, error=None, cancelling=False)
                 cancel_event.clear()
-            threading.Thread(target=scan_job, args=(url, use_ml, max_pages), daemon=True).start()
+                self.server.scan_worker = threading.Thread(target=scan_job, args=(url, use_ml, max_pages),
+                                                           name="scan-worker")
+                self.server.scan_worker.start()
             return self.send(202, {"ok": True})
         if path == "/api/scan/cancel":
             with state_lock:
@@ -372,6 +437,16 @@ def main():
         httpd.serve_forever()
     except KeyboardInterrupt:
         pass
+    finally:
+        with state_lock:
+            httpd.closing = True
+            cancel_event.set()
+            closer = getattr(httpd, "shutdown_worker", None)
+        if closer is not None:
+            closer.join()
+        else:
+            join_scan_worker(httpd)
+        httpd.server_close()
 
 
 if __name__ == "__main__":

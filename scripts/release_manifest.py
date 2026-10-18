@@ -2,15 +2,85 @@
 import argparse
 import json
 import os
+import re
+import subprocess
+from urllib.parse import quote
 from pathlib import Path
 from .assets import file_record
 
 
+class RemoteTagMissing(RuntimeError):
+    """실제 태그 ref 조회가 명시적으로 HTTP 404를 반환했다."""
+
+
+def verify_remote_tag(repo, tag, expected_sha):
+    """원격 ref와 annotated tag를 읽어 실제 commit을 검증한다. 태그를 수정하지 않는다."""
+    if not re.fullmatch(r'[0-9a-f]{40}', expected_sha):
+        raise RuntimeError('검증 대상 commit SHA 형식 오류')
+    if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repo) or not tag:
+        raise RuntimeError('저장소/태그 형식 오류')
+
+    def fetch(endpoint, *, initial=False):
+        try:
+            response = subprocess.run(['gh', 'api', endpoint, '--method', 'GET'],
+                                      capture_output=True, text=True, timeout=30, check=False)
+        except (OSError, subprocess.SubprocessError) as exc:
+            raise RuntimeError('GitHub 태그 조회 실행 실패') from exc
+        try:
+            data = json.loads(response.stdout)
+        except (TypeError, ValueError):
+            data = None
+        if response.returncode:
+            status = str(data.get('status', '')) if isinstance(data, dict) else ''
+            if not re.fullmatch(r'[1-5][0-9]{2}', status):
+                match = re.search(r'HTTP\s+([1-5][0-9]{2})', response.stderr or '')
+                status = match.group(1) if match else 'unknown'
+            if initial and status == '404':
+                raise RemoteTagMissing(f'원격 태그 없음 (HTTP 404): {tag}')
+            raise RuntimeError(f'GitHub 태그 조회 실패 (HTTP {status})')
+        if not isinstance(data, dict):
+            raise RuntimeError('GitHub 태그 응답 JSON 형식 오류')
+        return data
+
+    reference = fetch(f'repos/{repo}/git/ref/tags/{quote(tag, safe="")}', initial=True)
+    if reference.get('ref') != 'refs/tags/' + tag:
+        raise RuntimeError('응답 태그 ref 불일치')
+    obj = reference.get('object')
+    seen = set()
+    for depth in range(8):
+        if not isinstance(obj, dict) or not isinstance(obj.get('sha'), str) or not re.fullmatch(r'[0-9a-f]{40}', obj['sha']):
+            raise RuntimeError('GitHub tag object/SHA 형식 오류')
+        sha = obj['sha']
+        if obj.get('type') == 'commit':
+            if sha != expected_sha:
+                raise RuntimeError(f'릴리스 태그 commit 불일치: expected={expected_sha}, actual={sha}')
+            return sha
+        if obj.get('type') != 'tag' or sha in seen or depth == 7:
+            raise RuntimeError('태그 참조 형식 오류 또는 순환/깊이 초과')
+        seen.add(sha)
+        annotated = fetch(f'repos/{repo}/git/tags/{sha}')
+        if annotated.get('sha') != sha:
+            raise RuntimeError('annotated tag object SHA 불일치')
+        obj = annotated.get('object')
+    raise RuntimeError('태그 해석 실패')
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--root', type=Path, required=True)
-    parser.add_argument('--version', required=True)
+    parser.add_argument('--verify-tag', action='store_true')
+    parser.add_argument('--repo')
+    parser.add_argument('--tag')
+    parser.add_argument('--expected-sha')
+    parser.add_argument('--root', type=Path)
+    parser.add_argument('--version')
     args = parser.parse_args()
+    if args.verify_tag:
+        if not all((args.repo, args.tag, args.expected_sha)):
+            parser.error('--repo/--tag/--expected-sha 필요')
+        print(verify_remote_tag(args.repo, args.tag, args.expected_sha))
+        return
+    if args.root is None or not args.version:
+        parser.error('--root/--version 필요')
     parts = sorted([*args.root.glob('*Setup.exe'), *args.root.glob('*.bin')])
     if not any(p.suffix == '.bin' for p in parts) or sum(p.suffix == '.exe' for p in parts) != 1:
         raise ValueError('단일 Setup.exe와 분할 bin 필요')

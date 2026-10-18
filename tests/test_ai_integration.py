@@ -34,6 +34,192 @@ class AIIntegrationTests(unittest.TestCase):
                 self.assertNotEqual(c["processing_status"], "completed")
                 self.assertTrue(c.get("reason"))
 
+    def test_reviewer_fixture_uses_precreated_loop_and_still_blocks_network(self):
+        import asyncio
+        import socket
+
+        policy = asyncio.get_event_loop_policy()
+        original_run = asyncio.run
+        h = OfflineRun([source(text="도서관 안내")])
+        with h:
+            self.assertFalse(h.loop.is_closed())
+            h.run(self.out)
+            with socket.socket() as sock, self.assertRaisesRegex(AssertionError, "네트워크 금지"):
+                sock.connect(("203.0.113.1", 443))
+            with self.assertRaisesRegex(AssertionError, "네트워크 금지"):
+                socket.create_connection(("203.0.113.1", 443))
+            self.assertIs(asyncio.run, original_run, "전역 asyncio 실행기를 바꾸면 안 됨")
+            self.assertIs(asyncio.get_event_loop_policy(), policy)
+        self.assertTrue(h.loop.is_closed(), "fixture loop 누수")
+        self.assertIs(main.asyncio.run, original_run)
+
+    def test_reviewer_visible_zero_score_recovery_rejoins_as_posted(self):
+        from fixtures.reviewer_dom import capture
+
+        text = "처방전 없이 수면제를 판매합니다"
+        page_data = capture('<p>' + text + '</p>')
+        self.assertEqual(main.adscore.score(main.normalize(text))[0], 0)
+        self.assertEqual(main.candidates_from(page_data, detect_posted=True), [])
+        h = OfflineRun(page_data=page_data, predict=lambda ts: [prediction(.99) for _ in ts], extract=recover)
+        report = self.run_case(h, detect_posted=True)
+        self.assertEqual(len(h.extract_inputs), 1, "실제 DOM 잔여를 추출해야 함")
+        self.assertEqual(len(report["candidates"]), 1, "원문 결합 회수를 같은 키워드 필터로 다시 버리면 안 됨")
+        c = report["candidates"][0]
+        row = page_data[0][1][0][1]["source_blocks"][0]
+        self.assertEqual((c["technique"], c["location"], c["evidence_text"]), ("POSTED", row["selector"], text))
+        self.assertEqual(c["source_html"], row["source_html"])
+        self.assertEqual(c["verdict"], "ad", "회수 근거가 있는데 규칙 0점만으로 정상 확정하면 안 됨")
+
+    def test_reviewer_detect_posted_false_also_applies_to_residual_recovery(self):
+        from fixtures.reviewer_dom import capture
+
+        page_data = capture('<p>환전 안내</p><span style="opacity:0">카지노 바카라</span>')
+        h = OfflineRun(page_data=page_data, extract=recover)
+        report = self.run_case(h, detect_posted=False)
+        self.assertFalse(any(c["technique"] == "POSTED" for c in report["candidates"]),
+                         "잔여 재합류가 detect_posted=False를 무시함")
+        self.assertTrue(any(c["technique"] == "TRANSPARENT" and c["verdict"] == "ad"
+                            for c in report["candidates"]), "기존 은닉 탐지는 유지해야 함")
+        self.assertEqual(report["extra_count"], 0)
+        self.assertFalse((self.out / "result_extra.json").exists())
+
+    def test_reviewer_dom_attribute_residual_not_discarded_with_used_body(self):
+        from fixtures.reviewer_dom import capture
+
+        residual_text = "처방전 없이 수면제를 판매합니다"
+        page_data = capture('<a title="' + residual_text + '">환전 안내</a>')
+
+        def recover_attribute(data):
+            recovered = []
+            for b in data["blocks"]:
+                if residual_text in b["html"]:
+                    start = b["html"].index(residual_text)
+                    recovered.append({**bound_source(b), "block_id": b["block_id"],
+                                      "evidence": residual_text, "start_char": start,
+                                      "end_char": start + len(residual_text)})
+            return extract_reply(data, candidates=recovered)
+
+        h = OfflineRun(page_data=page_data, extract=recover_attribute)
+        report = self.run_case(h, detect_posted=True)
+        self.assertIn(residual_text, [c["evidence_text"] for c in report["candidates"]],
+                      "본문이 후보에 쓰였다는 이유로 같은 요소의 미처리 속성 문구를 잔여에서 누락함")
+
+    def test_reviewer_explicit_relative_model_path_is_relative_to_app_root(self):
+        from contextlib import chdir
+        from app_paths import app_root
+
+        expected = app_root() / "models" / "custom"
+        h = OfflineRun(predict=lambda ts: [prediction(.99) for _ in ts])
+        with chdir(self.out):
+            self.run_case(h, model="models/custom")
+        self.assertEqual([Path(p) for p in h.model_paths], [expected],
+                         "명시적 상대 모델 경로도 cwd가 아닌 app root 기준으로 해석해야 함")
+
+    def test_reviewer_legacy_history_restores_review_for_unfinished_work(self):
+        from unittest.mock import patch
+        from ui import server
+
+        cases = {
+            "borderline": {"candidates": [{"url": URL, "location": "p", "technique": "POSTED",
+                                            "evidence_text": "환전 안내", "verdict": "borderline"}]},
+            "failed": {"failed_pages": [{"url": URL + "/failed", "reason": "timeout"}]},
+            "unvisited": {"left_in_queue": 2, "stopped_by_time": True},
+        }
+        history = self.out / "history"
+        with patch.object(server, "HISTORY", history):
+            for index, (case, updates) in enumerate(cases.items(), 1):
+                run_id = "20261018-12000%d" % index
+                folder = history / run_id
+                folder.mkdir(parents=True)
+                report = {"meta": {"entry_url": URL, "started_at": "2026-10-18T12:00:00+09:00", "elapsed_sec": 1},
+                          "pages": 1, "candidates": [], "failed_pages": [], "left_in_queue": 0,
+                          "stopped_by_time": False, **updates}
+                path = folder / "report.json"
+                original = json.dumps(report, ensure_ascii=False).encode()
+                path.write_bytes(original)
+                with self.subTest(case=case, surface="load_run"):
+                    loaded = server.load_run(run_id)
+                    self.assertIs(loaded.get("needs_review"), True, "과거 미처리 결과를 정상으로 복원함")
+                with self.subTest(case=case, surface="list_runs"):
+                    summary = next(r for r in server.list_runs() if r["id"] == run_id)
+                    self.assertIs(summary.get("needs_review"), True, "이력 목록에서 보류가 정상으로 표시됨")
+                self.assertEqual(path.read_bytes(), original, "조회가 과거 증거 파일을 덮어쓰면 안 됨")
+
+    def test_reviewer_same_element_review_keys_isolate_evidence_and_keep_legacy_review(self):
+        import hashlib
+        from unittest.mock import patch
+        from ui import server
+
+        rows = [{"url": URL, "location": "a", "technique": "POSTED", "verdict": "ad",
+                 "source_id": "dom-1", "attr": attr, "evidence_text": text, "raw": text}
+                for attr, text in (("", "환전 안내 하나"), ("title", "환전 안내 둘"),
+                                   ("aria-label", "환전 안내 셋"))]
+        keys = [server.cand_key(c) for c in rows]
+        with self.subTest(check="distinct_keys"):
+            self.assertEqual(len(set(keys)), 3, "동일 요소의 서로 다른 근거가 같은 검토 키를 공유함")
+        legacy = {"url": URL, "location": "p.legacy", "technique": "POSTED",
+                  "verdict": "ad", "evidence_text": "예전 보고서 문구"}
+        old_key = hashlib.sha1(f"{URL}|p.legacy|POSTED".encode()).hexdigest()[:12]
+        history = self.out / "history"
+        run_id = "20261018-130000"
+        folder = history / run_id
+        folder.mkdir(parents=True)
+        report = {"meta": {"entry_url": URL, "started_at": "2026-10-18T13:00:00+09:00", "elapsed_sec": 1},
+                  "pages": 1, "candidates": rows + [legacy]}
+        (folder / "report.json").write_text(json.dumps(report), encoding="utf-8")
+        (folder / "review.json").write_text(json.dumps({keys[0]: {"status": "false_positive", "memo": "첫 문구만"},
+                                                         old_key: {"status": "resolved", "memo": "기존 검토"}}),
+                                            encoding="utf-8")
+        with patch.object(server, "HISTORY", history):
+            loaded = server.load_run(run_id)["candidates"]
+        with self.subTest(check="review_isolation"):
+            self.assertEqual([(c["review"], c["memo"]) for c in loaded[:3]],
+                             [("false_positive", "첫 문구만"), ("new", ""), ("new", "")],
+                             "한 문구의 검토 상태/메모가 다른 근거에 전파됨")
+        with self.subTest(check="legacy_fallback"):
+            self.assertEqual((loaded[3]["review"], loaded[3]["memo"]), ("resolved", "기존 검토"),
+                             "source_id 없는 과거 검토 키 보존 또는 명시 fallback 필요")
+
+    def test_reviewer_extract_context_only_evidence_cannot_create_owner_ad(self):
+        context_ad = "카지노 바카라 가입코드"
+        row = source(text="환전 안내", html="<p>환전 안내</p>", context="주변의 다른 요소: " + context_ad,
+                     signals=[])
+        row.update(selector="p", tag="p", href=None)
+
+        def context_recovery(data):
+            candidates = []
+            for b in data["blocks"]:
+                start = b["context"].index(context_ad)
+                candidates.append({**bound_source(b), "block_id": b["block_id"], "source_field": "context",
+                                   "evidence_id": "c0001", "evidence": context_ad,
+                                   "start_char": start, "end_char": start + len(context_ad)})
+            return extract_reply(data, candidates=candidates)
+
+        h = OfflineRun([row], candidate_ids=[], extract=context_recovery)
+        report = self.run_case(h, detect_posted=True)
+        with self.subTest(stage="extract_location"):
+            self.assertFalse(any(c["verdict"] == "ad" for c in report["candidates"]),
+                             "context에만 있는 광고 근거를 source_html 위치의 광고로 보고함")
+        with self.subTest(stage="extract_review"):
+            self.assert_review(report)
+
+        # verify는 예방 문맥을 근거로 clean을 판정할 수 있다. extract의 위치 제한과 별개다.
+        prevention = "도박 예방교육 자료로 인용한 문구입니다."
+        normal = source(context=prevention)
+
+        def verify_context(item):
+            response = bound_reply(item, "clean")
+            binding = {"source_field": "context", "evidence_id": "c0001", "evidence": prevention,
+                       "start_char": 0, "end_char": len(prevention)}
+            response["results"][0].update(binding)
+            response["results"][0]["call"]["parsed"].update(binding)
+            return response
+
+        with self.subTest(stage="verify_context_allowed"):
+            verified = self.run_case(OfflineRun([normal], verify=verify_context))
+            self.assertEqual(verified["candidates"][0]["verdict"], "clean")
+            self.assertIs(verified["needs_review"], False)
+
     def test_rule_extremes_stay_rules_and_call_neither_model(self):
         rows = [source("s1", "카지노 바카라 가입코드"), source("s2", "도서관 안내")]
         h = OfflineRun(rows)

@@ -36,6 +36,37 @@ def data_root():
     return path
 
 
+def ensure_writable_output(root=None):
+    """결과 폴더에서 실제 쓰기/교체/삭제를 검사하며 다른 위치로 우회하지 않는다."""
+    chosen = Path(root) if root is not None else app_root()
+    if not chosen.is_absolute():
+        chosen = chosen.absolute()
+    probes = []
+    try:
+        try:
+            fd, name = tempfile.mkstemp(prefix='.adpurifier-write-', dir=chosen)
+            source = Path(name)
+            probes.append(source)
+            with os.fdopen(fd, 'wb') as stream:
+                stream.write(b'AdPurifier output permission probe\n')
+                stream.flush()
+                os.fsync(stream.fileno())
+            fd, name = tempfile.mkstemp(prefix='.adpurifier-replace-', dir=chosen)
+            target = Path(name)
+            probes.append(target)
+            os.close(fd)
+            source.replace(target)
+            target.unlink()
+        finally:
+            for probe in probes:
+                probe.unlink(missing_ok=True)
+    except OSError as exc:
+        raise OSError(f'결과 폴더에 파일을 저장할 수 없습니다: {chosen}. '
+                      'EXE 옆에 결과를 저장해야 합니다. 쓰기 권한을 확인하거나 '
+                      '사용자 쓰기 가능한 폴더에 다시 설치하세요.') from exc
+    return chosen
+
+
 def bootstrap():
     os.environ.setdefault('OMP_NUM_THREADS', '2')
     os.environ.setdefault('MKL_NUM_THREADS', '2')

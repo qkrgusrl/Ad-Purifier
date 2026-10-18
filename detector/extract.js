@@ -90,7 +90,7 @@
         (!article || article.contains(n)))));
     const contextHtml = nearby.map(n => n.outerHTML).join('\n');
     const titleHtml = title && !nearby.some(n => n.contains(title)) ? title.outerHTML + '\n' : '';
-    return { source_id: owners.get(el),
+    return { source_id: owners.get(el) + suffix,
              source_html: el.outerHTML,
              source_context: titleHtml + contextHtml,
              source_near_text: (title ? title.textContent + '\n' : '') + nearby.map(textOf).join('\n') };
