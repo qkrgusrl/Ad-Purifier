@@ -8,7 +8,7 @@ import importlib
 import io
 import json
 import multiprocessing
-from multiprocessing.connection import Connection
+from multiprocessing.connection import _ConnectionBase
 import os
 from pathlib import Path
 import socket
@@ -180,7 +180,7 @@ class IsolatedLayaRuntimeTests(unittest.TestCase):
         before_threads = set(threading.enumerate())
         outcome = {}
         send_entered, send_finished = threading.Event(), threading.Event()
-        real_send = Connection.send_bytes
+        real_send = _ConnectionBase.send_bytes
 
         def observed_send(conn, buffer, *args, **kwargs):
             large = len(buffer) > 1024 * 1024
@@ -193,7 +193,8 @@ class IsolatedLayaRuntimeTests(unittest.TestCase):
                     send_finished.set()
 
         if stage == "send":
-            self.enterContext(patch.object(Connection, "send_bytes", observed_send))
+            # POSIX Connection과 Windows PipeConnection이 함께 상속하는 송신 경계.
+            self.enterContext(patch.object(_ConnectionBase, "send_bytes", observed_send))
 
         def invoke():
             try:

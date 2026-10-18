@@ -303,7 +303,8 @@ class OutputDirectoryContractTests(ContractCase):
                     if persistent or len(attempted) == 1:
                         # 선택된 경로를 다른 주체가 먼저 만든 상황. 실제 O_EXCL 오류를 사용한다.
                         if target not in occupied:
-                            fd = real_open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+                            fd = real_open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY
+                                           | getattr(os, "O_BINARY", 0), 0o600)
                             try:
                                 payload = b"existing collision owner: must survive\n"
                                 os.write(fd, payload)
@@ -598,8 +599,11 @@ class WorkflowUploadContractTests(ContractCase):
         script = work / "run_upload.ps1"
         script.write_text("$ErrorActionPreference = 'Stop'\n" + self.upload_body(), encoding="utf-8")
         log = work / "gh-calls.jsonl"
-        env = {key: value for key, value in os.environ.items()
-               if key in {"HOME", "USERPROFILE", "SystemRoot", "WINDIR", "TEMP", "TMP", "TMPDIR", "PATHEXT"}}
+        # Windows os.environ은 키를 대문자로 반환한다. SystemRoot/ComSpec도 보존한다.
+        # https://docs.python.org/3.12/library/subprocess.html#subprocess.Popen
+        allowed_os_keys = {"HOME", "USERPROFILE", "SYSTEMROOT", "COMSPEC", "WINDIR",
+                           "TEMP", "TMP", "TMPDIR", "PATHEXT"}
+        env = {key: value for key, value in os.environ.items() if key.upper() in allowed_os_keys}
         env.update({
             "PATH": str(commands), "PYTHONPATH": str(work), "PYTHONDONTWRITEBYTECODE": "1",
             "GITHUB_REPOSITORY": REPO, "GITHUB_SHA": SHA,
@@ -609,10 +613,20 @@ class WorkflowUploadContractTests(ContractCase):
             "POWERSHELL_TELEMETRY_OPTOUT": "1", "POWERSHELL_UPDATECHECK": "Off",
         })
         with patch.object(subprocess, "Popen", REAL_POPEN):
+            launcher = subprocess.run([pwsh, "-NoLogo", "-NoProfile", "-NonInteractive", "-Command",
+                                       "& python --version; exit $LASTEXITCODE"],
+                                      cwd=work, env=env, capture_output=True, text=True, timeout=30)
+            self.assertEqual(launcher.returncode, 0, launcher.stdout + launcher.stderr)
+            self.assertEqual((launcher.stdout + launcher.stderr).strip(), "Python " + sys.version.split()[0],
+                             "동일한 한글 경로/격리 환경에서 실제 Python launcher가 먼저 실행되어야 함")
             result = subprocess.run([pwsh, "-NoLogo", "-NoProfile", "-NonInteractive", "-File", str(script)],
                                     cwd=work, env=env, capture_output=True, text=True, timeout=30)
         calls = [json.loads(line) for line in log.read_text(encoding="utf-8").splitlines()] if log.exists() else []
         self.assertTrue(calls, f"gh double에 도달하지 못한 fixture 오류: {result.stderr}")
+        print("RAW workflow_fixture " + json.dumps({"scenario": scenario,
+              "python_launcher": (launcher.stdout + launcher.stderr).strip(),
+              "launcher_returncode": launcher.returncode, "workflow_returncode": result.returncode,
+              "gh_calls": calls}, ensure_ascii=False), flush=True)
         return result, calls
 
     def test_actual_upload_step_checks_correct_lightweight_and_annotated_tag_before_upload(self):
