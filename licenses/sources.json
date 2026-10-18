@@ -29,5 +29,10 @@
     "url": "https://raw.githubusercontent.com/spdx/license-list-data/main/text/MIT.txt",
     "sha256": "b05785f9f18e6716bab63424b11454513b9943a222595b70411009202fc592b5",
     "note": "MIT 표준 조건; mmBERT 권리자 표시를 새로 부여하지 않음"
+  },
+  {
+    "file": "Microsoft-VC-Runtime-2015-2022-License.docx",
+    "url": "https://visualstudio.microsoft.com/wp-content/uploads/2021/09/Visual-C-Runtime-2015-2022-License-1.docx",
+    "sha256": "f1e3d56ceb2ad68aae0711b910375009e651ac5530fa0760f0dea6e81e54fae1"
   }
 ]

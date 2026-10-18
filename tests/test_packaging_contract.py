@@ -558,4 +558,3 @@ class WorkflowUploadContractTests(ContractCase):
 
 if __name__ == "__main__":
     unittest.main()
-
