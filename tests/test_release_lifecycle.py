@@ -251,6 +251,16 @@ class IsolatedLayaRuntimeTests(unittest.TestCase):
     def test_spawn_blocked_pipe_send_cancel_kills_child_and_joins_io(self):
         self.blocked_runner("send", "cancel")
 
+    def assert_pid_gone(self, pid):
+        # Windows는 종료 핸들이 signaled된 뒤에도 PID 조회에 잠시 남을 수 있다.
+        # psutil의 Windows wait도 이 OS 가시성 지연을 bounded polling한다.
+        if os.name == "nt":
+            try:
+                psutil.Process(pid).wait(timeout=1)
+            except psutil.NoSuchProcess:
+                pass
+        self.assertFalse(psutil.pid_exists(pid))
+
     def test_spawn_reuses_one_child_preserves_outputs_and_has_no_candidate_count_cap(self):
         before_threads = set(threading.enumerate())
         runner = self.Runner(str(self.model_path), deadline=time.perf_counter() + 10, target=echo_target)
@@ -266,7 +276,7 @@ class IsolatedLayaRuntimeTests(unittest.TestCase):
             self.assertEqual(second[-1]["usage"], {"truncated": False})
             with self.assertRaises(AttributeError):
                 runner.pid = 1
-        self.assertFalse(psutil.pid_exists(pid))
+        self.assert_pid_gone(pid)
         self.assertEqual(runner.pid, pid)
         self.assertEqual(set(threading.enumerate()) - before_threads, set())
 
@@ -277,7 +287,7 @@ class IsolatedLayaRuntimeTests(unittest.TestCase):
             with runner:
                 runner.predict_batch(["x" * (16 * 1024 * 1024 + 1)], {"q": "질문"})
         self.assertIsInstance(runner.pid, int)
-        self.assertFalse(psutil.pid_exists(runner.pid))
+        self.assert_pid_gone(runner.pid)
         self.assertEqual(set(threading.enumerate()) - before_threads, set())
 
 
