@@ -526,6 +526,25 @@ respond({"message": "unrecognized fixture command"}, 92)
 
 
 class WorkflowUploadContractTests(ContractCase):
+    def test_workflow_runs_only_for_explicit_build_tags_or_dispatch(self):
+        import yaml
+
+        workflow = yaml.load((ROOT / ".github/workflows/windows-installer.yml").read_text(
+            encoding="utf-8"), Loader=yaml.BaseLoader)
+        events = workflow["on"]  # BaseLoader는 YAML 1.1의 on→True 변환을 하지 않는다.
+        self.assertIsInstance(events, dict)
+        push = events.get("push")
+        self.assertIsInstance(push, dict)
+        print("RAW workflow_triggers " + json.dumps(events, ensure_ascii=False), flush=True)
+        with self.subTest(contract="no_branch_push"):
+            self.assertNotIn("branches", push, "일반 branch push로 자동 CI를 실행하면 안 됨")
+        with self.subTest(contract="explicit_build_tags"):
+            self.assertEqual(push.get("tags"), ["build/windows-*"], "명시적 build tag push만 허용")
+        with self.subTest(contract="no_pull_request"):
+            self.assertNotIn("pull_request", events)
+        with self.subTest(contract="manual_dispatch_preserved"):
+            self.assertIn("workflow_dispatch", events)
+
     def upload_body(self):
         text = (ROOT / ".github/workflows/windows-installer.yml").read_text(encoding="utf-8")
         blocks = []
@@ -592,10 +611,17 @@ class WorkflowUploadContractTests(ContractCase):
         # Python helper 실행은 진짜 interpreter, gh만 double.
         python_script = commands / "python_forward.py"
         python_script.write_text(
-            "import os, sys\nos.execv(sys.executable, [sys.executable, *sys.argv[1:]])\n",
+            "import subprocess, sys\n"
+            "raise SystemExit(subprocess.run([sys.executable, *sys.argv[1:]]).returncode)\n",
             encoding="utf-8")
         self.launcher(commands, "python", python_script)
         self.launcher(commands, "python3", python_script)
+        # --version의 0만으로는 조기 반환/종료 코드 유실을 검출할 수 없다.
+        (work / "launcher_probe.py").write_text(
+            "from pathlib import Path\nimport time\n"
+            "time.sleep(0.15)\n"
+            "Path('launcher-child-complete').write_bytes(b'complete\\n')\n"
+            "raise SystemExit(37)\n", encoding="utf-8")
         script = work / "run_upload.ps1"
         script.write_text("$ErrorActionPreference = 'Stop'\n" + self.upload_body(), encoding="utf-8")
         log = work / "gh-calls.jsonl"
@@ -619,6 +645,19 @@ class WorkflowUploadContractTests(ContractCase):
             self.assertEqual(launcher.returncode, 0, launcher.stdout + launcher.stderr)
             self.assertEqual((launcher.stdout + launcher.stderr).strip(), "Python " + sys.version.split()[0],
                              "동일한 한글 경로/격리 환경에서 실제 Python launcher가 먼저 실행되어야 함")
+            completion = subprocess.run([pwsh, "-NoLogo", "-NoProfile", "-NonInteractive", "-Command",
+                "& python launcher_probe.py; $code = $LASTEXITCODE; "
+                "if (Test-Path -LiteralPath launcher-child-complete) { 'child-complete' } "
+                "else { 'child-pending' }; exit $code"],
+                cwd=work, env=env, capture_output=True, text=True, timeout=30)
+            print("RAW launcher_completion " + json.dumps({"scenario": scenario,
+                  "returncode": completion.returncode, "marker_at_wrapper_return": completion.stdout.strip(),
+                  "stderr": completion.stderr}, ensure_ascii=False), flush=True)
+            self.assertEqual(completion.returncode, 37,
+                             "Python wrapper는 실제 자식의 비정상 종료 코드도 그대로 전달해야 함")
+            self.assertEqual(completion.stdout.strip(), "child-complete",
+                             "다음 PowerShell 문장은 Python 자식 완료 marker 이후에 실행되어야 함")
+            self.assertEqual((work / "launcher-child-complete").read_bytes(), b"complete\n")
             result = subprocess.run([pwsh, "-NoLogo", "-NoProfile", "-NonInteractive", "-File", str(script)],
                                     cwd=work, env=env, capture_output=True, text=True, timeout=30)
         calls = [json.loads(line) for line in log.read_text(encoding="utf-8").splitlines()] if log.exists() else []

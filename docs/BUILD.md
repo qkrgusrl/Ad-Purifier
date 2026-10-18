@@ -22,7 +22,11 @@
 
 ## CI 순서
 
-`.github/workflows/windows-installer.yml`은 `feature/windows-installer` push 및 수동 실행을 지원한다.
+`.github/workflows/windows-installer.yml`은 `build/windows-*` 태그 push 및 `workflow_dispatch` 수동 실행을 지원한다.
+일반 commit의 브랜치 push와 PR에는 빌드가 실행되지 않는다.
+현재 workflow는 feature 브랜치에만 있어 `workflow_dispatch`의 default branch 조건을 충족하지 않으므로,
+코드 검증 후 정확한 commit에 매번 새 `build/windows-날짜-순번` 태그를 붙여 push하는 수동 트리거를 사용한다.
+원격 workflow가 비활성 상태이면 태그를 push해도 실행되지 않는다.
 Windows-2022 runner에서 잠금 의존성 설치와 `pip check` 후 `scripts/build_windows.ps1`을 실행한다.
 스크립트는 잠금 Chromium 준비 → 전체 unittest → 브라우저 임시 이동 → 라이선스 수집 → PyInstaller → 브라우저 dist 이동 및 모델 자산 직접 다운로드 →
 Inno Setup → 실제 설치 → frozen self-test → UI HTTP smoke 순서로 동작한다.
@@ -90,10 +94,11 @@ Inno는 `DiskSpanning=yes`, `DiskSliceSize=1800000000`으로 분할한다.
 릴리스 실행 순서:
 1. 검토 완료한 최종 소스 commit을 push한다.
 2. 그 commit SHA에 정확히 연결되는 `v0.2.0-preview.1` 태그와 draft 릴리스를 준비한다.
-3. 같은 소스 commit을 빌드하도록 workflow를 다시 실행하고 설치·self-test 결과를 확인한다.
+3. 같은 소스 commit SHA에 매번 새 `build/windows-날짜-순번` 태그(예: `build/windows-20261018-01`)를 붙여 push하고 설치·self-test 결과를 확인한다.
+   빌드 태그와 `v0.2.0-preview.1` 태그는 같은 commit을 가리켜야 한다. 재시도에도 새 빌드 태그를 사용하며 공개 태그는 덮어쓰지 않는다.
 4. 모든 검증을 통과한 업로드를 검토한 뒤 수동으로 게시한다.
 
-브랜치 push 자동 빌드에서도 태그·draft 준비 전에는 릴리스 업로드가 차단된다.
+수동 빌드 태그로 실행해도 릴리스 태그·draft 준비 전에는 릴리스 업로드가 차단된다.
 새 버전 태그는 릴리스 계획에서 별도로 확정한 후 변경한다.
 검토 후 수동으로 게시한다. 실패 시 설치 파일은 업로드하지 않고 진단 artifact만 보존한다.
 
