@@ -12,6 +12,7 @@ import argparse
 import csv
 import hashlib
 import io
+import importlib.util
 import json
 import re
 import shutil
@@ -25,13 +26,15 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
+from app_paths import resource_root, gemma_model, llama_server
+
 from detector.main import DEFAULT_MODEL, JUDGE_RESERVE, KST, LLM_RESERVE, TIME_BUDGET, ScanCancelled, app_dir, run
 
 CRAWL_LIMIT = TIME_BUDGET - LLM_RESERVE - JUDGE_RESERVE  # 화면 진행률에 쓰는 크롤링 최대 시간(초)
 NO_LIMIT_BUDGET = 7 * 24 * 3600  # --no-time-limit: 사실상 무제한(대기열이 비면 끝난다)
 options = {"time_limit": True}
 
-STATIC = Path(__file__).resolve().parent / "static"
+STATIC = resource_root() / "ui" / "static"
 HISTORY = app_dir() / "history"
 RUN_ID = re.compile(r"\d{8}-\d{6}")
 CAND_KEY = re.compile(r"[0-9a-f]{12}")
@@ -41,6 +44,32 @@ state_lock = threading.Lock()
 state = {"running": False, "phase": "idle", "entry_url": "", "pages_done": 0, "pages_found": 0, "current_url": "",
          "started": None, "run_id": None, "error": None, "cancelling": False}
 cancel_event = threading.Event()  # 탐지 취소 신호 (진행 중인 점검 하나에만 쓰고, 새 점검을 시작할 때 비운다)
+
+
+def model_readiness():
+    """파일 준비와 실제 실행 검증은 다르다. 상태 API에서 모델을 실행하지 않는다."""
+    files = {
+        "laya_weights": DEFAULT_MODEL / "model.safetensors",
+        "laya_config": DEFAULT_MODEL / "rl_agent_config.json",
+        "laya_questions": DEFAULT_MODEL / "questions.json",
+        "encoder": DEFAULT_MODEL / "encoder" / "config.json",
+        "tokenizer": DEFAULT_MODEL / "tokenizer" / "tokenizer.json",
+        "tokenizer_config": DEFAULT_MODEL / "tokenizer" / "tokenizer_config.json",
+        "gemma_weights": gemma_model(), "llama_server": llama_server(),
+    }
+    if sys.platform == "win32":
+        for name in ("llama.dll", "ggml.dll", "ggml-base.dll", "ggml-cpu.dll"):
+            files[name] = llama_server().parent / name
+    available = {name: path.is_file() and path.stat().st_size > 0 for name, path in files.items()}
+    dependencies = {}
+    for name in ("laya", "torch", "transformers", "tokenizers", "safetensors", "playwright"):
+        try:
+            dependencies[name] = importlib.util.find_spec(name) is not None
+        except (ValueError, ImportError):
+            dependencies[name] = False
+    return {"files": available, "dependencies": dependencies,
+            "files_present": all(available.values()) and all(dependencies.values()),
+            "execution_status": "not_checked", "note": "파일 존재 확인만 수행; 모델 로딩·추론 성공을 뜻하지 않음"}
 
 
 def cand_key(c):
@@ -60,14 +89,14 @@ def scan_job(entry_url, use_ml, max_pages):
     run_id = datetime.now(KST).strftime("%Y%m%d-%H%M%S")
     try:
         budget = {} if options["time_limit"] else {"time_budget": NO_LIMIT_BUDGET}
-        run(entry_url, app_dir(), max_pages=max_pages, use_ml=use_ml, progress=progress, phase=phase,
+        report = run(entry_url, app_dir(), max_pages=max_pages, use_ml=use_ml, progress=progress, phase=phase,
             cancel=cancel_event, **budget)
         dest = HISTORY / run_id
         dest.mkdir(parents=True, exist_ok=True)
         for name in ("result.json", "report.json"):
             shutil.copy2(app_dir() / name, dest / name)
         with state_lock:
-            state.update(phase="done", run_id=run_id)
+            state.update(phase="review" if report.get("needs_review") else "done", run_id=run_id)
     except ScanCancelled:  # 결과 파일·이력은 만들지 않는다 (지난 점검의 result.json 그대로)
         with state_lock:
             state.update(phase="cancelled")
@@ -102,7 +131,8 @@ def list_runs():
                      "dirty_pages": len({u for c in pending_ads for u in [c["url"]] + [x["url"] for x in c.get("also_on", [])]}),
                      "pending_hidden": sum(c["technique"] != "POSTED" for c in pending_ads),
                      "pending_unique": len({" ".join(c["evidence_text"].split()) for c in pending_ads}),
-                     "entry_failed": rep.get("entry_failed", False)})
+                     "entry_failed": rep.get("entry_failed", False), "needs_review": rep.get("needs_review", False),
+                     "unresolved_count": rep.get("unresolved_count", 0), "coverage": rep.get("coverage", {})})
     return runs
 
 
@@ -168,7 +198,7 @@ def export_csv(rep, result_doc):
         w.writerow([csv_cell(v) for v in (
             ids.get((c["url"], c["location"], c["technique"]), ""), c["url"], "true", c["location"], c["evidence_text"],
             c["technique"], TECH_KO.get(c["technique"], c["technique"]), c["normalized"], evidence_of(c), c["score"],
-            "AI 보조 판정" if c["decided_by"] == "laya" else "규칙", REVIEW_KO.get(c["review"], c["review"]), c["memo"], len(c.get("also_on", [])))])
+            {"laya": "Laya 판정", "gemma": "젬마 검증"}.get(c["decided_by"], "규칙"), REVIEW_KO.get(c["review"], c["review"]), c["memo"], len(c.get("also_on", [])))])
     # 엑셀에서 한글이 깨지지 않도록 BOM 추가 (검토용 파일 — 제출용 result.json은 BOM 없음)
     return "\ufeff" + buf.getvalue()
 
@@ -230,7 +260,8 @@ class Handler(BaseHTTPRequestHandler):
             with state_lock:
                 s = dict(state)
             s["elapsed"] = round(time.time() - s["started"], 1) if s["started"] else 0
-            s["model_available"] = DEFAULT_MODEL.is_dir()
+            s["model_readiness"] = model_readiness()
+            s["model_available"] = s["model_readiness"]["files_present"]
             s["crawl_limit"] = CRAWL_LIMIT if options["time_limit"] else 0  # 0 = 시간 제한 없음(실험)
             s["out_dir"] = str(app_dir())
             return self.send(200, s)
@@ -265,7 +296,9 @@ class Handler(BaseHTTPRequestHandler):
             url = (req.get("url") or "").strip()
             if urlparse(url).scheme not in ("http", "https") or not urlparse(url).netloc:
                 return self.send(400, {"error": "http:// 또는 https:// 로 시작하는 URL을 입력하세요."})
-            use_ml = bool(req.get("use_ml", True)) and DEFAULT_MODEL.is_dir()
+            use_ml = bool(req.get("use_ml", True))
+            if use_ml and not model_readiness()["files_present"]:
+                return self.send(409, {"error": "AI 자산 또는 의존 파일이 없습니다. 설치 상태를 확인하거나 AI 체크를 직접 해제해 진단 모드를 선택하세요."})
             try:
                 max_pages = max(0, min(int(req.get("max_pages") or 0), 20000))  # 0 = 제한 없음(시간 예산까지 전부)
             except (TypeError, ValueError):

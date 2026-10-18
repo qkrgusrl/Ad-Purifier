@@ -23,3 +23,19 @@ history/
 
 # 로컬 전용 에디터·세션 설정 (개인 권한·경로 포함)
 .claude/
+
+# Windows 배포 빌드/진단 (모델과 바이너리는 release 자산으로만 배포)
+/build/
+/dist/
+/release/
+/runtime/
+/build-diagnostics/
+/packaging/.downloads/
+/licenses/python-packages/
+/self-test.json
+
+/licenses/Python-LICENSE.txt
+
+# 독립 테스트 생성 로그 (test source 자체는 추적 대상)
+/tests/fixtures/*red_output.txt
+/tests/fixtures/ai_red_results.json

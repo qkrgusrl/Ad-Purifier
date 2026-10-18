@@ -1,0 +1,33 @@
+[
+  {
+    "file": "Apache-2.0.txt",
+    "url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  {
+    "file": "llama.cpp-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/ggml-org/llama.cpp/d81235049384534c167caea52b85a694f6103d14/LICENSE",
+    "sha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d"
+  },
+  {
+    "file": "mmBERT-base-README.md",
+    "url": "https://huggingface.co/jhu-clsp/mmBERT-base/raw/c5955035435e2bf121cde7f3c8863ef52ff35d82/README.md",
+    "sha256": "35724415037ee3159aa733c16050620cc19a76219112a6ceeb3949572e0b37e9"
+  },
+  {
+    "file": "Gemma-E2B-README.md",
+    "url": "https://huggingface.co/google/gemma-4-E2B-it-qat-q4_0-gguf/raw/675cff42a74c774d6cb76f76d8eacb49b48c9b93/README.md",
+    "sha256": "942e93b96c2f7f2b5fdd8d5578f0f1215e4a354f12e202999b4fbc864bb02ef5"
+  },
+  {
+    "file": "Laya-LICENSE",
+    "source": "laya==0.4.2 wheel",
+    "sha256": "a6cba85bc92e0cff7a450b1d873c0eaa2e9fc96bf472df0247a26bec77bf3ff9"
+  },
+  {
+    "file": "MIT.txt",
+    "url": "https://raw.githubusercontent.com/spdx/license-list-data/main/text/MIT.txt",
+    "sha256": "b05785f9f18e6716bab63424b11454513b9943a222595b70411009202fc592b5",
+    "note": "MIT 표준 조건; mmBERT 권리자 표시를 새로 부여하지 않음"
+  }
+]
