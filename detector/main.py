@@ -1,7 +1,7 @@
 """불법광고 탐지기 (프로토타입).
 
 사용: python -m detector.main <진입URL> [--out 폴더(기본: 프로젝트 루트/exe 폴더)] [--max-pages 0(제한 없음)]
-      [--time-budget 1620] [--llm-reserve 360] [--model 경로] [--no-ml]
+      [--time-budget 1740] [--llm-reserve 360] [--model 경로] [--no-ml]
 산출: result.json (적격평가 스키마), report.json (판정 근거 포함 내부 리포트)
 """
 import argparse
@@ -693,7 +693,7 @@ EXTRA_LABEL = {"POSTED": "게시형 불법광고(은닉 없음)"}
 
 
 # 시간 예산(초). 적격평가 검출 시간 상한은 30분 — 넘기면 시간 점수 0점, result.json이 없으면 평가 제외될 수 있다.
-TIME_BUDGET = 27 * 60   # 전체 목표: 30분 상한에서 3분 여유
+TIME_BUDGET = 29 * 60   # 전체 목표: 30분 상한에서 1분 여유
 JUDGE_RESERVE = 2 * 60  # 로컬 판정(룰+Laya)·저장 몫. 실사이트 11곳 측정 시 판정은 0.4~11초
 LLM_RESERVE = 6 * 60    # 나중에 붙일 LLM 최종 검증 몫(아직 미구현 — 자리만 확보)
 
