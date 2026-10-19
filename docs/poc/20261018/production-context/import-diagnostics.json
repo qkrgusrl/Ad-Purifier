@@ -1,0 +1,25 @@
+{
+  "paired_no_model_import_checks": [
+    {
+      "mode": "no_observer",
+      "exit_code": 0,
+      "output": "IMPORT_OK; Agent not constructed; no inference\n",
+      "agent_constructed": false,
+      "model_inference": false
+    },
+    {
+      "mode": "locals_observer",
+      "exit_code": 1,
+      "output": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n  File \"<WORKSPACE>/Ad-Purifier/.venv/lib/python3.12/site-packages/laya/__init__.py\", line 26, in <module>\n    from .lang import analyse as detect_language\n  File \"<WORKSPACE>/Ad-Purifier/.venv/lib/python3.12/site-packages/laya/lang.py\", line 201, in <module>\n    if sum(w in words for words in _STOP.values()) > 1}\n       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<WORKSPACE>/Ad-Purifier/.venv/lib/python3.12/site-packages/laya/lang.py\", line 201, in <genexpr>\n    if sum(w in words for words in _STOP.values()) > 1}\n           ^\nNameError: cannot access free variable 'w' where it is not associated with a value in enclosing scope\n",
+      "agent_constructed": false,
+      "model_inference": false
+    }
+  ],
+  "corrected_observer_import_check": {
+    "status": "IMPORT_OK",
+    "agent_constructed": false,
+    "model_inference": false,
+    "observer": "filtered function-only locals access"
+  },
+  "cause": "Unconditional frame.f_locals reads by the PoC sys.setprofile callback caused Laya module comprehension import NameError. Uninstrumented and filtered-observer imports succeeded. No Agent construction or inference in import checks."
+}

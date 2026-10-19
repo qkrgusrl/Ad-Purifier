@@ -1,0 +1,1037 @@
+{
+  "needs_review": false,
+  "crawl_incomplete": false,
+  "coverage": {
+    "visited_pages": 5,
+    "failed_frames": 0,
+    "pending_pages": 0,
+    "failed_pages": 0,
+    "http_error_pages": 0,
+    "stopped_by_time": false,
+    "discovered_pages": 5
+  },
+  "failed_frames": [],
+  "unresolved_count": 0,
+  "ai": {
+    "mode": "policy",
+    "laya_confidence_threshold": 0.8,
+    "laya_inputs": 16,
+    "gemma_verify": 4,
+    "gemma_extract": 1,
+    "residual_screened_clean": 15,
+    "unresolved_sources": [],
+    "failures": [],
+    "source_results": [
+      {
+        "source_id": "3490aa755cb1bf2f6839c8e6:3490aa755cb1bf2f6839c8e6:dom-2",
+        "verdict": "clean",
+        "decided_by": "laya"
+      },
+      {
+        "source_id": "183c6406e931bd52e59c60d3:183c6406e931bd52e59c60d3:dom-2",
+        "verdict": "clean",
+        "decided_by": "laya"
+      },
+      {
+        "source_id": "4270d7c9617e7c8bc766f460:4270d7c9617e7c8bc766f460:dom-2",
+        "verdict": "clean",
+        "decided_by": "laya"
+      },
+      {
+        "source_id": "4270d7c9617e7c8bc766f460:4270d7c9617e7c8bc766f460:dom-3",
+        "verdict": "clean",
+        "decided_by": "laya"
+      },
+      {
+        "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-2",
+        "verdict": "clean",
+        "decided_by": "laya"
+      },
+      {
+        "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-3",
+        "verdict": "clean",
+        "decided_by": "laya"
+      },
+      {
+        "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-4",
+        "verdict": "clean",
+        "decided_by": "laya"
+      },
+      {
+        "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-5",
+        "verdict": "clean",
+        "decided_by": "laya"
+      },
+      {
+        "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-6",
+        "verdict": "clean",
+        "decided_by": "laya"
+      },
+      {
+        "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-7",
+        "verdict": "clean",
+        "decided_by": "laya"
+      },
+      {
+        "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-8",
+        "verdict": "clean",
+        "decided_by": "laya"
+      },
+      {
+        "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-9",
+        "verdict": "clean",
+        "decided_by": "laya"
+      },
+      {
+        "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-10",
+        "verdict": "clean",
+        "decided_by": "laya"
+      },
+      {
+        "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-11",
+        "verdict": "clean",
+        "decided_by": "laya"
+      },
+      {
+        "source_id": "2f2f9fc9af7f6c37c3763083:2f2f9fc9af7f6c37c3763083:dom-2",
+        "verdict": "clean",
+        "decided_by": "laya"
+      }
+    ],
+    "scope": "수집된 DOM 텍스트 소유 단위; 전체 HTTP 원문 및 이미지 검사는 포함하지 않음",
+    "extraction": {
+      "task": "extract",
+      "version": "v15",
+      "status": "ok",
+      "input_block_count": 1,
+      "candidates": [
+        {
+          "block_id": "2f2f9fc9af7f6c37c3763083:2f2f9fc9af7f6c37c3763083:dom-1",
+          "evidence": "<p id=\"target\">처방전 없이 수면제를 판매합니다</p>",
+          "evidence_id": "h0001",
+          "owner_id": "2f2f9fc9af7f6c37c3763083:2f2f9fc9af7f6c37c3763083:dom-1",
+          "source_field": "html",
+          "start_char": 0,
+          "end_char": 36,
+          "source_sha256": "9167a81a657a4363f92fe69cc20ff5c1bdfe3688d4b99456dab2686380b7cb03"
+        }
+      ],
+      "failures": [],
+      "calls": [
+        {
+          "task": "extract",
+          "version": "v15",
+          "input": {
+            "blocks": [
+              {
+                "block_id": "2f2f9fc9af7f6c37c3763083:2f2f9fc9af7f6c37c3763083:dom-1",
+                "html": "<p id=\"target\">처방전 없이 수면제를 판매합니다</p>",
+                "context": "<p id=\"target\">처방전 없이 수면제를 판매합니다</p>"
+              }
+            ]
+          },
+          "prompt_sha256": "077819aa77a74c2b0523ece92b7afcfb0919fe354a95e99d7aebebdba1bacd37",
+          "temperature": 0,
+          "seed": 42,
+          "thinking": false,
+          "cache_prompt": true,
+          "status": "ok",
+          "parsed": {
+            "candidates": [
+              {
+                "block_id": "2f2f9fc9af7f6c37c3763083:2f2f9fc9af7f6c37c3763083:dom-1",
+                "evidence": "<p id=\"target\">처방전 없이 수면제를 판매합니다</p>"
+              }
+            ]
+          },
+          "validation": {
+            "errors": [],
+            "accepted": [
+              {
+                "block_id": "2f2f9fc9af7f6c37c3763083:2f2f9fc9af7f6c37c3763083:dom-1",
+                "evidence": "<p id=\"target\">처방전 없이 수면제를 판매합니다</p>"
+              }
+            ],
+            "rejected_count": 0
+          },
+          "unresolved_block_ids": [],
+          "failed_block_ids": [],
+          "block_calls": [
+            {
+              "task": "verify",
+              "version": "v15",
+              "input": {
+                "candidate_id": "2f2f9fc9af7f6c37c3763083:2f2f9fc9af7f6c37c3763083:dom-1",
+                "html": "<p id=\"target\">처방전 없이 수면제를 판매합니다</p>",
+                "context": "<p id=\"target\">처방전 없이 수면제를 판매합니다</p>"
+              },
+              "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+              "max_tokens": 192,
+              "temperature": 0,
+              "seed": 42,
+              "thinking": false,
+              "cache_prompt": true,
+              "request_count": 1,
+              "model_input": {
+                "candidate_id": "2f2f9fc9af7f6c37c3763083:2f2f9fc9af7f6c37c3763083:dom-1",
+                "source_units": [
+                  {
+                    "id": "h0001",
+                    "source_field": "html",
+                    "text": "<p id=\"target\">처방전 없이 수면제를 판매합니다</p>",
+                    "selectable": true
+                  },
+                  {
+                    "id": "c0001",
+                    "source_field": "context",
+                    "text": "<p id=\"target\">처방전 없이 수면제를 판매합니다</p>",
+                    "selectable": true
+                  }
+                ]
+              },
+              "preflight_prompt_tokens": 1168,
+              "inference_seconds": 9.297012541996082,
+              "raw_response": {
+                "choices": [
+                  {
+                    "finish_reason": "stop",
+                    "index": 0,
+                    "message": {
+                      "role": "assistant",
+                      "content": "{\"verdict\": \"ad\", \"evidence_id\": \"h0001\"}"
+                    }
+                  }
+                ],
+                "created": 1792322272,
+                "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+                "system_fingerprint": "b11429-d81235049",
+                "object": "chat.completion",
+                "usage": {
+                  "completion_tokens": 25,
+                  "prompt_tokens": 1169,
+                  "total_tokens": 1194,
+                  "prompt_tokens_details": {
+                    "cached_tokens": 0
+                  }
+                },
+                "id": "chatcmpl-Rnm4un1dJvxgLq17u1uHjyOQXAMSfkPc",
+                "timings": {
+                  "cache_n": 0,
+                  "prompt_n": 1169,
+                  "prompt_ms": 8603.024,
+                  "prompt_per_token_ms": 7.359301967493583,
+                  "prompt_per_second": 135.88245249577358,
+                  "predicted_n": 25,
+                  "predicted_ms": 677.204,
+                  "predicted_per_token_ms": 28.21683333333333,
+                  "predicted_per_second": 35.43983792180791
+                }
+              },
+              "model_output": {
+                "verdict": "ad",
+                "evidence_id": "h0001"
+              },
+              "parsed": {
+                "verdict": "ad",
+                "model_verdict": "ad",
+                "evidence": "<p id=\"target\">처방전 없이 수면제를 판매합니다</p>",
+                "evidence_id": "h0001",
+                "source_field": "html",
+                "start_char": 0,
+                "end_char": 36,
+                "source_sha256": "9167a81a657a4363f92fe69cc20ff5c1bdfe3688d4b99456dab2686380b7cb03",
+                "owner_id": "2f2f9fc9af7f6c37c3763083:2f2f9fc9af7f6c37c3763083:dom-1",
+                "evidence_scope": "source_unit_selection"
+              },
+              "validation": {
+                "errors": [],
+                "accepted": [],
+                "rejected_count": 0
+              },
+              "status": "ok",
+              "wall_seconds": 9.323224458988989
+            }
+          ],
+          "request_count": 1,
+          "source_bindings": {
+            "2f2f9fc9af7f6c37c3763083:2f2f9fc9af7f6c37c3763083:dom-1": {
+              "verdict": "ad",
+              "model_verdict": "ad",
+              "evidence": "<p id=\"target\">처방전 없이 수면제를 판매합니다</p>",
+              "evidence_id": "h0001",
+              "source_field": "html",
+              "start_char": 0,
+              "end_char": 36,
+              "source_sha256": "9167a81a657a4363f92fe69cc20ff5c1bdfe3688d4b99456dab2686380b7cb03",
+              "owner_id": "2f2f9fc9af7f6c37c3763083:2f2f9fc9af7f6c37c3763083:dom-1",
+              "evidence_scope": "source_unit_selection"
+            }
+          },
+          "inference_seconds": 9.297012541996082,
+          "wall_seconds": 9.323325083008967
+        }
+      ],
+      "next_step": "후보 원문과 참조를 Laya 판정 흐름으로 전달"
+    }
+  },
+  "meta": {
+    "topic": "불법광고",
+    "entry_url": "http://127.0.0.1:60111/P03.html",
+    "started_at": "2026-10-18T20:17:33+09:00",
+    "finished_at": "2026-10-18T20:18:02+09:00",
+    "elapsed_sec": 29.55,
+    "tool_version": "0.2.0-preview.1"
+  },
+  "pages": 5,
+  "crawl_sec": 5.21,
+  "entry_failed": false,
+  "failed_pages": [],
+  "http_errors": [],
+  "stopped_by_time": false,
+  "left_in_queue": 0,
+  "dropped_endless": 0,
+  "skipped_utility": 0,
+  "time_budget": 120,
+  "llm_reserve": 30,
+  "visit_log": [
+    [
+      1.6,
+      "http://127.0.0.1:60111/P03.html",
+      "http://127.0.0.1:60111/P03.html"
+    ],
+    [
+      2.5,
+      "http://127.0.0.1:60111/P11.html",
+      "http://127.0.0.1:60111/P11.html"
+    ],
+    [
+      3.4,
+      "http://127.0.0.1:60111/S06.html",
+      "http://127.0.0.1:60111/S06.html"
+    ],
+    [
+      4.3,
+      "http://127.0.0.1:60111/S07.html",
+      "http://127.0.0.1:60111/S07.html"
+    ],
+    [
+      5.2,
+      "http://127.0.0.1:60111/R01.html",
+      "http://127.0.0.1:60111/R01.html"
+    ]
+  ],
+  "external_skipped": [],
+  "slow_mode": false,
+  "retried": 0,
+  "extra_count": 1,
+  "candidates": [
+    {
+      "url": "http://127.0.0.1:60111/P03.html",
+      "location": "p",
+      "technique": "POSTED",
+      "evidence_text": "홀덤 동호회 참가 문의",
+      "signals": [
+        "keyword:홀덤"
+      ],
+      "source_id": "3490aa755cb1bf2f6839c8e6:3490aa755cb1bf2f6839c8e6:dom-1",
+      "source_html": "<p id=\"target\">홀덤 동호회 참가 문의</p>",
+      "source_context": "<p id=\"target\">홀덤 동호회 참가 문의</p>",
+      "source_near_text": "홀덤 동호회 참가 문의",
+      "raw": "홀덤 동호회 참가 문의",
+      "href": null,
+      "tag": "p",
+      "cls": "",
+      "source_sha256": "d3db6d4010824e93f4b22ddfb6b1fe4290adf5516bfa1ac4225e16e1678b76e9",
+      "normalized": "홀덤 동호회 참가 문의",
+      "score_detail": [
+        [
+          "홀덤",
+          3
+        ]
+      ],
+      "score": 3,
+      "hits": [
+        "홀덤"
+      ],
+      "verdict": "clean",
+      "decided_by": "gemma",
+      "processing_status": "completed",
+      "reason": "Gemma v15 원문 결합 검증 완료",
+      "ml_prob": 0.4855,
+      "laya_confidence": 0.5145,
+      "gemma": {
+        "task": "verify",
+        "version": "v15",
+        "status": "ok",
+        "results": [
+          {
+            "candidate_id": "3490aa755cb1bf2f6839c8e6:3490aa755cb1bf2f6839c8e6:dom-1:0",
+            "status": "ok",
+            "verdict": "clean",
+            "evidence": "<p id=\"target\">홀덤 동호회 참가 문의</p>",
+            "needs_review": false,
+            "call": {
+              "task": "verify",
+              "version": "v15",
+              "input": {
+                "candidate_id": "3490aa755cb1bf2f6839c8e6:3490aa755cb1bf2f6839c8e6:dom-1:0",
+                "html": "<p id=\"target\">홀덤 동호회 참가 문의</p>",
+                "context": "<p id=\"target\">홀덤 동호회 참가 문의</p>"
+              },
+              "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+              "max_tokens": 192,
+              "temperature": 0,
+              "seed": 42,
+              "thinking": false,
+              "cache_prompt": true,
+              "request_count": 1,
+              "model_input": {
+                "candidate_id": "3490aa755cb1bf2f6839c8e6:3490aa755cb1bf2f6839c8e6:dom-1:0",
+                "source_units": [
+                  {
+                    "id": "h0001",
+                    "source_field": "html",
+                    "text": "<p id=\"target\">홀덤 동호회 참가 문의</p>",
+                    "selectable": true
+                  },
+                  {
+                    "id": "c0001",
+                    "source_field": "context",
+                    "text": "<p id=\"target\">홀덤 동호회 참가 문의</p>",
+                    "selectable": true
+                  }
+                ]
+              },
+              "preflight_prompt_tokens": 1164,
+              "inference_seconds": 1.8973991250095423,
+              "raw_response": {
+                "choices": [
+                  {
+                    "finish_reason": "stop",
+                    "index": 0,
+                    "message": {
+                      "role": "assistant",
+                      "content": "{\"verdict\": \"clean\", \"evidence_id\": \"c0001\"}"
+                    }
+                  }
+                ],
+                "created": 1792322274,
+                "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+                "system_fingerprint": "b11429-d81235049",
+                "object": "chat.completion",
+                "usage": {
+                  "completion_tokens": 25,
+                  "prompt_tokens": 1165,
+                  "total_tokens": 1190,
+                  "prompt_tokens_details": {
+                    "cached_tokens": 1021
+                  }
+                },
+                "id": "chatcmpl-KM6ju4B9Gu1fsxG5vKvFgFS8B0mAIHTh",
+                "timings": {
+                  "cache_n": 1021,
+                  "prompt_n": 144,
+                  "prompt_ms": 1205.192,
+                  "prompt_per_token_ms": 8.369388888888889,
+                  "prompt_per_second": 119.4830367277579,
+                  "predicted_n": 25,
+                  "predicted_ms": 678.77,
+                  "predicted_per_token_ms": 28.282083333333333,
+                  "predicted_per_second": 35.35807416356056
+                }
+              },
+              "model_output": {
+                "verdict": "clean",
+                "evidence_id": "c0001"
+              },
+              "parsed": {
+                "verdict": "clean",
+                "model_verdict": "clean",
+                "evidence": "<p id=\"target\">홀덤 동호회 참가 문의</p>",
+                "evidence_id": "c0001",
+                "source_field": "context",
+                "start_char": 0,
+                "end_char": 31,
+                "source_sha256": "d3db6d4010824e93f4b22ddfb6b1fe4290adf5516bfa1ac4225e16e1678b76e9",
+                "owner_id": "3490aa755cb1bf2f6839c8e6:3490aa755cb1bf2f6839c8e6:dom-1:0",
+                "evidence_scope": "source_unit_selection"
+              },
+              "validation": {
+                "errors": [],
+                "accepted": [],
+                "rejected_count": 0
+              },
+              "status": "ok",
+              "wall_seconds": 1.9381224170065252
+            },
+            "evidence_id": "c0001",
+            "source_field": "context",
+            "start_char": 0,
+            "end_char": 31,
+            "source_sha256": "d3db6d4010824e93f4b22ddfb6b1fe4290adf5516bfa1ac4225e16e1678b76e9",
+            "evidence_scope": "source_unit_selection",
+            "owner_id": "3490aa755cb1bf2f6839c8e6:3490aa755cb1bf2f6839c8e6:dom-1:0"
+          }
+        ]
+      }
+    },
+    {
+      "url": "http://127.0.0.1:60111/P11.html",
+      "location": "p",
+      "technique": "POSTED",
+      "evidence_text": "홈타이 예약 문의",
+      "signals": [
+        "keyword:홈타이"
+      ],
+      "source_id": "183c6406e931bd52e59c60d3:183c6406e931bd52e59c60d3:dom-1",
+      "source_html": "<p id=\"target\">홈타이 예약 문의</p>",
+      "source_context": "<p id=\"target\">홈타이 예약 문의</p>",
+      "source_near_text": "홈타이 예약 문의",
+      "raw": "홈타이 예약 문의",
+      "href": null,
+      "tag": "p",
+      "cls": "",
+      "source_sha256": "cc90b184dc510c5a7874b9e5193efac813636e538c364f0b3b971dba70219846",
+      "normalized": "홈타이 예약 문의",
+      "score_detail": [
+        [
+          "홈타이",
+          3
+        ]
+      ],
+      "score": 3,
+      "hits": [
+        "홈타이"
+      ],
+      "verdict": "clean",
+      "decided_by": "gemma",
+      "processing_status": "completed",
+      "reason": "Gemma v15 원문 결합 검증 완료",
+      "ml_prob": 0.4658,
+      "laya_confidence": 0.5342,
+      "gemma": {
+        "task": "verify",
+        "version": "v15",
+        "status": "ok",
+        "results": [
+          {
+            "candidate_id": "183c6406e931bd52e59c60d3:183c6406e931bd52e59c60d3:dom-1:1",
+            "status": "ok",
+            "verdict": "clean",
+            "evidence": "<p id=\"target\">홈타이 예약 문의</p>",
+            "needs_review": false,
+            "call": {
+              "task": "verify",
+              "version": "v15",
+              "input": {
+                "candidate_id": "183c6406e931bd52e59c60d3:183c6406e931bd52e59c60d3:dom-1:1",
+                "html": "<p id=\"target\">홈타이 예약 문의</p>",
+                "context": "<p id=\"target\">홈타이 예약 문의</p>"
+              },
+              "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+              "max_tokens": 192,
+              "temperature": 0,
+              "seed": 42,
+              "thinking": false,
+              "cache_prompt": true,
+              "request_count": 1,
+              "model_input": {
+                "candidate_id": "183c6406e931bd52e59c60d3:183c6406e931bd52e59c60d3:dom-1:1",
+                "source_units": [
+                  {
+                    "id": "h0001",
+                    "source_field": "html",
+                    "text": "<p id=\"target\">홈타이 예약 문의</p>",
+                    "selectable": true
+                  },
+                  {
+                    "id": "c0001",
+                    "source_field": "context",
+                    "text": "<p id=\"target\">홈타이 예약 문의</p>",
+                    "selectable": true
+                  }
+                ]
+              },
+              "preflight_prompt_tokens": 1164,
+              "inference_seconds": 1.9081228339928202,
+              "raw_response": {
+                "choices": [
+                  {
+                    "finish_reason": "stop",
+                    "index": 0,
+                    "message": {
+                      "role": "assistant",
+                      "content": "{\"verdict\": \"clean\", \"evidence_id\": \"c0001\"}"
+                    }
+                  }
+                ],
+                "created": 1792322276,
+                "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+                "system_fingerprint": "b11429-d81235049",
+                "object": "chat.completion",
+                "usage": {
+                  "completion_tokens": 25,
+                  "prompt_tokens": 1165,
+                  "total_tokens": 1190,
+                  "prompt_tokens_details": {
+                    "cached_tokens": 1021
+                  }
+                },
+                "id": "chatcmpl-APcZLi6zru6vi6ahnOxA0XodAP4BPymB",
+                "timings": {
+                  "cache_n": 1021,
+                  "prompt_n": 144,
+                  "prompt_ms": 1202.458,
+                  "prompt_per_token_ms": 8.350402777777779,
+                  "prompt_per_second": 119.7547024511459,
+                  "predicted_n": 25,
+                  "predicted_ms": 681.514,
+                  "predicted_per_token_ms": 28.396416666666667,
+                  "predicted_per_second": 35.21571090249063
+                }
+              },
+              "model_output": {
+                "verdict": "clean",
+                "evidence_id": "c0001"
+              },
+              "parsed": {
+                "verdict": "clean",
+                "model_verdict": "clean",
+                "evidence": "<p id=\"target\">홈타이 예약 문의</p>",
+                "evidence_id": "c0001",
+                "source_field": "context",
+                "start_char": 0,
+                "end_char": 28,
+                "source_sha256": "cc90b184dc510c5a7874b9e5193efac813636e538c364f0b3b971dba70219846",
+                "owner_id": "183c6406e931bd52e59c60d3:183c6406e931bd52e59c60d3:dom-1:1",
+                "evidence_scope": "source_unit_selection"
+              },
+              "validation": {
+                "errors": [],
+                "accepted": [],
+                "rejected_count": 0
+              },
+              "status": "ok",
+              "wall_seconds": 1.9329733330087038
+            },
+            "evidence_id": "c0001",
+            "source_field": "context",
+            "start_char": 0,
+            "end_char": 28,
+            "source_sha256": "cc90b184dc510c5a7874b9e5193efac813636e538c364f0b3b971dba70219846",
+            "evidence_scope": "source_unit_selection",
+            "owner_id": "183c6406e931bd52e59c60d3:183c6406e931bd52e59c60d3:dom-1:1"
+          }
+        ]
+      }
+    },
+    {
+      "url": "http://127.0.0.1:60111/S06.html",
+      "location": "p",
+      "technique": "POSTED",
+      "evidence_text": "카지노 바카라",
+      "signals": [
+        "keyword:카지노,바카라",
+        "page-context"
+      ],
+      "source_id": "4270d7c9617e7c8bc766f460:4270d7c9617e7c8bc766f460:dom-1",
+      "source_html": "<p id=\"target\">카지노 바카라</p>",
+      "source_context": "<p id=\"target\">카지노 바카라</p>\n<aside class=\"related\">도박 예방교육 자료의 용어 목록입니다.</aside>",
+      "source_near_text": "카지노 바카라\n도박 예방교육 자료의 용어 목록입니다.",
+      "raw": "카지노 바카라",
+      "href": null,
+      "tag": "p",
+      "cls": "",
+      "source_sha256": "c95424929ad94beeccc00312dc7fdd28326b9dd5d5e5d8873ce5b6895b4dfcbd",
+      "context": [
+        [
+          "page-context",
+          -4
+        ]
+      ],
+      "normalized": "카지노 바카라",
+      "score_detail": [
+        [
+          "카지노",
+          3
+        ],
+        [
+          "바카라",
+          3
+        ],
+        [
+          "page-context",
+          -4
+        ]
+      ],
+      "score": 2,
+      "hits": [
+        "카지노",
+        "바카라",
+        "-page-context"
+      ],
+      "verdict": "clean",
+      "decided_by": "gemma",
+      "processing_status": "completed",
+      "reason": "Gemma v15 원문 결합 검증 완료",
+      "gemma": {
+        "task": "verify",
+        "version": "v15",
+        "status": "ok",
+        "results": [
+          {
+            "candidate_id": "4270d7c9617e7c8bc766f460:4270d7c9617e7c8bc766f460:dom-1:2",
+            "status": "ok",
+            "verdict": "clean",
+            "evidence": "도박 예방교육 자료의 용어 목록입니다.",
+            "needs_review": false,
+            "call": {
+              "task": "verify",
+              "version": "v15",
+              "input": {
+                "candidate_id": "4270d7c9617e7c8bc766f460:4270d7c9617e7c8bc766f460:dom-1:2",
+                "html": "<p id=\"target\">카지노 바카라</p>",
+                "context": "<p id=\"target\">카지노 바카라</p>\n<aside class=\"related\">도박 예방교육 자료의 용어 목록입니다.</aside>"
+              },
+              "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+              "max_tokens": 192,
+              "temperature": 0,
+              "seed": 42,
+              "thinking": false,
+              "cache_prompt": true,
+              "request_count": 1,
+              "model_input": {
+                "candidate_id": "4270d7c9617e7c8bc766f460:4270d7c9617e7c8bc766f460:dom-1:2",
+                "source_units": [
+                  {
+                    "id": "h0001",
+                    "source_field": "html",
+                    "text": "<p id=\"target\">카지노 바카라</p>",
+                    "selectable": true
+                  },
+                  {
+                    "id": "c0001",
+                    "source_field": "context",
+                    "text": "<p id=\"target\">카지노 바카라</p>",
+                    "selectable": true
+                  },
+                  {
+                    "id": "c0002",
+                    "source_field": "context",
+                    "text": "\n",
+                    "selectable": false
+                  },
+                  {
+                    "id": "c0003",
+                    "source_field": "context",
+                    "text": "<aside class=\"related\">",
+                    "selectable": true
+                  },
+                  {
+                    "id": "c0004",
+                    "source_field": "context",
+                    "text": "도박 예방교육 자료의 용어 목록입니다.",
+                    "selectable": true
+                  },
+                  {
+                    "id": "c0005",
+                    "source_field": "context",
+                    "text": "</aside>",
+                    "selectable": false
+                  }
+                ]
+              },
+              "preflight_prompt_tokens": 1296,
+              "inference_seconds": 3.1331752910045907,
+              "raw_response": {
+                "choices": [
+                  {
+                    "finish_reason": "stop",
+                    "index": 0,
+                    "message": {
+                      "role": "assistant",
+                      "content": "{\n  \"verdict\": \"clean\",\n  \"evidence_id\": \"c0004\"\n}"
+                    }
+                  }
+                ],
+                "created": 1792322279,
+                "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+                "system_fingerprint": "b11429-d81235049",
+                "object": "chat.completion",
+                "usage": {
+                  "completion_tokens": 32,
+                  "prompt_tokens": 1297,
+                  "total_tokens": 1329,
+                  "prompt_tokens_details": {
+                    "cached_tokens": 1021
+                  }
+                },
+                "id": "chatcmpl-moEwPUz1kvZrgR1dGgzO3XKI2PCTlee2",
+                "timings": {
+                  "cache_n": 1021,
+                  "prompt_n": 276,
+                  "prompt_ms": 2239.739,
+                  "prompt_per_token_ms": 8.114996376811595,
+                  "prompt_per_second": 123.22864405182926,
+                  "predicted_n": 32,
+                  "predicted_ms": 880.655,
+                  "predicted_per_token_ms": 28.40822580645161,
+                  "predicted_per_second": 35.20107192941617
+                }
+              },
+              "model_output": {
+                "verdict": "clean",
+                "evidence_id": "c0004"
+              },
+              "parsed": {
+                "verdict": "clean",
+                "model_verdict": "clean",
+                "evidence": "도박 예방교육 자료의 용어 목록입니다.",
+                "evidence_id": "c0004",
+                "source_field": "context",
+                "start_char": 50,
+                "end_char": 71,
+                "source_sha256": "c95424929ad94beeccc00312dc7fdd28326b9dd5d5e5d8873ce5b6895b4dfcbd",
+                "owner_id": "4270d7c9617e7c8bc766f460:4270d7c9617e7c8bc766f460:dom-1:2",
+                "evidence_scope": "source_unit_selection"
+              },
+              "validation": {
+                "errors": [],
+                "accepted": [],
+                "rejected_count": 0
+              },
+              "status": "ok",
+              "wall_seconds": 3.162746125002741
+            },
+            "evidence_id": "c0004",
+            "source_field": "context",
+            "start_char": 50,
+            "end_char": 71,
+            "source_sha256": "c95424929ad94beeccc00312dc7fdd28326b9dd5d5e5d8873ce5b6895b4dfcbd",
+            "evidence_scope": "source_unit_selection",
+            "owner_id": "4270d7c9617e7c8bc766f460:4270d7c9617e7c8bc766f460:dom-1:2"
+          }
+        ]
+      }
+    },
+    {
+      "url": "http://127.0.0.1:60111/S07.html",
+      "location": "p:nth-of-type(1)",
+      "technique": "POSTED",
+      "evidence_text": "카지노 바카라",
+      "signals": [
+        "keyword:카지노,바카라",
+        "page-context"
+      ],
+      "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-1",
+      "source_html": "<p id=\"target\">카지노 바카라</p>",
+      "source_context": "<p id=\"target\">카지노 바카라</p>\n<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+      "source_near_text": "카지노 바카라\n제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+      "raw": "카지노 바카라",
+      "href": null,
+      "tag": "p",
+      "cls": "",
+      "source_sha256": "6b97cfb4674c3e416ce67e3a1c61a3b65e44b529afb1bb3a1bb07c1df5ef3458",
+      "context": [
+        [
+          "page-context",
+          -4
+        ]
+      ],
+      "normalized": "카지노 바카라",
+      "score_detail": [
+        [
+          "카지노",
+          3
+        ],
+        [
+          "바카라",
+          3
+        ],
+        [
+          "page-context",
+          -4
+        ]
+      ],
+      "score": 2,
+      "hits": [
+        "카지노",
+        "바카라",
+        "-page-context"
+      ],
+      "verdict": "clean",
+      "decided_by": "gemma",
+      "processing_status": "completed",
+      "reason": "Gemma v15 원문 결합 검증 완료",
+      "gemma": {
+        "task": "verify",
+        "version": "v15",
+        "status": "ok",
+        "results": [
+          {
+            "candidate_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-1:3",
+            "status": "ok",
+            "verdict": "clean",
+            "evidence": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+            "needs_review": false,
+            "call": {
+              "task": "verify",
+              "version": "v15",
+              "input": {
+                "candidate_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-1:3",
+                "html": "<p id=\"target\">카지노 바카라</p>",
+                "context": "<p id=\"target\">카지노 바카라</p>\n<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>"
+              },
+              "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+              "max_tokens": 192,
+              "temperature": 0,
+              "seed": 42,
+              "thinking": false,
+              "cache_prompt": true,
+              "request_count": 1,
+              "model_input": {
+                "candidate_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-1:3",
+                "source_units": [
+                  {
+                    "id": "h0001",
+                    "source_field": "html",
+                    "text": "<p id=\"target\">카지노 바카라</p>",
+                    "selectable": true
+                  },
+                  {
+                    "id": "c0001",
+                    "source_field": "context",
+                    "text": "<p id=\"target\">카지노 바카라</p>",
+                    "selectable": true
+                  },
+                  {
+                    "id": "c0002",
+                    "source_field": "context",
+                    "text": "\n",
+                    "selectable": false
+                  },
+                  {
+                    "id": "c0003",
+                    "source_field": "context",
+                    "text": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                    "selectable": true
+                  }
+                ]
+              },
+              "preflight_prompt_tokens": 1249,
+              "inference_seconds": 2.8445478750072652,
+              "raw_response": {
+                "choices": [
+                  {
+                    "finish_reason": "stop",
+                    "index": 0,
+                    "message": {
+                      "role": "assistant",
+                      "content": "{\n  \"verdict\": \"clean\",\n  \"evidence_id\": \"c0003\"\n}"
+                    }
+                  }
+                ],
+                "created": 1792322282,
+                "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+                "system_fingerprint": "b11429-d81235049",
+                "object": "chat.completion",
+                "usage": {
+                  "completion_tokens": 32,
+                  "prompt_tokens": 1250,
+                  "total_tokens": 1282,
+                  "prompt_tokens_details": {
+                    "cached_tokens": 1011
+                  }
+                },
+                "id": "chatcmpl-OK3aX3477NBxMpU797ZpIx2leYZunLfc",
+                "timings": {
+                  "cache_n": 1011,
+                  "prompt_n": 239,
+                  "prompt_ms": 1974.754,
+                  "prompt_per_token_ms": 8.262569037656903,
+                  "prompt_per_second": 121.02773307460069,
+                  "predicted_n": 32,
+                  "predicted_ms": 843.426,
+                  "predicted_per_token_ms": 27.207290322580647,
+                  "predicted_per_second": 36.75485460490902
+                }
+              },
+              "model_output": {
+                "verdict": "clean",
+                "evidence_id": "c0003"
+              },
+              "parsed": {
+                "verdict": "clean",
+                "model_verdict": "clean",
+                "evidence": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                "evidence_id": "c0003",
+                "source_field": "context",
+                "start_char": 27,
+                "end_char": 71,
+                "source_sha256": "6b97cfb4674c3e416ce67e3a1c61a3b65e44b529afb1bb3a1bb07c1df5ef3458",
+                "owner_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-1:3",
+                "evidence_scope": "source_unit_selection"
+              },
+              "validation": {
+                "errors": [],
+                "accepted": [],
+                "rejected_count": 0
+              },
+              "status": "ok",
+              "wall_seconds": 2.877312583994353
+            },
+            "evidence_id": "c0003",
+            "source_field": "context",
+            "start_char": 27,
+            "end_char": 71,
+            "source_sha256": "6b97cfb4674c3e416ce67e3a1c61a3b65e44b529afb1bb3a1bb07c1df5ef3458",
+            "evidence_scope": "source_unit_selection",
+            "owner_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-1:3"
+          }
+        ]
+      }
+    },
+    {
+      "url": "http://127.0.0.1:60111/R01.html",
+      "location": "p",
+      "technique": "POSTED",
+      "evidence_text": "처방전 없이 수면제를 판매합니다",
+      "signals": [
+        "keyword:"
+      ],
+      "source_id": "2f2f9fc9af7f6c37c3763083:2f2f9fc9af7f6c37c3763083:dom-1",
+      "source_html": "<p id=\"target\">처방전 없이 수면제를 판매합니다</p>",
+      "source_context": "<p id=\"target\">처방전 없이 수면제를 판매합니다</p>",
+      "source_near_text": "처방전 없이 수면제를 판매합니다",
+      "raw": "처방전 없이 수면제를 판매합니다",
+      "href": null,
+      "tag": "p",
+      "cls": "",
+      "source_sha256": "9167a81a657a4363f92fe69cc20ff5c1bdfe3688d4b99456dab2686380b7cb03",
+      "recovered_without_rule_hit": true,
+      "normalized": "처방전 없이 수면제를 판매합니다",
+      "score_detail": [],
+      "score": 0,
+      "hits": [],
+      "verdict": "ad",
+      "decided_by": "laya",
+      "extraction": {
+        "block_id": "2f2f9fc9af7f6c37c3763083:2f2f9fc9af7f6c37c3763083:dom-1",
+        "evidence": "<p id=\"target\">처방전 없이 수면제를 판매합니다</p>",
+        "evidence_id": "h0001",
+        "owner_id": "2f2f9fc9af7f6c37c3763083:2f2f9fc9af7f6c37c3763083:dom-1",
+        "source_field": "html",
+        "start_char": 0,
+        "end_char": 36,
+        "source_sha256": "9167a81a657a4363f92fe69cc20ff5c1bdfe3688d4b99456dab2686380b7cb03"
+      },
+      "processing_status": "completed",
+      "reason": "Laya 정상 출력의 confidence가 운영 임계값 이상",
+      "ml_prob": 0.8722,
+      "laya_confidence": 0.8722
+    }
+  ],
+  "model": "laya-model-smoke",
+  "repeats_collapsed": 0,
+  "duplicates": []
+}

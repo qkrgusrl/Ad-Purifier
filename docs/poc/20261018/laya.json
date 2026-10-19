@@ -1,0 +1,672 @@
+{
+  "started_at": "2026-10-18T09:20:39.414351+00:00",
+  "finished_at": "2026-10-18T09:20:42.313442+00:00",
+  "object_deleted_at": "2026-10-18T09:20:42.313431+00:00",
+  "device": "cpu",
+  "threads": 2,
+  "interop_threads": 1,
+  "backend": "Agent default",
+  "question": {
+    "is_illegal_ad": {
+      "type": "noul",
+      "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"
+    }
+  },
+  "question_sha256": "f7451e299b4fa7b4d118ec2a69f255faece7e590576a1e08fe042b05f0988fab",
+  "model_hashes": {
+    "model.safetensors": "391f38be190d50faf86efb62f6ba026697a1166a5af490bb7c72fc5aa626e14b",
+    "questions.json": "c524e1f65e82e77404f6ec567d2ad6ae92925f95ee020cb3718c7c219234932a",
+    "train_report.json": "45d38e007fcb75d665883cda0dbc11aff82b988708efc08b086928dae3b79807",
+    "rl_agent_config.json": "715cf2aa4fc32bf2ac83968cb7d96af25c2642676e5db8cc59fa5069f9371d3e",
+    "encoder/config.json": "3ceae14d210557b47abcde2768b27afbb2131974f9c4dd714f2236fd9ee54981",
+    "tokenizer/tokenizer_config.json": "5f36fa307ecb9e70c9b058ca0621530f6bd3e89b371c4d6c0279c48d9dbd2629",
+    "tokenizer/tokenizer.json": "dbba919c6e5e492bc22beb80abb64e6fcc7e8744dc696e8388b8c977767afa4b"
+  },
+  "versions": {
+    "laya": "0.4.2",
+    "torch": "2.5.1",
+    "transformers": "4.57.6"
+  },
+  "states": [
+    "대마초의 잎 구조를 관찰합니다.",
+    "비아그라 성분을 설명합니다.",
+    "비아그라 처방전 없이 판매합니다.",
+    "카지노",
+    "포커 현금을 걸고 참여하세요.",
+    "포커 확률을 계산합니다.",
+    "필로폰 팝니다.",
+    "홈타이"
+  ],
+  "calls": [
+    {
+      "batch_size": 16,
+      "input_count": 8,
+      "output_count": 8,
+      "seconds": 0.2685475839971332,
+      "started_at": "2026-10-18T09:20:42.246344+00:00"
+    }
+  ],
+  "outputs": [
+    {
+      "model": "laya-rl-agent",
+      "answers": {
+        "is_illegal_ad": {
+          "type": "noul",
+          "noul": 0.045,
+          "confidence": 0.955,
+          "answer_confidence": 0.955,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      },
+      "usage": {
+        "input_tokens": 69,
+        "output_tokens": 0,
+        "state_tokens": 13,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      }
+    },
+    {
+      "model": "laya-rl-agent",
+      "answers": {
+        "is_illegal_ad": {
+          "type": "noul",
+          "noul": 0.0522,
+          "confidence": 0.9478,
+          "answer_confidence": 0.9478,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      },
+      "usage": {
+        "input_tokens": 66,
+        "output_tokens": 0,
+        "state_tokens": 10,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      }
+    },
+    {
+      "model": "laya-rl-agent",
+      "answers": {
+        "is_illegal_ad": {
+          "type": "noul",
+          "noul": 0.9451,
+          "confidence": 0.9451,
+          "answer_confidence": 0.9451,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      },
+      "usage": {
+        "input_tokens": 69,
+        "output_tokens": 0,
+        "state_tokens": 13,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      }
+    },
+    {
+      "model": "laya-rl-agent",
+      "answers": {
+        "is_illegal_ad": {
+          "type": "noul",
+          "noul": 0.9501,
+          "confidence": 0.9501,
+          "answer_confidence": 0.9501,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      },
+      "usage": {
+        "input_tokens": 59,
+        "output_tokens": 0,
+        "state_tokens": 3,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      }
+    },
+    {
+      "model": "laya-rl-agent",
+      "answers": {
+        "is_illegal_ad": {
+          "type": "noul",
+          "noul": 0.9319,
+          "confidence": 0.9319,
+          "answer_confidence": 0.9319,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      },
+      "usage": {
+        "input_tokens": 67,
+        "output_tokens": 0,
+        "state_tokens": 11,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      }
+    },
+    {
+      "model": "laya-rl-agent",
+      "answers": {
+        "is_illegal_ad": {
+          "type": "noul",
+          "noul": 0.1907,
+          "confidence": 0.8093,
+          "answer_confidence": 0.8093,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      },
+      "usage": {
+        "input_tokens": 65,
+        "output_tokens": 0,
+        "state_tokens": 9,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      }
+    },
+    {
+      "model": "laya-rl-agent",
+      "answers": {
+        "is_illegal_ad": {
+          "type": "noul",
+          "noul": 0.9572,
+          "confidence": 0.9572,
+          "answer_confidence": 0.9572,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      },
+      "usage": {
+        "input_tokens": 63,
+        "output_tokens": 0,
+        "state_tokens": 7,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      }
+    },
+    {
+      "model": "laya-rl-agent",
+      "answers": {
+        "is_illegal_ad": {
+          "type": "noul",
+          "noul": 0.9066,
+          "confidence": 0.9066,
+          "answer_confidence": 0.9066,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      },
+      "usage": {
+        "input_tokens": 59,
+        "output_tokens": 0,
+        "state_tokens": 3,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      }
+    }
+  ],
+  "load_seconds": 2.560245208995184,
+  "status": "ok",
+  "rows": [
+    {
+      "id": "S08",
+      "state": "카지노",
+      "raw": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "is_illegal_ad": {
+            "type": "noul",
+            "noul": 0.9501,
+            "confidence": 0.9501,
+            "answer_confidence": 0.9501,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": 59,
+          "output_tokens": 0,
+          "state_tokens": 3,
+          "state_tokens_dropped": 0,
+          "truncated": false,
+          "truncated_questions": []
+        }
+      },
+      "index": 3,
+      "p_true": 0.9501,
+      "confidence": 0.9501,
+      "verdict": "ad",
+      "usage": {
+        "input_tokens": 59,
+        "output_tokens": 0,
+        "state_tokens": 3,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      },
+      "gemma_route": "off_policy_diagnostic",
+      "status": "ok"
+    },
+    {
+      "id": "S09",
+      "state": "카지노",
+      "raw": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "is_illegal_ad": {
+            "type": "noul",
+            "noul": 0.9501,
+            "confidence": 0.9501,
+            "answer_confidence": 0.9501,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": 59,
+          "output_tokens": 0,
+          "state_tokens": 3,
+          "state_tokens_dropped": 0,
+          "truncated": false,
+          "truncated_questions": []
+        }
+      },
+      "index": 3,
+      "p_true": 0.9501,
+      "confidence": 0.9501,
+      "verdict": "ad",
+      "usage": {
+        "input_tokens": 59,
+        "output_tokens": 0,
+        "state_tokens": 3,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      },
+      "gemma_route": "off_policy_diagnostic",
+      "status": "ok"
+    },
+    {
+      "id": "S10",
+      "state": "카지노",
+      "raw": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "is_illegal_ad": {
+            "type": "noul",
+            "noul": 0.9501,
+            "confidence": 0.9501,
+            "answer_confidence": 0.9501,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": 59,
+          "output_tokens": 0,
+          "state_tokens": 3,
+          "state_tokens_dropped": 0,
+          "truncated": false,
+          "truncated_questions": []
+        }
+      },
+      "index": 3,
+      "p_true": 0.9501,
+      "confidence": 0.9501,
+      "verdict": "ad",
+      "usage": {
+        "input_tokens": 59,
+        "output_tokens": 0,
+        "state_tokens": 3,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      },
+      "gemma_route": "off_policy_diagnostic",
+      "status": "ok"
+    },
+    {
+      "id": "S11",
+      "state": "비아그라 처방전 없이 판매합니다.",
+      "raw": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "is_illegal_ad": {
+            "type": "noul",
+            "noul": 0.9451,
+            "confidence": 0.9451,
+            "answer_confidence": 0.9451,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": 69,
+          "output_tokens": 0,
+          "state_tokens": 13,
+          "state_tokens_dropped": 0,
+          "truncated": false,
+          "truncated_questions": []
+        }
+      },
+      "index": 2,
+      "p_true": 0.9451,
+      "confidence": 0.9451,
+      "verdict": "ad",
+      "usage": {
+        "input_tokens": 69,
+        "output_tokens": 0,
+        "state_tokens": 13,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      },
+      "gemma_route": "off_policy_diagnostic",
+      "status": "ok"
+    },
+    {
+      "id": "S12",
+      "state": "비아그라 성분을 설명합니다.",
+      "raw": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "is_illegal_ad": {
+            "type": "noul",
+            "noul": 0.0522,
+            "confidence": 0.9478,
+            "answer_confidence": 0.9478,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": 66,
+          "output_tokens": 0,
+          "state_tokens": 10,
+          "state_tokens_dropped": 0,
+          "truncated": false,
+          "truncated_questions": []
+        }
+      },
+      "index": 1,
+      "p_true": 0.0522,
+      "confidence": 0.9478,
+      "verdict": "clean",
+      "usage": {
+        "input_tokens": 66,
+        "output_tokens": 0,
+        "state_tokens": 10,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      },
+      "gemma_route": "off_policy_diagnostic",
+      "status": "ok"
+    },
+    {
+      "id": "S13",
+      "state": "필로폰 팝니다.",
+      "raw": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "is_illegal_ad": {
+            "type": "noul",
+            "noul": 0.9572,
+            "confidence": 0.9572,
+            "answer_confidence": 0.9572,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": 63,
+          "output_tokens": 0,
+          "state_tokens": 7,
+          "state_tokens_dropped": 0,
+          "truncated": false,
+          "truncated_questions": []
+        }
+      },
+      "index": 6,
+      "p_true": 0.9572,
+      "confidence": 0.9572,
+      "verdict": "ad",
+      "usage": {
+        "input_tokens": 63,
+        "output_tokens": 0,
+        "state_tokens": 7,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      },
+      "gemma_route": "off_policy_diagnostic",
+      "status": "ok"
+    },
+    {
+      "id": "S14",
+      "state": "대마초의 잎 구조를 관찰합니다.",
+      "raw": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "is_illegal_ad": {
+            "type": "noul",
+            "noul": 0.045,
+            "confidence": 0.955,
+            "answer_confidence": 0.955,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": 69,
+          "output_tokens": 0,
+          "state_tokens": 13,
+          "state_tokens_dropped": 0,
+          "truncated": false,
+          "truncated_questions": []
+        }
+      },
+      "index": 0,
+      "p_true": 0.045,
+      "confidence": 0.955,
+      "verdict": "clean",
+      "usage": {
+        "input_tokens": 69,
+        "output_tokens": 0,
+        "state_tokens": 13,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      },
+      "gemma_route": "off_policy_diagnostic",
+      "status": "ok"
+    },
+    {
+      "id": "S15",
+      "state": "포커 확률을 계산합니다.",
+      "raw": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "is_illegal_ad": {
+            "type": "noul",
+            "noul": 0.1907,
+            "confidence": 0.8093,
+            "answer_confidence": 0.8093,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": 65,
+          "output_tokens": 0,
+          "state_tokens": 9,
+          "state_tokens_dropped": 0,
+          "truncated": false,
+          "truncated_questions": []
+        }
+      },
+      "index": 5,
+      "p_true": 0.1907,
+      "confidence": 0.8093,
+      "verdict": "clean",
+      "usage": {
+        "input_tokens": 65,
+        "output_tokens": 0,
+        "state_tokens": 9,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      },
+      "gemma_route": "off_policy_diagnostic",
+      "status": "ok"
+    },
+    {
+      "id": "S16",
+      "state": "포커 현금을 걸고 참여하세요.",
+      "raw": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "is_illegal_ad": {
+            "type": "noul",
+            "noul": 0.9319,
+            "confidence": 0.9319,
+            "answer_confidence": 0.9319,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": 67,
+          "output_tokens": 0,
+          "state_tokens": 11,
+          "state_tokens_dropped": 0,
+          "truncated": false,
+          "truncated_questions": []
+        }
+      },
+      "index": 4,
+      "p_true": 0.9319,
+      "confidence": 0.9319,
+      "verdict": "ad",
+      "usage": {
+        "input_tokens": 67,
+        "output_tokens": 0,
+        "state_tokens": 11,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      },
+      "gemma_route": "off_policy_diagnostic",
+      "status": "ok"
+    },
+    {
+      "id": "S17",
+      "state": "홈타이",
+      "raw": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "is_illegal_ad": {
+            "type": "noul",
+            "noul": 0.9066,
+            "confidence": 0.9066,
+            "answer_confidence": 0.9066,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": 59,
+          "output_tokens": 0,
+          "state_tokens": 3,
+          "state_tokens_dropped": 0,
+          "truncated": false,
+          "truncated_questions": []
+        }
+      },
+      "index": 7,
+      "p_true": 0.9066,
+      "confidence": 0.9066,
+      "verdict": "ad",
+      "usage": {
+        "input_tokens": 59,
+        "output_tokens": 0,
+        "state_tokens": 3,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      },
+      "gemma_route": "off_policy_diagnostic",
+      "status": "ok"
+    },
+    {
+      "id": "S18",
+      "state": "홈타이",
+      "raw": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "is_illegal_ad": {
+            "type": "noul",
+            "noul": 0.9066,
+            "confidence": 0.9066,
+            "answer_confidence": 0.9066,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": 59,
+          "output_tokens": 0,
+          "state_tokens": 3,
+          "state_tokens_dropped": 0,
+          "truncated": false,
+          "truncated_questions": []
+        }
+      },
+      "index": 7,
+      "p_true": 0.9066,
+      "confidence": 0.9066,
+      "verdict": "ad",
+      "usage": {
+        "input_tokens": 59,
+        "output_tokens": 0,
+        "state_tokens": 3,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      },
+      "gemma_route": "off_policy_diagnostic",
+      "status": "ok"
+    }
+  ],
+  "timing_note": "calls[].started_at는 원 수집 코드가 호출 직후 기록한 시각이다. 정확한 배치 시작 시각으로 해석하지 않는다. seconds는 perf_counter 실측이다."
+}

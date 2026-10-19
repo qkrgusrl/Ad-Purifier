@@ -1,0 +1,130 @@
+[
+  {
+    "id": "P01",
+    "text": "환전 가능한가요?",
+    "html": "<p id=\"target\">환전 가능한가요?</p>",
+    "document": "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\"><title>자료</title></head><body><p id=\"target\">환전 가능한가요?</p></body></html>",
+    "gold": null,
+    "purpose": "운영 confidence<0.8 경로 exercise용 입력 탐색; 탐지 정확도 평가 아님"
+  },
+  {
+    "id": "P02",
+    "text": "포커 모임 안내",
+    "html": "<p id=\"target\">포커 모임 안내</p>",
+    "document": "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\"><title>자료</title></head><body><p id=\"target\">포커 모임 안내</p></body></html>",
+    "gold": null,
+    "purpose": "운영 confidence<0.8 경로 exercise용 입력 탐색; 탐지 정확도 평가 아님"
+  },
+  {
+    "id": "P03",
+    "text": "홀덤 동호회 참가 문의",
+    "html": "<p id=\"target\">홀덤 동호회 참가 문의</p>",
+    "document": "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\"><title>자료</title></head><body><p id=\"target\">홀덤 동호회 참가 문의</p></body></html>",
+    "gold": null,
+    "purpose": "운영 confidence<0.8 경로 exercise용 입력 탐색; 탐지 정확도 평가 아님"
+  },
+  {
+    "id": "P04",
+    "text": "바카라 규칙을 배우는 모임",
+    "html": "<p id=\"target\">바카라 규칙을 배우는 모임</p>",
+    "document": "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\"><title>자료</title></head><body><p id=\"target\">바카라 규칙을 배우는 모임</p></body></html>",
+    "gold": null,
+    "purpose": "운영 confidence<0.8 경로 exercise용 입력 탐색; 탐지 정확도 평가 아님"
+  },
+  {
+    "id": "P05",
+    "text": "성인 화상채팅 안내",
+    "html": "<p id=\"target\">성인 화상채팅 안내</p>",
+    "document": "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\"><title>자료</title></head><body><p id=\"target\">성인 화상채팅 안내</p></body></html>",
+    "gold": null,
+    "purpose": "운영 confidence<0.8 경로 exercise용 입력 탐색; 탐지 정확도 평가 아님"
+  },
+  {
+    "id": "P06",
+    "text": "유흥 관련 문의",
+    "html": "<p id=\"target\">유흥 관련 문의</p>",
+    "document": "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\"><title>자료</title></head><body><p id=\"target\">유흥 관련 문의</p></body></html>",
+    "gold": null,
+    "purpose": "운영 confidence<0.8 경로 exercise용 입력 탐색; 탐지 정확도 평가 아님"
+  },
+  {
+    "id": "P07",
+    "text": "소액대출 조건이 궁금합니다.",
+    "html": "<p id=\"target\">소액대출 조건이 궁금합니다.</p>",
+    "document": "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\"><title>자료</title></head><body><p id=\"target\">소액대출 조건이 궁금합니다.</p></body></html>",
+    "gold": null,
+    "purpose": "운영 confidence<0.8 경로 exercise용 입력 탐색; 탐지 정확도 평가 아님"
+  },
+  {
+    "id": "P08",
+    "text": "무직자 상담 가능합니다.",
+    "html": "<p id=\"target\">무직자 상담 가능합니다.</p>",
+    "document": "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\"><title>자료</title></head><body><p id=\"target\">무직자 상담 가능합니다.</p></body></html>",
+    "gold": null,
+    "purpose": "운영 confidence<0.8 경로 exercise용 입력 탐색; 탐지 정확도 평가 아님"
+  },
+  {
+    "id": "P09",
+    "text": "카드 현금화 방법을 알아봅니다.",
+    "html": "<p id=\"target\">카드 현금화 방법을 알아봅니다.</p>",
+    "document": "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\"><title>자료</title></head><body><p id=\"target\">카드 현금화 방법을 알아봅니다.</p></body></html>",
+    "gold": null,
+    "purpose": "운영 confidence<0.8 경로 exercise용 입력 탐색; 탐지 정확도 평가 아님"
+  },
+  {
+    "id": "P10",
+    "text": "필로폰이라는 단어를 설명해주세요.",
+    "html": "<p id=\"target\">필로폰이라는 단어를 설명해주세요.</p>",
+    "document": "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\"><title>자료</title></head><body><p id=\"target\">필로폰이라는 단어를 설명해주세요.</p></body></html>",
+    "gold": null,
+    "purpose": "운영 confidence<0.8 경로 exercise용 입력 탐색; 탐지 정확도 평가 아님"
+  },
+  {
+    "id": "P11",
+    "text": "홈타이 예약 문의",
+    "html": "<p id=\"target\">홈타이 예약 문의</p>",
+    "document": "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\"><title>자료</title></head><body><p id=\"target\">홈타이 예약 문의</p></body></html>",
+    "gold": null,
+    "purpose": "운영 confidence<0.8 경로 exercise용 입력 탐색; 탐지 정확도 평가 아님"
+  },
+  {
+    "id": "P12",
+    "text": "오피 이용 안내",
+    "html": "<p id=\"target\">오피 이용 안내</p>",
+    "document": "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\"><title>자료</title></head><body><p id=\"target\">오피 이용 안내</p></body></html>",
+    "gold": null,
+    "purpose": "운영 confidence<0.8 경로 exercise용 입력 탐색; 탐지 정확도 평가 아님"
+  },
+  {
+    "id": "P13",
+    "text": "구글 검색으로 확인하세요.",
+    "html": "<p id=\"target\">구글 검색으로 확인하세요.</p>",
+    "document": "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\"><title>자료</title></head><body><p id=\"target\">구글 검색으로 확인하세요.</p></body></html>",
+    "gold": null,
+    "purpose": "운영 confidence<0.8 경로 exercise용 입력 탐색; 탐지 정확도 평가 아님"
+  },
+  {
+    "id": "P14",
+    "text": "새주소를 알려주세요.",
+    "html": "<p id=\"target\">새주소를 알려주세요.</p>",
+    "document": "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\"><title>자료</title></head><body><p id=\"target\">새주소를 알려주세요.</p></body></html>",
+    "gold": null,
+    "purpose": "운영 confidence<0.8 경로 exercise용 입력 탐색; 탐지 정확도 평가 아님"
+  },
+  {
+    "id": "P15",
+    "text": "롤링 조건을 알려주세요.",
+    "html": "<p id=\"target\">롤링 조건을 알려주세요.</p>",
+    "document": "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\"><title>자료</title></head><body><p id=\"target\">롤링 조건을 알려주세요.</p></body></html>",
+    "gold": null,
+    "purpose": "운영 confidence<0.8 경로 exercise용 입력 탐색; 탐지 정확도 평가 아님"
+  },
+  {
+    "id": "P16",
+    "text": "비아그라 관련 문의",
+    "html": "<p id=\"target\">비아그라 관련 문의</p>",
+    "document": "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\"><title>자료</title></head><body><p id=\"target\">비아그라 관련 문의</p></body></html>",
+    "gold": null,
+    "purpose": "운영 confidence<0.8 경로 exercise용 입력 탐색; 탐지 정확도 평가 아님"
+  }
+]

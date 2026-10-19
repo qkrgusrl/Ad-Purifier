@@ -1,0 +1,20 @@
+{
+  "meta": {
+    "topic": "불법광고",
+    "entry_url": "http://127.0.0.1:59290/P03.html",
+    "started_at": "2026-10-18T19:59:16+09:00",
+    "finished_at": "2026-10-18T19:59:46+09:00",
+    "elapsed_sec": 29.91,
+    "tool_version": "0.2.0-preview.1"
+  },
+  "findings": [
+    {
+      "id": "f_001",
+      "url": "http://127.0.0.1:59290/R01.html",
+      "location": "p",
+      "evidence_text": "처방전 없이 수면제를 판매합니다",
+      "technique": "ETC",
+      "extra_finding": "게시형 불법광고(은닉 없음)"
+    }
+  ]
+}

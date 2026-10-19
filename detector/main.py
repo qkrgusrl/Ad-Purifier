@@ -8,6 +8,7 @@ import argparse
 import asyncio
 import collections
 import json
+import hashlib
 import os
 import re
 import sys
@@ -19,11 +20,13 @@ from xml.etree import ElementTree as ET
 
 from playwright.async_api import async_playwright
 
+from app_paths import app_root, resource_root, laya_model
+
 from . import adscore
 from .frontier import Frontier
 from .textnorm import homoglyph_signals, jamo_signal, normalize
 
-TOOL_VERSION = "0.1.0-proto"
+TOOL_VERSION = "0.2.0-preview.1"
 
 
 async def _fetch_sitemap(entry: str, timeout_s: float = 8) -> list[str]:
@@ -57,7 +60,7 @@ async def _fetch_sitemap(entry: str, timeout_s: float = 8) -> list[str]:
 SITEMAP_MAX_BYTES = 20 * 1024 * 1024
 TOPIC = "불법광고"  # 요강 예시는 "TOPIC" 문자열 — 주최 측 확인 필요
 KST = timezone(timedelta(hours=9))
-EXTRACT_JS = (Path(__file__).parent / "extract.js").read_text(encoding="utf-8")
+EXTRACT_JS = (resource_root() / "detector" / "extract.js").read_text(encoding="utf-8")
 SKIP_EXT = (".pdf", ".hwp", ".hwpx", ".doc", ".docx", ".xls", ".xlsx", ".zip", ".jpg", ".jpeg", ".png", ".gif", ".mp4")
 
 # Playwright 기본 UA에는 "HeadlessChrome"이 들어가 일부 사이트가 다른(또는 빈) 화면을 준다.
@@ -317,13 +320,19 @@ async def scan_page(ctx, url, timeout_ms, on_site=None, guard=None):
         except Exception:
             pass
         frames = []
-        for fr in page.frames:
+        for frame_index, fr in enumerate(page.frames):
             try:
                 data = await fr.evaluate(EXTRACT_JS)
                 data["frame_url"] = fr.url
+                namespace = hashlib.sha256(f"{url}|{page.url}|{frame_index}|{fr.url}".encode()).hexdigest()[:24]
+                for group in ("hidden", "texts", "head", "source_blocks"):
+                    for row in data.get(group, []):
+                        if row.get("source_id"):
+                            row["source_id"] = namespace + ":" + row["source_id"]
                 frames.append((await frame_prefix(fr), data))
-            except Exception:
-                continue
+            except Exception as exc:
+                frames.append(("", {"frame_url": fr.url, "hidden": [], "texts": [], "head": [], "links": [],
+                                    "source_blocks": [], "collection_error": f"{type(exc).__name__}: {exc}"}))
         if blocked and frames:  # 다른 사이트로 넘기려던 페이지 — 판정 때 그 페이지 문구에 가산점 (candidates_from)
             frames[0][1]["blocked_nav"] = sorted({urlparse(b).netloc for b in blocked})
         return strip_fragment(page.url if page.url.startswith(("http://", "https://")) else url), frames, status
@@ -492,7 +501,18 @@ def link_farms(page_url, texts):
     return farms
 
 
-def candidates_from(pages, detect_posted=True):
+def source_fields(row):
+    """수집 원문은 점수용 context와 분리해 보존한다."""
+    fields = ("source_id", "source_html", "source_context", "source_near_text",
+              "raw", "href", "tag", "cls", "attr")
+    result = {k: row[k] for k in fields if k in row}
+    if isinstance(row.get("source_html"), str):
+        value = {"html": row["source_html"], "context": row.get("source_context", "")}
+        result["source_sha256"] = hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+    return result
+
+
+def candidates_from(pages, detect_posted=True, *, recover_posted=False):
     """페이지 스캔 결과 → (url, location, technique) 후보.
 
     detect_posted: 숨기지 않고 '게시된' 불법광고도 후보로 잡는다(기법 POSTED). 요강의 추가 탐지 유형.
@@ -506,9 +526,10 @@ def candidates_from(pages, detect_posted=True):
             redirect = [(f"external-redirect:{h}", REDIRECT_BONUS) for h in data.get("blocked_nav", [])][:1]
             for h in data["hidden"]:
                 for tech, why in h["signals"]:
-                    key = (norm_url(url), prefix + h["selector"], tech)
+                    key = (norm_url(url), prefix + h["selector"], tech, h.get("source_id"), h.get("attr", ""), h["text"], h["raw"])
                     c = cands.setdefault(key, {"url": url, "location": prefix + h["selector"], "technique": tech,
                                                "evidence_text": h["text"], "signals": []})
+                    c.update(source_fields(h))
                     c["signals"].append(why)
             # 제목·메타(head)는 본문이 거의 없거나 다른 사이트로 넘기려던 페이지(기생 페이지)에서만 본다.
             # 보통 게시판 페이지는 제목이 게시글 제목과 같아 같은 문구를 두 번 보고하게 되므로 쓰지 않는다.
@@ -538,20 +559,30 @@ def candidates_from(pages, detect_posted=True):
                 if jamo_signal(t["raw"]):
                     checks.append(("JAMO", ["decomposed-syllables"]))
                 for tech, why in checks:
-                    key = (norm_url(url), prefix + t["selector"], tech)
+                    key = (norm_url(url), prefix + t["selector"], tech, t.get("source_id"), t.get("attr", ""), t["text"], t["raw"])
                     c = cands.setdefault(key, {"url": url, "location": prefix + t["selector"], "technique": tech,
                                                "evidence_text": t["text"], "signals": []})
+                    c.update(source_fields(t))
                     c["signals"].extend(why)
                 if detect_posted and not checks:  # 닮은꼴·자모가 아닌 '보이는' 텍스트: 내용이 광고다울 때만
                     s, kw = adscore.score(normalize(t["text"]))
                     farm = farms.get(id(t))
-                    if adscore.verdict(s) != "clean" or farm or (redirect and s > 0):  # 후보 선정은 문장 자체 점수로
-                        key = (norm_url(url), prefix + t["selector"], "POSTED")
+                    selected_by_rules = adscore.verdict(s) != "clean" or farm or (redirect and s > 0)
+                    if selected_by_rules or recover_posted:  # 후보 선정은 문장 자체 점수로
+                        key = (norm_url(url), prefix + t["selector"], "POSTED", t.get("source_id"), t.get("attr", ""), t["text"], t["raw"])
                         c = cands.setdefault(key, {"url": url, "location": prefix + t["selector"], "technique": "POSTED",
                                                    "evidence_text": t["text"], "signals": [f"keyword:{','.join(kw[:6])}"]})
+                        c.update(source_fields(t))
+                        if not selected_by_rules:
+                            c["recovered_without_rule_hit"] = True
                         context = [(f"link-farm:{farm}", LINK_FARM_BONUS)] if farm else []
                         context += redirect if s > 0 else []
-                        context += page_ctx  # 제목·본문이 경고·보도·교육 글이면 감점 (게시형만 — 숨김형 광고는 그대로)
+                        local_ctx = page_ctx
+                        if "source_near_text" in t:
+                            local_ctx = adscore.page_context(normalize(t["source_near_text"]))
+                            if not local_ctx and BODY_CONTEXT:
+                                local_ctx = adscore.body_context([normalize(t["source_near_text"])])
+                        context += local_ctx  # 제목·본문이 경고·보도·교육 글이면 감점 (게시형만 — 숨김형 광고는 그대로)
                         if context:  # 판정 때 점수에 더할 문맥 가산점 (judge 참고)
                             c["signals"].extend(n for n, _ in context)
                             c["context"] = context
@@ -631,7 +662,7 @@ def collapse_repeats(cands):
 def judge(cands, model_path, use_ml, deadline=None, cancel=None):
     """룰 점수로 1차 판정, 경계 구간만 Laya로 2차 판정.
 
-    deadline(time.perf_counter() 기준)을 넘기면 남은 경계 문구는 Laya 없이 규칙 판정(정상 처리)으로 둔다.
+    확정 규칙은 유지하고 경계 후보만 AI 경로로 보낸다.
     """
     for c in cands:
         c["normalized"] = normalize(c["evidence_text"])
@@ -642,49 +673,18 @@ def judge(cands, model_path, use_ml, deadline=None, cancel=None):
         c["hits"] = [n if w > 0 else "-" + n for n, w in c["score_detail"]]
         c["verdict"] = adscore.verdict(c["score"])
         c["decided_by"] = "rules"
-    # 제목·본문 맥락상 광고를 '다루는' 글(예방교육·보도·법령 안내)로 감점된 경계 문구는 AI가 광고로 올리지 않는다.
-    # 은어 설명·적발 사례는 광고 어휘투성이라 Laya가 확률 1.0을 주기도 한다(함께학교 도박 예방 안내 그림 설명).
-    # 저장 크롤링 14개 스팸 사이트에서 이 조건의 경계 문구는 0건 — 스팸을 놓치는 경우 없음. 남는 판단은 LLM 검증 단계 몫.
-    about = lambda c: any(n in ("page-context", "body-context") for n, _ in c.get("context", []))
-    border = [c for c in cands if c["verdict"] == "borderline" and not about(c)]
-    if border and use_ml:
-        try:
-            from laya.agent import Agent
-
-            from training.make_dataset import QUESTION
-            agent = Agent(model_path, device="cpu")
-            texts = sorted({c["normalized"] for c in border})
-            prob = {}
-            for i in range(0, len(texts), 64):  # 64개씩 끊어서, 마감이 지나거나 취소되면 멈춤
-                if cancel is not None and cancel.is_set():
-                    break
-                if deadline is not None and time.perf_counter() >= deadline:
-                    print(f"[warn] 판정 시간 제한: 경계 문구 {len(texts) - i}개는 AI 판정 없이 정상 처리")
-                    break
-                chunk = texts[i:i + 64]
-                out = agent.predict_batch(chunk, QUESTION, batch_size=16)
-                prob.update((t, o["answers"]["is_illegal_ad"]["noul"]) for t, o in zip(chunk, out))
-        except Exception as e:  # 모델 문제로 크롤링 결과 전체를 잃지 않도록 규칙 판정(--no-ml과 동일)으로 대체
-            print(f"[warn] Laya 판정 실패, 경계 구간은 정상 처리: {type(e).__name__}: {e}")
-            prob = None
-        for c in border if prob else []:
-            if c["normalized"] not in prob:
-                continue
-            c["ml_prob"] = round(prob[c["normalized"]], 4)
-            c["verdict"] = "ad" if c["ml_prob"] >= 0.5 else "clean"
-            c["decided_by"] = "laya"
+    if use_ml:
+        from .ai import analyze
+        analyze(cands, [], model_path, use_ml, deadline, cancel, cancel_error=ScanCancelled)
     return cands
 
 
 def app_dir():
     """결과 파일 기본 위치: exe로 묶였으면 exe 폴더, 아니면 프로젝트 루트 (요강: 구동 파일 폴더에 생성)."""
-    if getattr(sys, "frozen", False):
-        return Path(sys.executable).resolve().parent
-    return Path(__file__).resolve().parents[1]
+    return app_root()
 
 
-# 경계 구간 판정 모델(jev). AD_PURIFIER_MODEL 환경변수로 다른 모델 폴더를 지정할 수 있다 (모델 비교용, 예: models/laya-illegal-ad-v3)
-DEFAULT_MODEL = Path(os.environ["AD_PURIFIER_MODEL"]) if os.environ.get("AD_PURIFIER_MODEL") else app_dir() / "models" / "laya-illegal-ad"
+DEFAULT_MODEL = laya_model()
 
 
 # 적격평가 대상 4종 (result.json). 그 외 추가 유형은 result_extra.json으로 분리한다.
@@ -695,12 +695,13 @@ EXTRA_LABEL = {"POSTED": "게시형 불법광고(은닉 없음)"}
 # 시간 예산(초). 적격평가 검출 시간 상한은 30분 — 넘기면 시간 점수 0점, result.json이 없으면 평가 제외될 수 있다.
 TIME_BUDGET = 29 * 60   # 전체 목표: 30분 상한에서 1분 여유
 JUDGE_RESERVE = 2 * 60  # 로컬 판정(룰+Laya)·저장 몫. 실사이트 11곳 측정 시 판정은 0.4~11초
-LLM_RESERVE = 6 * 60    # 나중에 붙일 LLM 최종 검증 몫(아직 미구현 — 자리만 확보)
+LLM_RESERVE = 6 * 60    # Gemma 검증을 위해 크롤링에서 남길 시간
 
 
 def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT_MODEL, use_ml=True,
         progress=None, phase=None, user_agent=DEFAULT_UA, detect_posted=True,
-        time_budget=TIME_BUDGET, llm_reserve=LLM_RESERVE, collapse=False, cancel=None):
+        time_budget=TIME_BUDGET, llm_reserve=LLM_RESERVE, collapse=False, cancel=None,
+        laya_confidence_threshold=0.8):
     """크롤링 → 판정 → result.json/report.json 저장. report 딕셔너리를 돌려준다.
 
     phase(단계명): UI에 현재 단계(crawl/judge/save)를 알리는 콜백.
@@ -709,11 +710,14 @@ def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT
     time_budget: 전체 목표 시간(초). 크롤링은 time_budget - llm_reserve - 판정 몫까지만 한다.
     cancel: threading.Event. 켜지면 ScanCancelled를 일으키고 결과 파일은 건드리지 않는다(지난 제출용 result.json 보존).
     """
+    model = Path(model)
+    if not model.is_absolute():
+        model = app_dir() / model
     phase = phase or (lambda name: None)
     started = datetime.now(KST)
     t0 = time.perf_counter()
     crawl_deadline = t0 + max(60, time_budget - llm_reserve - JUDGE_RESERVE)
-    judge_deadline = t0 + max(90, time_budget - llm_reserve - 30)
+    judge_deadline = t0 + max(0, time_budget - 30)
     phase("crawl")
     pages, issues = asyncio.run(crawl(entry_url, max_pages, concurrency, timeout, progress, user_agent, crawl_deadline,
                                       cancel))
@@ -722,7 +726,16 @@ def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT
         raise ScanCancelled()
     t_crawl = time.perf_counter() - t0
     phase("judge")
-    cands = judge(candidates_from(pages, detect_posted), str(model), use_ml, judge_deadline, cancel)
+    from .ai import analyze
+    cands = judge(candidates_from(pages, detect_posted), str(model), False)
+    try:
+        ai = analyze(cands, pages, str(model), use_ml, judge_deadline, cancel,
+                     laya_confidence_threshold=laya_confidence_threshold, cancel_error=ScanCancelled,
+                     detect_posted=detect_posted)
+    except asyncio.CancelledError as exc:
+        # Gemma context 정리 후 UI가 처리하는 취소 예외로 전달하며 저장 단계에 진입하지 않는다.
+        raise ScanCancelled() from exc
+    unresolved = sum(c["verdict"] == "uncertain" for c in cands) + len(ai["unresolved_sources"])
     if cancelled():
         raise ScanCancelled()
     cands, dups = dedupe(cands)
@@ -746,7 +759,15 @@ def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT
                       for i, c in enumerate(extra_hits, 1)]
     # 접속 실패 정보는 내부 리포트에만 기록 (result.json은 요강 스키마 그대로 유지)
     entry_failed = any(f["url"] == entry_url for f in issues["failed"])
-    report = {"meta": meta, "pages": len(pages), "crawl_sec": round(t_crawl, 2), "entry_failed": entry_failed,
+    frame_failures = [{"url": url, "frame_url": data["frame_url"], "reason": data["collection_error"]}
+                      for url, frames in pages for _, data in frames if data.get("collection_error")]
+    coverage = {"visited_pages": len(pages), "failed_frames": len(frame_failures), "pending_pages": issues["left_in_queue"],
+                "failed_pages": len(issues["failed"]), "http_error_pages": len(issues["http_errors"]),
+                "stopped_by_time": issues["stopped_by_time"],
+                "discovered_pages": len(pages) + issues["left_in_queue"] + len(issues["failed"])}
+    crawl_incomplete = bool(issues["stopped_by_time"] or issues["left_in_queue"] or issues["failed"] or issues["http_errors"] or frame_failures)
+    report = {"needs_review": bool(unresolved or crawl_incomplete or not use_ml), "crawl_incomplete": crawl_incomplete,
+              "coverage": coverage, "failed_frames": frame_failures, "unresolved_count": unresolved, "ai": ai, "meta": meta, "pages": len(pages), "crawl_sec": round(t_crawl, 2), "entry_failed": entry_failed,
               "failed_pages": issues["failed"], "http_errors": issues["http_errors"],
               "stopped_by_time": issues["stopped_by_time"], "left_in_queue": issues["left_in_queue"],
               "dropped_endless": issues["dropped_endless"], "skipped_utility": issues["skipped_utility"], "time_budget": time_budget, "llm_reserve": llm_reserve,
@@ -756,8 +777,9 @@ def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT
               "model": Path(str(model)).name if use_ml else None,  # 경계 구간을 판정한 모델 폴더 이름 (규칙만이면 None)
               "repeats_collapsed": n_repeats,  # 여러 페이지 반복으로 대표에 합친 건수 (대표의 also_on에 페이지 목록)
               # 중복으로 합친 탐지 (같은 주소·내용·줄) — 어디에 합쳐졌는지(duplicate_of)만 남긴다
-              "duplicates": [{"url": c["url"], "location": c["location"], "technique": c["technique"],
-                              "evidence_text": c["evidence_text"], "duplicate_of": c["duplicate_of"]} for c in dups]}
+              "duplicates": dups}
+    if cancelled():
+        raise ScanCancelled()
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     (out / "result.json").write_text(json.dumps({"meta": meta, "findings": findings}, ensure_ascii=False, indent=2),
@@ -787,7 +809,8 @@ def main():
     ap.add_argument("--concurrency", type=int, default=4)
     ap.add_argument("--timeout", type=int, default=15000)
     ap.add_argument("--model", default=str(DEFAULT_MODEL))
-    ap.add_argument("--no-ml", action="store_true", help="경계 구간을 Laya 없이 정상으로 처리")
+    ap.add_argument("--laya-confidence-threshold", type=float, default=0.8)
+    ap.add_argument("--no-ml", action="store_true", help="진단 모드: AI를 생략하고 미판정 항목은 검토 필요로 표시")
     ap.add_argument("--user-agent", default=DEFAULT_UA,
                     help="크롤러 User-Agent (기본: 일반 Chrome). 점검 기관에 신원을 밝혀야 하면 뒤에 도구명을 덧붙여 쓰세요.")
     ap.add_argument("--no-extra", action="store_true",
@@ -798,7 +821,8 @@ def main():
 
     report = run(args.entry_url, args.out, args.max_pages, args.concurrency, args.timeout, args.model, not args.no_ml,
                  user_agent=args.user_agent, detect_posted=not args.no_extra,
-                 time_budget=args.time_budget, llm_reserve=args.llm_reserve, collapse=args.collapse_repeats)
+                 time_budget=args.time_budget, llm_reserve=args.llm_reserve, collapse=args.collapse_repeats,
+                 laya_confidence_threshold=args.laya_confidence_threshold)
     cands = report["candidates"]
     findings = sum(c["verdict"] == "ad" for c in cands)
     by = {}

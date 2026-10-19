@@ -1,0 +1,1425 @@
+[
+  {
+    "id": "S01",
+    "label": "clean",
+    "source": "synthetic",
+    "route": "not_candidate",
+    "target": null,
+    "target_candidates": [],
+    "base_score": 0
+  },
+  {
+    "id": "S02",
+    "label": "clean",
+    "source": "synthetic",
+    "route": "not_candidate",
+    "target": null,
+    "target_candidates": [],
+    "base_score": 1
+  },
+  {
+    "id": "S03",
+    "label": "ad",
+    "source": "synthetic",
+    "route": "rule_ad",
+    "target": {
+      "url": "https://poc.invalid/item",
+      "location": "p",
+      "technique": "POSTED",
+      "evidence_text": "카지노 첫충 보너스 가입코드 입력하세요.",
+      "signals": [
+        "keyword:카지노,첫충,가입코드,보너스"
+      ],
+      "normalized": "카지노 첫충 보너스 가입코드 입력하세요.",
+      "score_detail": [
+        [
+          "카지노",
+          3
+        ],
+        [
+          "첫충",
+          3
+        ],
+        [
+          "가입코드",
+          3
+        ],
+        [
+          "보너스",
+          1
+        ]
+      ],
+      "score": 10,
+      "hits": [
+        "카지노",
+        "첫충",
+        "가입코드",
+        "보너스"
+      ],
+      "verdict": "ad",
+      "decided_by": "rules"
+    },
+    "target_candidates": [
+      {
+        "url": "https://poc.invalid/item",
+        "location": "p",
+        "technique": "POSTED",
+        "evidence_text": "카지노 첫충 보너스 가입코드 입력하세요.",
+        "signals": [
+          "keyword:카지노,첫충,가입코드,보너스"
+        ],
+        "normalized": "카지노 첫충 보너스 가입코드 입력하세요.",
+        "score_detail": [
+          [
+            "카지노",
+            3
+          ],
+          [
+            "첫충",
+            3
+          ],
+          [
+            "가입코드",
+            3
+          ],
+          [
+            "보너스",
+            1
+          ]
+        ],
+        "score": 10,
+        "hits": [
+          "카지노",
+          "첫충",
+          "가입코드",
+          "보너스"
+        ],
+        "verdict": "ad",
+        "decided_by": "rules"
+      }
+    ],
+    "base_score": 10
+  },
+  {
+    "id": "S04",
+    "label": "ad",
+    "source": "synthetic",
+    "route": "rule_ad",
+    "target": {
+      "url": "https://poc.invalid/item",
+      "location": "p",
+      "technique": "POSTED",
+      "evidence_text": "작업대출 무서류 즉시 신청하세요.",
+      "signals": [
+        "keyword:작업대출,대출,무서류"
+      ],
+      "normalized": "작업대출 무서류 즉시 신청하세요.",
+      "score_detail": [
+        [
+          "작업대출",
+          3
+        ],
+        [
+          "대출",
+          1
+        ],
+        [
+          "무서류",
+          1.5
+        ]
+      ],
+      "score": 5.5,
+      "hits": [
+        "작업대출",
+        "대출",
+        "무서류"
+      ],
+      "verdict": "ad",
+      "decided_by": "rules"
+    },
+    "target_candidates": [
+      {
+        "url": "https://poc.invalid/item",
+        "location": "p",
+        "technique": "POSTED",
+        "evidence_text": "작업대출 무서류 즉시 신청하세요.",
+        "signals": [
+          "keyword:작업대출,대출,무서류"
+        ],
+        "normalized": "작업대출 무서류 즉시 신청하세요.",
+        "score_detail": [
+          [
+            "작업대출",
+            3
+          ],
+          [
+            "대출",
+            1
+          ],
+          [
+            "무서류",
+            1.5
+          ]
+        ],
+        "score": 5.5,
+        "hits": [
+          "작업대출",
+          "대출",
+          "무서류"
+        ],
+        "verdict": "ad",
+        "decided_by": "rules"
+      }
+    ],
+    "base_score": 5.5
+  },
+  {
+    "id": "S05",
+    "label": "clean",
+    "source": "synthetic",
+    "route": "rule_clean",
+    "target": {
+      "url": "https://poc.invalid/item",
+      "location": "p",
+      "technique": "POSTED",
+      "evidence_text": "카지노",
+      "signals": [
+        "keyword:카지노",
+        "page-context"
+      ],
+      "context": [
+        [
+          "page-context",
+          -4
+        ]
+      ],
+      "normalized": "카지노",
+      "score_detail": [
+        [
+          "카지노",
+          3
+        ],
+        [
+          "page-context",
+          -4
+        ]
+      ],
+      "score": -1,
+      "hits": [
+        "카지노",
+        "-page-context"
+      ],
+      "verdict": "clean",
+      "decided_by": "rules"
+    },
+    "target_candidates": [
+      {
+        "url": "https://poc.invalid/item",
+        "location": "p",
+        "technique": "POSTED",
+        "evidence_text": "카지노",
+        "signals": [
+          "keyword:카지노",
+          "page-context"
+        ],
+        "context": [
+          [
+            "page-context",
+            -4
+          ]
+        ],
+        "normalized": "카지노",
+        "score_detail": [
+          [
+            "카지노",
+            3
+          ],
+          [
+            "page-context",
+            -4
+          ]
+        ],
+        "score": -1,
+        "hits": [
+          "카지노",
+          "-page-context"
+        ],
+        "verdict": "clean",
+        "decided_by": "rules"
+      }
+    ],
+    "base_score": 3
+  },
+  {
+    "id": "S06",
+    "label": "clean",
+    "source": "synthetic",
+    "route": "context_bypass",
+    "target": {
+      "url": "https://poc.invalid/item",
+      "location": "p",
+      "technique": "POSTED",
+      "evidence_text": "카지노 바카라",
+      "signals": [
+        "keyword:카지노,바카라",
+        "page-context"
+      ],
+      "context": [
+        [
+          "page-context",
+          -4
+        ]
+      ],
+      "normalized": "카지노 바카라",
+      "score_detail": [
+        [
+          "카지노",
+          3
+        ],
+        [
+          "바카라",
+          3
+        ],
+        [
+          "page-context",
+          -4
+        ]
+      ],
+      "score": 2,
+      "hits": [
+        "카지노",
+        "바카라",
+        "-page-context"
+      ],
+      "verdict": "borderline",
+      "decided_by": "rules"
+    },
+    "target_candidates": [
+      {
+        "url": "https://poc.invalid/item",
+        "location": "p",
+        "technique": "POSTED",
+        "evidence_text": "카지노 바카라",
+        "signals": [
+          "keyword:카지노,바카라",
+          "page-context"
+        ],
+        "context": [
+          [
+            "page-context",
+            -4
+          ]
+        ],
+        "normalized": "카지노 바카라",
+        "score_detail": [
+          [
+            "카지노",
+            3
+          ],
+          [
+            "바카라",
+            3
+          ],
+          [
+            "page-context",
+            -4
+          ]
+        ],
+        "score": 2,
+        "hits": [
+          "카지노",
+          "바카라",
+          "-page-context"
+        ],
+        "verdict": "borderline",
+        "decided_by": "rules"
+      }
+    ],
+    "base_score": 6
+  },
+  {
+    "id": "S07",
+    "label": "clean",
+    "source": "synthetic",
+    "route": "context_bypass",
+    "target": {
+      "url": "https://poc.invalid/item",
+      "location": "p:nth-of-type(1)",
+      "technique": "POSTED",
+      "evidence_text": "카지노 바카라",
+      "signals": [
+        "keyword:카지노,바카라",
+        "body-context"
+      ],
+      "context": [
+        [
+          "body-context",
+          -4
+        ]
+      ],
+      "normalized": "카지노 바카라",
+      "score_detail": [
+        [
+          "카지노",
+          3
+        ],
+        [
+          "바카라",
+          3
+        ],
+        [
+          "body-context",
+          -4
+        ]
+      ],
+      "score": 2,
+      "hits": [
+        "카지노",
+        "바카라",
+        "-body-context"
+      ],
+      "verdict": "borderline",
+      "decided_by": "rules"
+    },
+    "target_candidates": [
+      {
+        "url": "https://poc.invalid/item",
+        "location": "p:nth-of-type(1)",
+        "technique": "POSTED",
+        "evidence_text": "카지노 바카라",
+        "signals": [
+          "keyword:카지노,바카라",
+          "body-context"
+        ],
+        "context": [
+          [
+            "body-context",
+            -4
+          ]
+        ],
+        "normalized": "카지노 바카라",
+        "score_detail": [
+          [
+            "카지노",
+            3
+          ],
+          [
+            "바카라",
+            3
+          ],
+          [
+            "body-context",
+            -4
+          ]
+        ],
+        "score": 2,
+        "hits": [
+          "카지노",
+          "바카라",
+          "-body-context"
+        ],
+        "verdict": "borderline",
+        "decided_by": "rules"
+      }
+    ],
+    "base_score": 6
+  },
+  {
+    "id": "S08",
+    "label": "clean",
+    "source": "synthetic",
+    "route": "laya",
+    "target": {
+      "url": "https://poc.invalid/item",
+      "location": "p",
+      "technique": "POSTED",
+      "evidence_text": "카지노",
+      "signals": [
+        "keyword:카지노"
+      ],
+      "normalized": "카지노",
+      "score_detail": [
+        [
+          "카지노",
+          3
+        ]
+      ],
+      "score": 3,
+      "hits": [
+        "카지노"
+      ],
+      "verdict": "borderline",
+      "decided_by": "rules"
+    },
+    "target_candidates": [
+      {
+        "url": "https://poc.invalid/item",
+        "location": "p",
+        "technique": "POSTED",
+        "evidence_text": "카지노",
+        "signals": [
+          "keyword:카지노"
+        ],
+        "normalized": "카지노",
+        "score_detail": [
+          [
+            "카지노",
+            3
+          ]
+        ],
+        "score": 3,
+        "hits": [
+          "카지노"
+        ],
+        "verdict": "borderline",
+        "decided_by": "rules"
+      }
+    ],
+    "base_score": 3
+  },
+  {
+    "id": "S09",
+    "label": "ad",
+    "source": "synthetic",
+    "route": "laya",
+    "target": {
+      "url": "https://poc.invalid/item",
+      "location": "p",
+      "technique": "POSTED",
+      "evidence_text": "카지노",
+      "signals": [
+        "keyword:카지노"
+      ],
+      "normalized": "카지노",
+      "score_detail": [
+        [
+          "카지노",
+          3
+        ]
+      ],
+      "score": 3,
+      "hits": [
+        "카지노"
+      ],
+      "verdict": "borderline",
+      "decided_by": "rules"
+    },
+    "target_candidates": [
+      {
+        "url": "https://poc.invalid/item",
+        "location": "p",
+        "technique": "POSTED",
+        "evidence_text": "카지노",
+        "signals": [
+          "keyword:카지노"
+        ],
+        "normalized": "카지노",
+        "score_detail": [
+          [
+            "카지노",
+            3
+          ]
+        ],
+        "score": 3,
+        "hits": [
+          "카지노"
+        ],
+        "verdict": "borderline",
+        "decided_by": "rules"
+      }
+    ],
+    "base_score": 3
+  },
+  {
+    "id": "S10",
+    "label": "uncertain",
+    "source": "synthetic",
+    "route": "laya",
+    "target": {
+      "url": "https://poc.invalid/item",
+      "location": "p",
+      "technique": "POSTED",
+      "evidence_text": "카지노",
+      "signals": [
+        "keyword:카지노"
+      ],
+      "normalized": "카지노",
+      "score_detail": [
+        [
+          "카지노",
+          3
+        ]
+      ],
+      "score": 3,
+      "hits": [
+        "카지노"
+      ],
+      "verdict": "borderline",
+      "decided_by": "rules"
+    },
+    "target_candidates": [
+      {
+        "url": "https://poc.invalid/item",
+        "location": "p",
+        "technique": "POSTED",
+        "evidence_text": "카지노",
+        "signals": [
+          "keyword:카지노"
+        ],
+        "normalized": "카지노",
+        "score_detail": [
+          [
+            "카지노",
+            3
+          ]
+        ],
+        "score": 3,
+        "hits": [
+          "카지노"
+        ],
+        "verdict": "borderline",
+        "decided_by": "rules"
+      }
+    ],
+    "base_score": 3
+  },
+  {
+    "id": "S11",
+    "label": "ad",
+    "source": "synthetic",
+    "route": "laya",
+    "target": {
+      "url": "https://poc.invalid/item",
+      "location": "p",
+      "technique": "POSTED",
+      "evidence_text": "비아그라 처방전 없이 판매합니다.",
+      "signals": [
+        "keyword:비아그라"
+      ],
+      "normalized": "비아그라 처방전 없이 판매합니다.",
+      "score_detail": [
+        [
+          "비아그라",
+          3
+        ]
+      ],
+      "score": 3,
+      "hits": [
+        "비아그라"
+      ],
+      "verdict": "borderline",
+      "decided_by": "rules"
+    },
+    "target_candidates": [
+      {
+        "url": "https://poc.invalid/item",
+        "location": "p",
+        "technique": "POSTED",
+        "evidence_text": "비아그라 처방전 없이 판매합니다.",
+        "signals": [
+          "keyword:비아그라"
+        ],
+        "normalized": "비아그라 처방전 없이 판매합니다.",
+        "score_detail": [
+          [
+            "비아그라",
+            3
+          ]
+        ],
+        "score": 3,
+        "hits": [
+          "비아그라"
+        ],
+        "verdict": "borderline",
+        "decided_by": "rules"
+      }
+    ],
+    "base_score": 3
+  },
+  {
+    "id": "S12",
+    "label": "clean",
+    "source": "synthetic",
+    "route": "laya",
+    "target": {
+      "url": "https://poc.invalid/item",
+      "location": "p",
+      "technique": "POSTED",
+      "evidence_text": "비아그라 성분을 설명합니다.",
+      "signals": [
+        "keyword:비아그라"
+      ],
+      "normalized": "비아그라 성분을 설명합니다.",
+      "score_detail": [
+        [
+          "비아그라",
+          3
+        ]
+      ],
+      "score": 3,
+      "hits": [
+        "비아그라"
+      ],
+      "verdict": "borderline",
+      "decided_by": "rules"
+    },
+    "target_candidates": [
+      {
+        "url": "https://poc.invalid/item",
+        "location": "p",
+        "technique": "POSTED",
+        "evidence_text": "비아그라 성분을 설명합니다.",
+        "signals": [
+          "keyword:비아그라"
+        ],
+        "normalized": "비아그라 성분을 설명합니다.",
+        "score_detail": [
+          [
+            "비아그라",
+            3
+          ]
+        ],
+        "score": 3,
+        "hits": [
+          "비아그라"
+        ],
+        "verdict": "borderline",
+        "decided_by": "rules"
+      }
+    ],
+    "base_score": 3
+  },
+  {
+    "id": "S13",
+    "label": "ad",
+    "source": "synthetic",
+    "route": "laya",
+    "target": {
+      "url": "https://poc.invalid/item",
+      "location": "p",
+      "technique": "POSTED",
+      "evidence_text": "필로폰 팝니다.",
+      "signals": [
+        "keyword:필로폰"
+      ],
+      "normalized": "필로폰 팝니다.",
+      "score_detail": [
+        [
+          "필로폰",
+          3
+        ]
+      ],
+      "score": 3,
+      "hits": [
+        "필로폰"
+      ],
+      "verdict": "borderline",
+      "decided_by": "rules"
+    },
+    "target_candidates": [
+      {
+        "url": "https://poc.invalid/item",
+        "location": "p",
+        "technique": "POSTED",
+        "evidence_text": "필로폰 팝니다.",
+        "signals": [
+          "keyword:필로폰"
+        ],
+        "normalized": "필로폰 팝니다.",
+        "score_detail": [
+          [
+            "필로폰",
+            3
+          ]
+        ],
+        "score": 3,
+        "hits": [
+          "필로폰"
+        ],
+        "verdict": "borderline",
+        "decided_by": "rules"
+      }
+    ],
+    "base_score": 3
+  },
+  {
+    "id": "S14",
+    "label": "clean",
+    "source": "synthetic",
+    "route": "laya",
+    "target": {
+      "url": "https://poc.invalid/item",
+      "location": "p",
+      "technique": "POSTED",
+      "evidence_text": "대마초의 잎 구조를 관찰합니다.",
+      "signals": [
+        "keyword:대마초"
+      ],
+      "normalized": "대마초의 잎 구조를 관찰합니다.",
+      "score_detail": [
+        [
+          "대마초",
+          3
+        ]
+      ],
+      "score": 3,
+      "hits": [
+        "대마초"
+      ],
+      "verdict": "borderline",
+      "decided_by": "rules"
+    },
+    "target_candidates": [
+      {
+        "url": "https://poc.invalid/item",
+        "location": "p",
+        "technique": "POSTED",
+        "evidence_text": "대마초의 잎 구조를 관찰합니다.",
+        "signals": [
+          "keyword:대마초"
+        ],
+        "normalized": "대마초의 잎 구조를 관찰합니다.",
+        "score_detail": [
+          [
+            "대마초",
+            3
+          ]
+        ],
+        "score": 3,
+        "hits": [
+          "대마초"
+        ],
+        "verdict": "borderline",
+        "decided_by": "rules"
+      }
+    ],
+    "base_score": 3
+  },
+  {
+    "id": "S15",
+    "label": "clean",
+    "source": "synthetic",
+    "route": "laya",
+    "target": {
+      "url": "https://poc.invalid/item",
+      "location": "p",
+      "technique": "POSTED",
+      "evidence_text": "포커 확률을 계산합니다.",
+      "signals": [
+        "keyword:포커"
+      ],
+      "normalized": "포커 확률을 계산합니다.",
+      "score_detail": [
+        [
+          "포커",
+          2
+        ]
+      ],
+      "score": 2,
+      "hits": [
+        "포커"
+      ],
+      "verdict": "borderline",
+      "decided_by": "rules"
+    },
+    "target_candidates": [
+      {
+        "url": "https://poc.invalid/item",
+        "location": "p",
+        "technique": "POSTED",
+        "evidence_text": "포커 확률을 계산합니다.",
+        "signals": [
+          "keyword:포커"
+        ],
+        "normalized": "포커 확률을 계산합니다.",
+        "score_detail": [
+          [
+            "포커",
+            2
+          ]
+        ],
+        "score": 2,
+        "hits": [
+          "포커"
+        ],
+        "verdict": "borderline",
+        "decided_by": "rules"
+      }
+    ],
+    "base_score": 2
+  },
+  {
+    "id": "S16",
+    "label": "ad",
+    "source": "synthetic",
+    "route": "laya",
+    "target": {
+      "url": "https://poc.invalid/item",
+      "location": "p",
+      "technique": "POSTED",
+      "evidence_text": "포커 현금을 걸고 참여하세요.",
+      "signals": [
+        "keyword:포커"
+      ],
+      "normalized": "포커 현금을 걸고 참여하세요.",
+      "score_detail": [
+        [
+          "포커",
+          2
+        ]
+      ],
+      "score": 2,
+      "hits": [
+        "포커"
+      ],
+      "verdict": "borderline",
+      "decided_by": "rules"
+    },
+    "target_candidates": [
+      {
+        "url": "https://poc.invalid/item",
+        "location": "p",
+        "technique": "POSTED",
+        "evidence_text": "포커 현금을 걸고 참여하세요.",
+        "signals": [
+          "keyword:포커"
+        ],
+        "normalized": "포커 현금을 걸고 참여하세요.",
+        "score_detail": [
+          [
+            "포커",
+            2
+          ]
+        ],
+        "score": 2,
+        "hits": [
+          "포커"
+        ],
+        "verdict": "borderline",
+        "decided_by": "rules"
+      }
+    ],
+    "base_score": 2
+  },
+  {
+    "id": "S17",
+    "label": "uncertain",
+    "source": "synthetic",
+    "route": "laya",
+    "target": {
+      "url": "https://poc.invalid/item",
+      "location": "p",
+      "technique": "POSTED",
+      "evidence_text": "홈타이",
+      "signals": [
+        "keyword:홈타이"
+      ],
+      "normalized": "홈타이",
+      "score_detail": [
+        [
+          "홈타이",
+          3
+        ]
+      ],
+      "score": 3,
+      "hits": [
+        "홈타이"
+      ],
+      "verdict": "borderline",
+      "decided_by": "rules"
+    },
+    "target_candidates": [
+      {
+        "url": "https://poc.invalid/item",
+        "location": "p",
+        "technique": "POSTED",
+        "evidence_text": "홈타이",
+        "signals": [
+          "keyword:홈타이"
+        ],
+        "normalized": "홈타이",
+        "score_detail": [
+          [
+            "홈타이",
+            3
+          ]
+        ],
+        "score": 3,
+        "hits": [
+          "홈타이"
+        ],
+        "verdict": "borderline",
+        "decided_by": "rules"
+      }
+    ],
+    "base_score": 3
+  },
+  {
+    "id": "S18",
+    "label": "clean",
+    "source": "synthetic",
+    "route": "laya",
+    "target": {
+      "url": "https://poc.invalid/item",
+      "location": "p",
+      "technique": "POSTED",
+      "evidence_text": "홈타이",
+      "signals": [
+        "keyword:홈타이"
+      ],
+      "normalized": "홈타이",
+      "score_detail": [
+        [
+          "홈타이",
+          3
+        ]
+      ],
+      "score": 3,
+      "hits": [
+        "홈타이"
+      ],
+      "verdict": "borderline",
+      "decided_by": "rules"
+    },
+    "target_candidates": [
+      {
+        "url": "https://poc.invalid/item",
+        "location": "p",
+        "technique": "POSTED",
+        "evidence_text": "홈타이",
+        "signals": [
+          "keyword:홈타이"
+        ],
+        "normalized": "홈타이",
+        "score_detail": [
+          [
+            "홈타이",
+            3
+          ]
+        ],
+        "score": 3,
+        "hits": [
+          "홈타이"
+        ],
+        "verdict": "borderline",
+        "decided_by": "rules"
+      }
+    ],
+    "base_score": 3
+  },
+  {
+    "id": "S19",
+    "label": "uncertain",
+    "source": "synthetic",
+    "route": "not_candidate",
+    "target": null,
+    "target_candidates": [],
+    "base_score": 1.5
+  },
+  {
+    "id": "S20",
+    "label": "uncertain",
+    "source": "synthetic",
+    "route": "rule_ad",
+    "target": {
+      "url": "https://poc.invalid/item",
+      "location": "p",
+      "technique": "POSTED",
+      "evidence_text": "출장마사지",
+      "signals": [
+        "keyword:출장마사지,마사지"
+      ],
+      "normalized": "출장마사지",
+      "score_detail": [
+        [
+          "출장마사지",
+          3
+        ],
+        [
+          "마사지",
+          1
+        ]
+      ],
+      "score": 4,
+      "hits": [
+        "출장마사지",
+        "마사지"
+      ],
+      "verdict": "ad",
+      "decided_by": "rules"
+    },
+    "target_candidates": [
+      {
+        "url": "https://poc.invalid/item",
+        "location": "p",
+        "technique": "POSTED",
+        "evidence_text": "출장마사지",
+        "signals": [
+          "keyword:출장마사지,마사지"
+        ],
+        "normalized": "출장마사지",
+        "score_detail": [
+          [
+            "출장마사지",
+            3
+          ],
+          [
+            "마사지",
+            1
+          ]
+        ],
+        "score": 4,
+        "hits": [
+          "출장마사지",
+          "마사지"
+        ],
+        "verdict": "ad",
+        "decided_by": "rules"
+      }
+    ],
+    "base_score": 4
+  },
+  {
+    "id": "S21",
+    "label": "clean",
+    "source": "synthetic",
+    "route": "rule_ad",
+    "target": {
+      "url": "https://poc.invalid/item",
+      "location": "p",
+      "technique": "TRANSPARENT",
+      "evidence_text": "카지노 바카라",
+      "signals": [
+        "opacity:0"
+      ],
+      "normalized": "카지노 바카라",
+      "score_detail": [
+        [
+          "카지노",
+          3
+        ],
+        [
+          "바카라",
+          3
+        ]
+      ],
+      "score": 6,
+      "hits": [
+        "카지노",
+        "바카라"
+      ],
+      "verdict": "ad",
+      "decided_by": "rules"
+    },
+    "target_candidates": [
+      {
+        "url": "https://poc.invalid/item",
+        "location": "p",
+        "technique": "TRANSPARENT",
+        "evidence_text": "카지노 바카라",
+        "signals": [
+          "opacity:0"
+        ],
+        "normalized": "카지노 바카라",
+        "score_detail": [
+          [
+            "카지노",
+            3
+          ],
+          [
+            "바카라",
+            3
+          ]
+        ],
+        "score": 6,
+        "hits": [
+          "카지노",
+          "바카라"
+        ],
+        "verdict": "ad",
+        "decided_by": "rules"
+      },
+      {
+        "url": "https://poc.invalid/item",
+        "location": "p",
+        "technique": "POSTED",
+        "evidence_text": "카지노 바카라",
+        "signals": [
+          "keyword:카지노,바카라",
+          "page-context"
+        ],
+        "context": [
+          [
+            "page-context",
+            -4
+          ]
+        ],
+        "normalized": "카지노 바카라",
+        "score_detail": [
+          [
+            "카지노",
+            3
+          ],
+          [
+            "바카라",
+            3
+          ],
+          [
+            "page-context",
+            -4
+          ]
+        ],
+        "score": 2,
+        "hits": [
+          "카지노",
+          "바카라",
+          "-page-context"
+        ],
+        "verdict": "borderline",
+        "decided_by": "rules"
+      }
+    ],
+    "base_score": 6
+  },
+  {
+    "id": "jeonbuk-13045-link-01",
+    "label": null,
+    "source": "saved_real_snippets_reassembled",
+    "route": "rule_ad",
+    "target": {
+      "url": "https://hrd.jeonbuk.go.kr/item?dataSid=13045",
+      "location": "p:nth-of-type(1) > a:nth-of-type(1)",
+      "technique": "POSTED",
+      "evidence_text": "출장마사지",
+      "signals": [
+        "keyword:출장마사지,마사지",
+        "link-farm:msgcall.kr"
+      ],
+      "context": [
+        [
+          "link-farm:msgcall.kr",
+          3
+        ]
+      ],
+      "normalized": "출장마사지",
+      "score_detail": [
+        [
+          "출장마사지",
+          3
+        ],
+        [
+          "마사지",
+          1
+        ],
+        [
+          "link-farm:msgcall.kr",
+          3
+        ]
+      ],
+      "score": 7,
+      "hits": [
+        "출장마사지",
+        "마사지",
+        "link-farm:msgcall.kr"
+      ],
+      "verdict": "ad",
+      "decided_by": "rules"
+    },
+    "target_candidates": [
+      {
+        "url": "https://hrd.jeonbuk.go.kr/item?dataSid=13045",
+        "location": "p:nth-of-type(1) > a:nth-of-type(1)",
+        "technique": "POSTED",
+        "evidence_text": "출장마사지",
+        "signals": [
+          "keyword:출장마사지,마사지",
+          "link-farm:msgcall.kr"
+        ],
+        "context": [
+          [
+            "link-farm:msgcall.kr",
+            3
+          ]
+        ],
+        "normalized": "출장마사지",
+        "score_detail": [
+          [
+            "출장마사지",
+            3
+          ],
+          [
+            "마사지",
+            1
+          ],
+          [
+            "link-farm:msgcall.kr",
+            3
+          ]
+        ],
+        "score": 7,
+        "hits": [
+          "출장마사지",
+          "마사지",
+          "link-farm:msgcall.kr"
+        ],
+        "verdict": "ad",
+        "decided_by": "rules"
+      }
+    ],
+    "base_score": 4
+  },
+  {
+    "id": "jeonbuk-13045-link-02",
+    "label": null,
+    "source": "saved_real_snippets_reassembled",
+    "route": "rule_ad",
+    "target": {
+      "url": "https://hrd.jeonbuk.go.kr/item?dataSid=13045",
+      "location": "p:nth-of-type(1) > a:nth-of-type(2)",
+      "technique": "POSTED",
+      "evidence_text": "출장안마",
+      "signals": [
+        "keyword:출장안마",
+        "link-farm:msgcall.kr"
+      ],
+      "context": [
+        [
+          "link-farm:msgcall.kr",
+          3
+        ]
+      ],
+      "normalized": "출장안마",
+      "score_detail": [
+        [
+          "출장안마",
+          3
+        ],
+        [
+          "link-farm:msgcall.kr",
+          3
+        ]
+      ],
+      "score": 6,
+      "hits": [
+        "출장안마",
+        "link-farm:msgcall.kr"
+      ],
+      "verdict": "ad",
+      "decided_by": "rules"
+    },
+    "target_candidates": [
+      {
+        "url": "https://hrd.jeonbuk.go.kr/item?dataSid=13045",
+        "location": "p:nth-of-type(1) > a:nth-of-type(2)",
+        "technique": "POSTED",
+        "evidence_text": "출장안마",
+        "signals": [
+          "keyword:출장안마",
+          "link-farm:msgcall.kr"
+        ],
+        "context": [
+          [
+            "link-farm:msgcall.kr",
+            3
+          ]
+        ],
+        "normalized": "출장안마",
+        "score_detail": [
+          [
+            "출장안마",
+            3
+          ],
+          [
+            "link-farm:msgcall.kr",
+            3
+          ]
+        ],
+        "score": 6,
+        "hits": [
+          "출장안마",
+          "link-farm:msgcall.kr"
+        ],
+        "verdict": "ad",
+        "decided_by": "rules"
+      }
+    ],
+    "base_score": 3
+  },
+  {
+    "id": "jeonbuk-13045-link-03",
+    "label": null,
+    "source": "saved_real_snippets_reassembled",
+    "route": "rule_ad",
+    "target": {
+      "url": "https://hrd.jeonbuk.go.kr/item?dataSid=13045",
+      "location": "p:nth-of-type(2) > a",
+      "technique": "POSTED",
+      "evidence_text": "홈타이",
+      "signals": [
+        "keyword:홈타이",
+        "link-farm:msgcall.kr"
+      ],
+      "context": [
+        [
+          "link-farm:msgcall.kr",
+          3
+        ]
+      ],
+      "normalized": "홈타이",
+      "score_detail": [
+        [
+          "홈타이",
+          3
+        ],
+        [
+          "link-farm:msgcall.kr",
+          3
+        ]
+      ],
+      "score": 6,
+      "hits": [
+        "홈타이",
+        "link-farm:msgcall.kr"
+      ],
+      "verdict": "ad",
+      "decided_by": "rules"
+    },
+    "target_candidates": [
+      {
+        "url": "https://hrd.jeonbuk.go.kr/item?dataSid=13045",
+        "location": "p:nth-of-type(2) > a",
+        "technique": "POSTED",
+        "evidence_text": "홈타이",
+        "signals": [
+          "keyword:홈타이",
+          "link-farm:msgcall.kr"
+        ],
+        "context": [
+          [
+            "link-farm:msgcall.kr",
+            3
+          ]
+        ],
+        "normalized": "홈타이",
+        "score_detail": [
+          [
+            "홈타이",
+            3
+          ],
+          [
+            "link-farm:msgcall.kr",
+            3
+          ]
+        ],
+        "score": 6,
+        "hits": [
+          "홈타이",
+          "link-farm:msgcall.kr"
+        ],
+        "verdict": "ad",
+        "decided_by": "rules"
+      }
+    ],
+    "base_score": 3
+  }
+]

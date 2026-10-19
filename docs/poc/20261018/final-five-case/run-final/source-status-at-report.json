@@ -1,0 +1,27 @@
+{
+  "observed_at": "2026-10-18T11:06:10.262850+00:00",
+  "executed_head": "4eaacf99a04366f72ab2933cba40ab55b7f5640e",
+  "current_head": "4eaacf99a04366f72ab2933cba40ab55b7f5640e",
+  "current_core_hashes": {
+    "detector/ai.py": "ccd8bec12853e92187fef4a13750b68f739cb275b09734d44b737d1754d58e81",
+    "detector/laya_runtime.py": "fbd2f67c5e26f6004822e77360a3cb8c4cc2dcb1e0f3d8b74029baa63cb35a04",
+    "detector/adscore.py": "dceafe9eba53d3b6a40629ac3c0f750ee4e9ffd37368e83801b0a79a34d6d038",
+    "detector/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "detector/textnorm.py": "640631eb84dd6976d7e8725dd9a1a46645c7079e08d3960fa500ab740d0a52dd",
+    "detector/main.py": "a3e2e715816ccd7202f3c449309ee477da44b06e3382ca89361e6514ed76de36",
+    "detector/frontier.py": "ecca83add6ac14f4a6d2a141480b92d9f295d7656bab99fc8e5c2f64475e5e46",
+    "local_llm/client.py": "f33731ed5ac0e134a4715b5992e5857a8f45288372cd7f6622dbbf279a6b71b0",
+    "local_llm/__init__.py": "81b7619d7c0af2d514a40f48bcc0cc216f720a609b4c3caacee51bdfb29d9738",
+    "local_llm/prompts.py": "4bcc06f6edcc2c9ff0c141e580b942a4f0f5e0e48bfeec1987ade49d17400016",
+    "local_llm/engine.py": "f6752b85e84036a76aff6e25908d939dac450d55369cb89ffb9fceb731817779",
+    "local_llm/prototype.py": "49efe4209a5f38d748b97600a0b7eb988786abf379b10d1d89867c692f080a49",
+    "detector/extract.js": "6204473482851c7f4652b4cb95156c83a84351480645c3b79413494df3996728",
+    "app_paths.py": "9e78568c59e871f4aac122988fbd7529459139db1c5ce7a2afb4682342c0b046",
+    "training/make_dataset.py": "1a5ef091654dcb356a0f05a58ccc3af5ab16e99ac8a097c86316d2eda9b6edbb"
+  },
+  "changes_after_run": [
+    "detector/ai.py"
+  ],
+  "during_run_equality_preserved": true,
+  "new_owner_fix_integration_tested": false
+}

@@ -1,0 +1,12 @@
+{
+  "changes": [
+    {
+      "file": "app_paths.py",
+      "before_sha256": "614f6290c844826b1fa44ef062e160462cd59b3710508c16d1285e0deda95c2d",
+      "after_sha256": "4ae7adc98f60becf6a7f5c7e5711d3a8bd54c1f1de7d186a40df9c864e859489",
+      "current_matches_recorded_after": true,
+      "diff": "--- before/app_paths.py\n+++ after/app_paths.py\n@@ -37,6 +37,9 @@\n \n \n def bootstrap():\n+    os.environ.setdefault('OMP_NUM_THREADS', '2')\n+    os.environ.setdefault('MKL_NUM_THREADS', '2')\n+    os.environ.setdefault('TOKENIZERS_PARALLELISM', 'false')\n     os.environ['PLAYWRIGHT_BROWSERS_PATH'] = str(app_root() / 'runtime/chromium')\n     os.environ['HF_HUB_OFFLINE'] = '1'\n     os.environ['TRANSFORMERS_OFFLINE'] = '1'\n"
+    }
+  ],
+  "note": "이 worker는 production을 수정하지 않았다. 실행 도중 app_paths.bootstrap의 환경변수 기본값 3줄 추가를 관측했다. bootstrap은 호출하지 않고 이미 import한 main.run을 실행했으며, detector/local_llm 파일 해시는 유지됐다."
+}

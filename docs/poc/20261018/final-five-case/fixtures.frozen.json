@@ -1,0 +1,54 @@
+[
+  {
+    "id": "P03",
+    "text": "홀덤 동호회 참가 문의",
+    "html": "<p id=\"target\">홀덤 동호회 참가 문의</p>",
+    "document": "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\"><title>자료</title></head><body><p id=\"target\">홀덤 동호회 참가 문의</p></body></html>",
+    "gold": null,
+    "purpose": "실측 저신뢰 Laya 출력에 따른 자동 Gemma 검증 경로 관찰",
+    "origin": "laya-boundary-probe/inputs.frozen.json",
+    "origin_id": "P03"
+  },
+  {
+    "id": "P11",
+    "text": "홈타이 예약 문의",
+    "html": "<p id=\"target\">홈타이 예약 문의</p>",
+    "document": "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\"><title>자료</title></head><body><p id=\"target\">홈타이 예약 문의</p></body></html>",
+    "gold": null,
+    "purpose": "실측 저신뢰 Laya 출력에 따른 자동 Gemma 검증 경로 관찰",
+    "origin": "laya-boundary-probe/inputs.frozen.json",
+    "origin_id": "P11"
+  },
+  {
+    "id": "S06",
+    "text": "카지노 바카라",
+    "html": "<p id=\"target\">카지노 바카라</p>",
+    "document": "<!doctype html><html><head><title>도박 예방교육</title></head><body><p id=\"target\">카지노 바카라</p><aside class=\"related\">도박 예방교육 자료의 용어 목록입니다.</aside></body></html>",
+    "gold": "clean",
+    "purpose": "교육 문맥으로 Laya를 생략한 경계 후보의 Gemma 검증 경로 관찰",
+    "origin": "production-context/fixture-inputs.json",
+    "origin_id": "S06"
+  },
+  {
+    "id": "S07",
+    "text": "카지노 바카라",
+    "html": "<p id=\"target\">카지노 바카라</p>",
+    "document": "<!doctype html><html><head><title>자료</title></head><body><p id=\"target\">카지노 바카라</p><p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p><p>제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p><p>제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p><p>제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p><p>제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p><p>제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p><p>제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p><p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p><aside class=\"related\">예방 교육 본문의 인용 용어입니다.</aside></body></html>",
+    "gold": "clean",
+    "purpose": "교육 문맥으로 Laya를 생략한 경계 후보의 Gemma 검증 경로 관찰",
+    "origin": "production-context/fixture-inputs.json",
+    "origin_id": "S07"
+  },
+  {
+    "id": "R01",
+    "text": "처방전 없이 수면제를 판매합니다",
+    "html": "<p id=\"target\">처방전 없이 수면제를 판매합니다</p>",
+    "document": "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\"><title>자료</title></head><body><p id=\"target\">처방전 없이 수면제를 판매합니다</p></body></html>",
+    "gold": "ad",
+    "gold_basis": "지정된 처방전 없는 의약품 판매 fixture의 기대 판정; 통계적 품질 평가용 아님",
+    "purpose": "기존 규칙 후보 제외 이후 실제 Laya 잔여 선별 → 필요한 경우 Gemma 회수 → 재합류 관찰",
+    "expected_initial_rule_score": 0,
+    "expected_score_basis": "지정된 예상값; 이번 준비 단계에서는 규칙·모델 실행하지 않음",
+    "high_confidence_clean_handling": "실제 Laya가 confidence >=0.8 clean으로 선별하면 회수되지 않은 미탐으로 기록; 임계값 변경·모의 출력·추가 문구 탐색 금지"
+  }
+]
