@@ -485,7 +485,7 @@ tr.row.in-page td:first-child { padding-left: 28px; }
           <span class="p"></span><span class="p"></span><span class="p"></span><span class="p"></span><span class="p"></span><span class="p"></span>
         </div>
         <div class="bar" id="bar"><div></div></div>
-        <div class="line"><span id="progText"></span><span id="progUrl"></span></div>
+        <div class="line"><span><span id="progText"></span><span id="progTime"></span></span><span id="progUrl"></span></div>
       </div>
     </section>
 
@@ -1100,9 +1100,29 @@ async function saveReview(c, status, memo, okMsg) {
 // 서버가 브라우저를 닫고 멈출 때까지 '중지하는 중…'
 let exiting = false;
 let stopMode = "idle";  // idle | confirm | stopping
+
+// 경과 시간: 서버 값으로만 바꾸면 응답이 늦을 때 몇 초씩 건너뛰므로, 시작 시각만 맞추고 화면 시계는 1초씩 흘려 보낸다
+let clock = { base: 0, shown: 0, limit: "", timer: null };
+function tickClock() {
+  clock.shown = Math.max(clock.shown, Math.floor(performance.now() / 1000 - clock.base));  // 뒤로 가지 않게
+  $("progTime").textContent = `, ${mmss(clock.shown)}${clock.limit}`;
+}
+function syncClock(elapsed, limit) {
+  const base = performance.now() / 1000 - elapsed;
+  if (!clock.timer || Math.abs(base - clock.base) > 2) clock.base = base;  // 2초 넘게 어긋날 때만 다시 맞춘다
+  clock.limit = limit;
+  if (!clock.timer) clock.timer = setInterval(tickClock, 250);
+  tickClock();
+}
+function stopClock() {
+  clearInterval(clock.timer);
+  clock = { base: 0, shown: 0, limit: "", timer: null };
+  $("progTime").textContent = "";
+}
+
 function setRunning(running) {
   if (exiting) return;
-  if (!running) stopMode = "idle";
+  if (!running) { stopMode = "idle"; stopClock(); }
   document.body.classList.toggle("running", running);
   $("sysText").textContent = running ? "정화 중…" : "대기 중";
   const b = $("startBtn");
@@ -1157,7 +1177,8 @@ async function pollStatus() {
     const limit = !crawl ? "" : s.crawl_limit ? ` / 최대 ${Math.round(s.crawl_limit / 60)}분` : ", 시간 제한 없음(실험)";  // 크롤링 시간 한도
     // 페이지 수 제한이 없으므로 '전체 중 몇 쪽'이 아니라 '본 페이지 · 아직 볼 주소'로 보여 준다
     const waiting = Math.max(0, s.pages_found - s.pages_done);
-    $("progText").textContent = `${PHASE[s.phase] || s.phase}, ${s.pages_done}페이지 점검${crawl && waiting ? `, 대기 ${waiting}개` : ""}, ${mmss(s.elapsed)}${limit}`;
+    $("progText").textContent = `${PHASE[s.phase] || s.phase}, ${s.pages_done}페이지 점검${crawl && waiting ? `, 대기 ${waiting}개` : ""}`;
+    syncClock(s.elapsed, limit);
     $("progUrl").textContent = s.current_url;
     if (s.phase === "cancelling" && stopMode !== "stopping") { stopMode = "stopping"; setRunning(true); }
     return null;
