@@ -48,11 +48,12 @@ class _OwnerText(HTMLParser):
     def handle_starttag(self, tag, attrs):
         if tag == "br" and not attrs and self.tag is not None and not self.closed:
             return
-        if self.tag is not None or tag in ("script", "style", "title", "textarea", "template", "noscript"):
+        if self.tag is not None or tag in ("script", "style", "textarea", "template", "noscript"):
             raise ValueError("본문 소유가 불명확한 HTML")
         self.tag = tag
-        self.has_text_attrs = any(name in ("alt", "title", "aria-label") and value and value.strip()
-                                  for name, value in attrs)
+        self.text_attrs = [name for name, value in attrs
+                           if name in ("alt", "title", "aria-label") and value and value.strip()]
+        self.has_text_attrs = bool(self.text_attrs)
         self.opening = self.get_starttag_text()
         self.body_start = self._char_offset() + len(self.opening)
         if tag == "meta":
@@ -130,9 +131,15 @@ def matching_recovery_text(binding, row):
         if attr not in ("alt", "title", "aria-label") or not (parser.closed or source == parser.opening):
             return False
         span = parser.attribute_span(attr)
-        return (span is not None and bare_match
-                and span[0] <= binding["start_char"] < binding["end_char"] <= span[1]
-                and normalize(html.unescape(span[2])) == expected)
+        if span is None:
+            return False
+        value = normalize(html.unescape(span[2]))
+        if (parser.tag == "img" and source == parser.opening and evidence == source
+                and binding["start_char"] == 0 and binding["end_char"] == len(source)):
+            # img 루트 단독 원문 전체는 그 요소의 유일한 비어 있지 않은 텍스트 속성에만 결합한다.
+            return parser.text_attrs == [attr] and bool(value) and value == expected
+        return (bare_match and span[0] <= binding["start_char"] < binding["end_char"] <= span[1]
+                and value == expected)
     if not parser.closed:
         return False
     if evidence == source:
