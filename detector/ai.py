@@ -46,6 +46,8 @@ class _OwnerText(HTMLParser):
         return sum(len(part) + 1 for part in self.source.split("\n")[:line - 1]) + column
 
     def handle_starttag(self, tag, attrs):
+        if tag == "br" and not attrs and self.tag is not None and not self.closed:
+            return
         if self.tag is not None or tag in ("script", "style", "title", "textarea", "template", "noscript"):
             raise ValueError("본문 소유가 불명확한 HTML")
         self.tag = tag
@@ -53,6 +55,15 @@ class _OwnerText(HTMLParser):
                                   for name, value in attrs)
         self.opening = self.get_starttag_text()
         self.body_start = self._char_offset() + len(self.opening)
+        if tag == "meta":
+            self.closed = True
+
+    def handle_startendtag(self, tag, attrs):
+        if tag == "br" and not attrs and self.tag is not None and not self.closed:
+            return
+        self.handle_starttag(tag, attrs)
+        if tag != "meta":
+            self.handle_endtag(tag)
 
     def handle_endtag(self, tag):
         if self.tag != tag or self.closed:
@@ -109,6 +120,12 @@ def matching_recovery_text(binding, row):
     if parser.tag != row.get("tag", "").lower():
         return False
     attr = row.get("attr")
+    if parser.tag == "meta":
+        span = parser.attribute_span("content")
+        return (not attr and not parser.has_text_attrs and source == parser.opening and evidence == source
+                and binding["start_char"] == 0 and binding["end_char"] == len(source)
+                and span is not None and bool(normalize(html.unescape(span[2])))
+                and normalize(html.unescape(span[2])) == expected)
     if attr:
         if attr not in ("alt", "title", "aria-label") or not (parser.closed or source == parser.opening):
             return False

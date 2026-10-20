@@ -60,8 +60,15 @@ def run_extract(server, data, version):
         if result.get("unresolved_block_ids"):
             failures.append({"block_ids": result["unresolved_block_ids"], "error": "uncertain", "action": "문맥 추가 수집 또는 재검토 필요"})
         if result["status"] != "ok":
-            failures.append({"block_ids": [b["block_id"] for b in chunk], "error": result.get("error", result.get("validation", {}).get("errors")),
-                             "action": "재검토 필요; 미검출이나 정상으로 확정하지 않음"})
+            failed_block_calls = [call for call in result.get("block_calls", []) if call.get("status") != "ok"]
+            if failed_block_calls:
+                for call in failed_block_calls:
+                    failures.append({"block_ids": [call["input"]["candidate_id"]],
+                                     "error": call.get("error") or call.get("validation", {}).get("errors"),
+                                     "action": "재검토 필요; 미검출이나 정상으로 확정하지 않음"})
+            else:
+                failures.append({"block_ids": [b["block_id"] for b in chunk], "error": result.get("error", result.get("validation", {}).get("errors")),
+                                 "action": "재검토 필요; 미검출이나 정상으로 확정하지 않음"})
 
     for chunk in chunks:
         process(chunk)
