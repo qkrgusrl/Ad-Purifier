@@ -157,7 +157,8 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
         raise ValueError("laya_confidence_threshold는 0.5~1 범위여야 합니다")
     stats = {"mode": "policy" if use_ml else "diagnostic", "laya_confidence_threshold": laya_confidence_threshold,
              "policy": "laya_low_confidence_only",
-             "laya_inputs": 0, "gemma_verify": 0, "gemma_extract": 0, "residual_screened_clean": 0,
+             "laya_inputs": 0, "laya_preflight_rejected": 0,
+             "gemma_verify": 0, "gemma_extract": 0, "residual_screened_clean": 0,
              "gemma_requests": dict.fromkeys(("attempted", "succeeded", "transport_failed", "output_failed", "preflight_failed", "reused"), 0),
              "source_rows": 0, "unique_count": 0, "cache_reuse": 0,
              "laya_sec": 0.0, "gemma_verify_sec": 0.0, "gemma_extract_sec": 0.0,
@@ -216,6 +217,7 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
             c.update(processing_status="completed", reason="기존 규칙 확정")
 
     predictions = {}
+    rejections = {}
     rows_by_key = {}
     for row in [c for c in border if not about(c)] + residual:
         rows_by_key.setdefault(key(row), []).append(row)
@@ -254,6 +256,22 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                         for index, k in enumerate(chunk):
                             try:
                                 out = outputs[index]
+                                preflight = out.get("preflight") or {}
+                                if (out.get("status") == "preflight_rejected"
+                                        and preflight.get("reason") == "input_too_long"):
+                                    rejection = {"input_tokens": preflight.get("input_tokens"),
+                                                 "token_limit": preflight.get("token_limit"),
+                                                 "model_invoked": False}
+                                    rejection["reason"] = (f"Laya 입력 길이 초과 ({rejection['input_tokens']} > "
+                                                           f"{rejection['token_limit']} 토큰): 모델 추론 생략")
+                                    rejections[k] = rejection
+                                    stats["laya_preflight_rejected"] += 1
+                                    laya_counts["preflight_rejected"] += 1
+                                    laya_counts["failed"] += 1
+                                    stats["failures"].extend({"source_id": owner.get("source_id"),
+                                                             "stage": "laya_preflight", **rejection}
+                                                            for owner in rows_by_key[k])
+                                    continue
                                 p = float(out["answers"]["is_illegal_ad"]["noul"])
                                 usage = out.get("usage") or {}
                                 if (out.get("truncated") or usage.get("truncated") or usage.get("state_tokens_dropped", 0)
@@ -304,7 +322,11 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
             return
         p = None if about(c) else predictions.get(key(c))
         if p is None:
-            review(c, "문맥 검토 대상 또는 유효 Laya 확률 없음: Gemma 대체 판정 금지")
+            rejection = None if about(c) else rejections.get(key(c))
+            if rejection:
+                c["laya_preflight"] = dict(rejection)
+            review(c, rejection["reason"] if rejection else
+                   "문맥 검토 대상 또는 유효 Laya 확률 없음: Gemma 대체 판정 금지")
             return
         c["ml_prob"] = round(p, 4)
         c["laya_confidence"] = max(p, 1 - p)
@@ -356,7 +378,11 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
         if not row.get("source_html"):
             unresolved(row, "원본 HTML 없음: 재합성하지 않음")
         elif p is None:
-            unresolved(row, "유효 Laya 확률 없음: Gemma 대체 추출 금지")
+            rejection = rejections.get(key(row))
+            unresolved(row, rejection["reason"] if rejection else
+                       "유효 Laya 확률 없음: Gemma 대체 추출 금지")
+            if rejection:
+                stats["unresolved_sources"][-1]["laya_preflight"] = dict(rejection)
         elif max(p, 1 - p) >= laya_confidence_threshold:
             if p < .5:
                 stats["residual_screened_clean"] += 1
@@ -392,6 +418,7 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                 counts = stats["gemma_requests"]
                 attempted = response.get("request_count", 0)
                 counts["attempted"] += attempted
+                counts["reused"] += int(bool(response.get("cache_hit")))
                 counts["preflight_failed"] += response.get("preflight_failed", 0)
                 if attempted:
                     kind = ("succeeded" if response.get("status") == "ok" else

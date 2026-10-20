@@ -1204,9 +1204,9 @@ function renderAIProgress(progress, phase) {
   const l = progress.laya || {}, g = progress.gemma || {};
   const stages = {preflight: "AI 사전 준비 중", laya: "Laya 처리 중", gemma: "Gemma 처리 중"};
   const stage = stages[progress.stage] || (phase === "crawl" ? "입력 수집 중 · AI 대상 집계 전" : "AI 진행 집계");
-  layaRow.textContent = `${stage} · Laya 전체 ${count(l.total)} / 시도 ${count(l.attempted)} / 유효 ${count(l.completed)} / 실패 ${count(l.failed)} / 진행 중 ${count(l.in_flight)} / 남음 ${count(l.remaining)}`;
+  layaRow.textContent = `${stage} · Laya 입력 전체 ${count(l.total)} / 전달 시도 ${count(l.attempted)} / 유효 ${count(l.completed)} / 실패·거절 ${count(l.failed)}(길이 초과 ${count(l.preflight_rejected)}) / 진행 중 ${count(l.in_flight)} / 남음 ${count(l.remaining)}`;
   gemmaRow.textContent = `Gemma 논리 항목: 검증 대상 ${count(g.eligible_verify)} / 추출 대상 ${count(g.eligible_extract)} / 처리 종료(성공·실패 포함) ${count(g.settled)} / 남음 ${count(g.remaining)}(현재 확정분, 진행 중 포함 · 추출 후 증가 가능)
-실제 모델 요청 ${count(g.requests_started)} / 응답 ${count(g.responses_completed)} / 요청 실패 ${count(g.requests_failed)} / 진행 중 ${count(g.in_flight)} / 출력 거절 ${count(g.output_failed)} / 사전 실패 ${count(g.preflight_failed)} / 재사용 ${count(g.reused)}`;
+실제 모델 요청(전송 시도) ${count(g.requests_started)} / 응답 ${count(g.responses_completed)} / 요청 실패 ${count(g.requests_failed)} / 진행 중 ${count(g.in_flight)} / 출력 거절 ${count(g.output_failed)} / 사전 실패 ${count(g.preflight_failed)} / 재사용 ${count(g.reused)}`;
   gemmaRow.style.whiteSpace = "pre-line";
   const auditErrors = Number.isInteger(progress.audit_errors) ? progress.audit_errors : null;
   const auditMissing = !progress.audit_path;

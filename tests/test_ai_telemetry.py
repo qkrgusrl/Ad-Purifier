@@ -169,7 +169,8 @@ class AITelemetryTests(unittest.TestCase):
         report = self.execute(h)
         t = self.telemetry(report)
         self.assertEqual(len(h.laya_inputs), 2)
-        self.assertEqual(t['laya'], dict(total=2, attempted=2, completed=1, failed=1, in_flight=0, remaining=0))
+        self.assertEqual(t['laya'], dict(total=2, attempted=2, completed=1, failed=1,
+                                        preflight_rejected=0, in_flight=0, remaining=0))
         self.assertTrue(report['needs_review'])
         _, records = self.audit(t)
         failed_text = sorted(set(r['text'] for r in rows))[1]

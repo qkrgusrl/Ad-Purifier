@@ -120,21 +120,21 @@ class AITelemetryEdgeTests(unittest.TestCase):
         def request(path, payload=None, **kwargs):
             if path == '/apply-template':
                 data = json.loads(payload['messages'][1]['content'])
-                if data['candidate_id'] == 's1':
+                if any(u['text'] == rows[0]['source_html'] for u in data['source_units']):
                     raise OSError('fixture-first-block-preflight-failure')
             if path == '/v1/chat/completions':
                 data = json.loads(payload['messages'][1]['content'])
                 # 전송 직전 상태를 복사하고 실행 후 검사한다. 제품 코드가
                 # 콜백 예외를 흡수해도 assertion이 사라지지 않게 한다.
-                boundary.append((data['candidate_id'], copy.deepcopy(self.observed)))
+                boundary.append((data, copy.deepcopy(self.observed)))
             return original_request(path, payload, **kwargs)
 
         with patch.object(self, 'request', side_effect=request):
             report = self.execute(OfflineRun(rows, candidate_ids=[]), detect_posted=True)
 
         self.assertEqual(len(boundary), 1)
-        owner, events = boundary[0]
-        self.assertEqual(owner, 's2')
+        model_input, events = boundary[0]
+        self.assertTrue(any(u['text'] == rows[1]['source_html'] for u in model_input['source_units']))
         progress = [e['snapshot']['gemma'] for e in events if e['event'] == 'progress']
         self.assertTrue(progress)
         self.assertEqual(progress[-1]['preflight_failed'], 1,

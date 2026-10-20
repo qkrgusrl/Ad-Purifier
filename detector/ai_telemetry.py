@@ -12,7 +12,7 @@ class AIProgress:
         self.observer = observer
         self.snapshot = {
             "stage": "laya", "laya": dict.fromkeys(
-                ("total", "attempted", "completed", "failed", "in_flight", "remaining"), 0),
+                ("total", "attempted", "completed", "failed", "preflight_rejected", "in_flight", "remaining"), 0),
             "gemma": dict.fromkeys(("eligible_verify", "eligible_extract", "settled", "remaining",
                                     "in_flight", "requests_started", "responses_completed", "requests_failed",
                                     "output_failed", "preflight_failed", "reused"), 0),
@@ -121,7 +121,7 @@ class AuditPublisher:
         # 고정 허용 필드만 기록한다. 예외 문구·입력·모델 응답은 기록하지 않는다.
         allowed = ("event", "request_id", "candidate_id", "task", "status", "completion_received",
                    "request_count", "preflight_failed", "p", "confidence", "threshold", "source_id",
-                   "owner_id", "route_path", "source_sha256", "input_sha256")
+                   "owner_id", "route_path", "source_sha256", "input_sha256", "cache_hit", "cache_key", "reuse_kind")
         record = {key: copy.deepcopy(event[key]) for key in allowed if key in event}
         record.update(run_id=self.run_id, time=datetime.now(timezone.utc).isoformat())
         if event.get("event") == "progress":

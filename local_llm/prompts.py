@@ -207,5 +207,6 @@ def prepare_input(task,data,version):
             item['display_text']=readable
         rendered.append(item)
     before, after, status = _context_window(clean)
-    return {'candidate_id':clean['candidate_id'],'source_units':rendered,
+    # candidate owner는 의미 판정 요소가 아니므로 모델 전송값은 고정한다. 원래 ID는 input_only/clean_input에 남는다.
+    return {'candidate_id':'target','source_units':rendered,
             'context_before':before,'context_after':after,'context_status':status}
