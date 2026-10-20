@@ -30,6 +30,19 @@ _semantic_cache_lock = threading.Lock()
 SEMANTIC_CACHE_LIMIT = 256
 
 
+def _positive_option(value, name, default=None):
+    if value is None:
+        return default
+    if isinstance(value, str):
+        try:
+            value = int(value)
+        except ValueError:
+            raise ValueError(f'{name}: 0보다 큰 정수가 필요합니다') from None
+    if type(value) is not int or value <= 0:
+        raise ValueError(f'{name}: 0보다 큰 정수가 필요합니다')
+    return value
+
+
 @contextmanager
 def external_server_environment():
     """PyInstaller DLL 검색 경로가 독립 llama CPU 배포물로 전파되지 않게 한다."""
@@ -94,10 +107,20 @@ def http_json(base, path, payload=None, timeout=300, api_key=None):
 
 class LocalServer:
     def __init__(self, log_dir=None, threads=None, ctx_size=4096, repack=True,
-                 cache_prompt=None, deadline=None, cancel=None, budget=None, on_event=None):
+                 cache_prompt=None, deadline=None, cancel=None, budget=None, on_event=None,
+                 *, threads_batch=None, ubatch_size=None):
         self.on_event = on_event
         self.paths = {'server': str(llama_server()), 'model': str(gemma_model())}
-        self.threads, self.ctx_size = threads, ctx_size
+        self.threads = _positive_option(threads if threads is not None else os.environ.get('AD_PURIFIER_GEMMA_THREADS'), 'Gemma threads')
+        self.threads_batch = _positive_option(
+            threads_batch if threads_batch is not None else os.environ.get('AD_PURIFIER_GEMMA_THREADS_BATCH'),
+            'Gemma threads_batch', self.threads)
+        self.ubatch_size = _positive_option(
+            ubatch_size if ubatch_size is not None else os.environ.get('AD_PURIFIER_GEMMA_UBATCH_SIZE'),
+            'Gemma ubatch_size', 128)
+        if self.ubatch_size > 512:
+            raise ValueError('Gemma ubatch_size는 batch_size 512 이하여야 합니다')
+        self.ctx_size = ctx_size
         self.repack, self.cache_prompt = repack, cache_prompt
         self.budget = budget or Budget(deadline, cancel)
         self.log_dir = Path(log_dir) if log_dir else Path(tempfile.mkdtemp(prefix='gemma-', dir=data_root()))
@@ -126,9 +149,11 @@ class LocalServer:
             self.command = [self.paths['server'], '-m', self.paths['model'], '--host', '127.0.0.1', '--port', str(port),
                             '--device', 'none', '--gpu-layers', '0', '--no-op-offload', '--no-kv-offload']
             if self.threads is not None:
-                self.command.extend(['--threads', str(self.threads), '--threads-batch', str(self.threads)])
+                self.command.extend(['--threads', str(self.threads)])
+            if self.threads_batch is not None:
+                self.command.extend(['--threads-batch', str(self.threads_batch)])
             self.command.extend([
-                            '--ctx-size', str(self.ctx_size), '--parallel', '1', '--batch-size', '512', '--ubatch-size', '128',
+                            '--ctx-size', str(self.ctx_size), '--parallel', '1', '--batch-size', '512', '--ubatch-size', str(self.ubatch_size),
                             '--fit', 'off', '--no-context-shift', '--no-webui', '--offline', '--verbosity', '4',
                             '--api-key-file', str(self.key_file)])
             if not self.repack:
@@ -220,7 +245,8 @@ class LocalServer:
             raise value
 
     def provenance(self):
-        return {'platform': platform.platform(), 'threads': self.threads, 'context_tokens': self.ctx_size,
+        return {'platform': platform.platform(), 'threads': self.threads, 'threads_batch': self.threads_batch,
+                'batch_size': 512, 'ubatch_size': self.ubatch_size, 'context_tokens': self.ctx_size,
                 'backend': 'CPU', 'gpu_layers': 0, 'startup_seconds': self.startup_seconds,
                 'peak_server_rss_bytes': self.peak_rss, **self.paths}
 

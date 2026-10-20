@@ -7,10 +7,12 @@ from .prototype import run_extract, run_verify
 
 
 class GemmaClient:
-    def __init__(self, *, deadline=None, cancel=None, threads=None, ctx_size=4096, log_dir=None, on_event=None):
+    def __init__(self, *, deadline=None, cancel=None, threads=None, ctx_size=4096, log_dir=None, on_event=None,
+                 threads_batch=None, ubatch_size=None):
         self.on_event = on_event
         self.budget = Budget(deadline, cancel)
-        self.options = dict(log_dir=log_dir, threads=threads, ctx_size=ctx_size, budget=self.budget, on_event=self._event)
+        self.options = dict(log_dir=log_dir, threads=threads, threads_batch=threads_batch,
+                            ubatch_size=ubatch_size, ctx_size=ctx_size, budget=self.budget, on_event=self._event)
         self.server = None
 
     def __enter__(self):

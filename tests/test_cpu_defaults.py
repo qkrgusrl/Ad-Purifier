@@ -31,6 +31,11 @@ def report_environment_target(conn, model_path):
 class CpuDefaultsTests(unittest.TestCase):
     def setUp(self):
         self.enterContext(patch.object(sys, "path", [str(ROOT), str(ROOT / "tests"), *sys.path]))
+        self.enterContext(patch.dict(os.environ, {
+            key: value for key, value in os.environ.items()
+            if key not in ('AD_PURIFIER_GEMMA_THREADS', 'AD_PURIFIER_GEMMA_THREADS_BATCH',
+                           'AD_PURIFIER_GEMMA_UBATCH_SIZE')
+        }, clear=True))
 
     def test_laya_spawn_preserves_unset_and_explicit_thread_environment(self):
         runtime = importlib.import_module("detector.laya_runtime")
@@ -119,3 +124,35 @@ class CpuDefaultsTests(unittest.TestCase):
             with client.GemmaClient(threads=4):
                 pass
             self.assertEqual(factory.call_args.kwargs["threads"], 4)
+
+    def test_gemma_separates_generation_and_prefill_settings(self):
+        client = importlib.import_module("local_llm.client")
+        _, command = self.gemma_command(threads=4, threads_batch=8, ubatch_size=256)
+        for flag, value in (("--threads", "4"), ("--threads-batch", "8"), ("--ubatch-size", "256")):
+            self.assertEqual(command.count(flag), 1)
+            self.assertEqual(command[command.index(flag) + 1], value)
+        with patch.object(client, "LocalServer") as factory:
+            with client.GemmaClient(threads=4, threads_batch=8, ubatch_size=256):
+                pass
+            self.assertEqual(factory.call_args.kwargs["threads_batch"], 8)
+            self.assertEqual(factory.call_args.kwargs["ubatch_size"], 256)
+
+    def test_gemma_environment_options_and_explicit_precedence(self):
+        with patch.dict(os.environ, {'AD_PURIFIER_GEMMA_THREADS': '3',
+                                    'AD_PURIFIER_GEMMA_THREADS_BATCH': '8',
+                                    'AD_PURIFIER_GEMMA_UBATCH_SIZE': '256'}):
+            _, command = self.gemma_command()
+            self.assertEqual(command[command.index('--threads') + 1], '3')
+            self.assertEqual(command[command.index('--threads-batch') + 1], '8')
+            self.assertEqual(command[command.index('--ubatch-size') + 1], '256')
+            _, command = self.gemma_command(threads=4, threads_batch=4, ubatch_size=128)
+            self.assertEqual(command[command.index('--threads') + 1], '4')
+            self.assertEqual(command[command.index('--threads-batch') + 1], '4')
+            self.assertEqual(command[command.index('--ubatch-size') + 1], '128')
+
+    def test_gemma_rejects_invalid_tuning_before_starting_model(self):
+        engine = importlib.import_module('local_llm.engine')
+        for options in ({'threads_batch': 0}, {'threads_batch': True}, {'threads_batch': 1.5},
+                        {'ubatch_size': -1}, {'ubatch_size': 513}, {'threads': 'bad'}):
+            with self.subTest(options=options), self.assertRaises(ValueError):
+                engine.LocalServer(**options)
