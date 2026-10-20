@@ -160,7 +160,8 @@ class GemmaConnectionTests(unittest.TestCase):
     def test_related_education_context_with_target_html_selection_stays_clean(self):
         for task in ("verify", "extract"):
             with self.subTest(task=task):
-                row = self.border("<p>아래 환전 안내는 도박 예방교육에서 인용한 광고 문구입니다.</p>")
+                row = self.border()
+                row["source_context"] = "<p>아래 환전 안내는 도박 예방교육에서 인용한 광고 문구입니다.</p>" + row["source_html"]
                 h = OfflineRun([row], candidate_ids=[] if task == "extract" else None,
                                verify=lambda d: self.protocol("verify", d, "clean", "h0001"),
                                extract=lambda d: self.protocol("extract", d, "clean", "h0001"))
@@ -169,8 +170,9 @@ class GemmaConnectionTests(unittest.TestCase):
                 result = (report["candidates"] if task == "verify" else report["ai"]["source_results"])[0]
                 self.assertEqual((result["verdict"], result["decided_by"]), ("clean", "gemma"))
                 inp = json.loads(self.chats[-1]["messages"][1]["content"])
-                self.assertTrue(any(u["source_field"] == "context" and "예방교육" in u["text"]
-                                    for u in inp["source_units"]))
+                self.assertEqual(inp["context_before"], "아래 환전 안내는 도박 예방교육에서 인용한 광고 문구입니다.")
+                self.assertEqual(inp["context_after"], "")
+                self.assertTrue(inp["context_status"])
 
     def dom_child_clean_case(self, task):
         from local_llm.prompts import source_units

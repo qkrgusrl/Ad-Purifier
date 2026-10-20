@@ -325,6 +325,10 @@ def resolve_sentence_choice(data,obj,version=None):
     original_verdict=obj.get('verdict') if isinstance(obj,dict) else None
     if not isinstance(obj,dict) or set(obj)!={'verdict','evidence_id'} or obj['verdict'] not in ('ad','clean','uncertain'):
         raise ValueError('sentence_choice_schema: verdict/evidence_id 필요')
+    if isinstance(obj['evidence_id'], str) and obj['evidence_id'].startswith('c'):
+        if obj['verdict'] == 'clean':
+            raise ValueError('clean_requires_target_html: context만으로 대상 정상 확정 불가')
+        raise ValueError('unbound_sentence_id: context ID는 선택할 수 없음')
     chosen=next((u for u in source_units(data) if u['id']==obj['evidence_id'] and u['selectable']),None)
     if chosen is None or (chosen.get('structural_only') and obj['verdict']!='uncertain'):
         raise ValueError('unbound_sentence_id: 선택할 수 없는 ID 또는 내용 없는 확정')

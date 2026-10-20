@@ -2,6 +2,7 @@
 import html
 import json
 import re
+from html.parser import HTMLParser
 
 DEFAULT_VERSION = "v15"
 SENTENCE_ID_VERSIONS = ISOLATED_VERSIONS = frozenset(("v15",))
@@ -78,12 +79,103 @@ def source_units(data):
     return units
 
 
+class _VisibleContext(HTMLParser):
+    """전체 HTML을 파싱하고 raw 위치 경계로 가시 텍스트만 앞뒤로 나눈다."""
+    _VOID = frozenset(('area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr'))
+    _HIDDEN = frozenset(('head','script','style','noscript','template'))
+
+    def __init__(self, raw, start, end):
+        super().__init__(convert_charrefs=False)
+        self.raw, self.start, self.end = raw, start, end
+        self.lines = [0] + [m.end() for m in re.finditer('\n', raw)]
+        self.stack, self.before, self.after = [], [], []
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        styles = {}
+        inline_style = re.sub(r'/\*.*?\*/', '', attrs.get('style') or '', flags=re.S)
+        valid_values = {
+            'display': set(('none block inline inline-block flex inline-flex grid inline-grid flow-root '
+                             'table inline-table table-row-group table-header-group table-footer-group '
+                             'table-row table-column-group table-column table-cell table-caption '
+                             'list-item contents inherit initial unset revert revert-layer').split()),
+            'visibility': {'visible', 'hidden', 'collapse', 'inherit', 'initial', 'unset', 'revert', 'revert-layer'},
+        }
+        for match in re.finditer(r'(?:^|;)\s*(display|visibility)\s*:\s*([\w-]+)\s*(!important\s*)?(?=;|$)',
+                                 inline_style, re.I):
+            prop, value, important = match.groups()
+            prop, value, important = prop.lower(), value.lower(), bool(important)
+            if value not in valid_values[prop]:
+                continue
+            if prop not in styles or important or not styles[prop][1]:
+                styles[prop] = (value, important)
+        hidden = (bool(self.stack and self.stack[-1][1]) or tag in self._HIDDEN
+                  or 'hidden' in attrs or styles.get('display', ('', False))[0] == 'none')
+        visibility = self.stack[-1][2] if self.stack else 'visible'
+        declared_visibility = styles.get('visibility', ('', False))[0]
+        if declared_visibility in ('visible', 'hidden', 'collapse'):
+            visibility = declared_visibility
+        if tag not in self._VOID:
+            self.stack.append((tag, hidden, visibility))
+
+    def handle_startendtag(self, tag, attrs):
+        self.handle_starttag(tag, attrs)
+        if tag not in self._VOID:
+            self.handle_endtag(tag)
+
+    def handle_endtag(self, tag):
+        for index in range(len(self.stack) - 1, -1, -1):
+            if self.stack[index][0] == tag:
+                del self.stack[index:]
+                break
+
+    def handle_data(self, data):
+        if self.stack and (self.stack[-1][1] or self.stack[-1][2] != 'visible'):
+            return
+        line, column = self.getpos()
+        offset = self.lines[line - 1] + column
+        # 위치를 경계 표식으로 사용해 태그/속성/script 문법을 바꾸지 않는다.
+        before = data[:max(0, self.start - offset)]
+        after = data[max(0, self.end - offset):]
+        self.before.append(html.unescape(before))
+        self.after.append(html.unescape(after))
+
+    def handle_entityref(self, name):
+        line, column = self.getpos()
+        offset = self.lines[line - 1] + column
+        token = '&' + name
+        if self.raw.startswith(token + ';', offset):
+            token += ';'
+        self.handle_data(token)
+
+    def handle_charref(self, name):
+        self.handle_entityref('#' + name)
+
+
+def _context_window(data):
+    raw, target = data.get('context', ''), data.get('html', '')
+    if not raw:
+        return '', '', 'empty_context'
+    start = raw.find(target) if target else -1
+    if start < 0:
+        return '', '', 'no_raw_anchor'
+    if raw.find(target, start + 1) >= 0:
+        return '', '', 'duplicate_raw_anchor'
+    parser = _VisibleContext(raw, start, start + len(target))
+    parser.feed(raw)
+    parser.close()
+    before, after = ''.join(parser.before), ''.join(parser.after)
+    return before[-50:], after[:50], 'unique_raw_anchor'
+
+
 def prepare_input(task,data,version):
     clean=input_only(task,data)
     if task!='verify' or version not in SENTENCE_ID_VERSIONS:
         return clean
     rendered=[]
     for u in source_units(clean):
+        if u['source_field'] != 'html':
+            continue
         item={k:u[k] for k in ('id','source_field','text','selectable')}
         readable=html.unescape(u['text'])
         try:
@@ -100,4 +192,6 @@ def prepare_input(task,data,version):
         if readable!=u['text']:
             item['display_text']=readable
         rendered.append(item)
-    return {'candidate_id':clean['candidate_id'],'source_units':rendered}
+    before, after, status = _context_window(clean)
+    return {'candidate_id':clean['candidate_id'],'source_units':rendered,
+            'context_before':before,'context_after':after,'context_status':status}

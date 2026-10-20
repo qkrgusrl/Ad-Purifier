@@ -109,7 +109,8 @@ class GemmaProtocolTests(unittest.TestCase):
         def choose_second(payload):
             self.assertEqual(hashlib.sha256(payload["messages"][0]["content"].encode()).hexdigest(), V15_SHA["verify"])
             source = json.loads(payload["messages"][1]["content"])
-            self.assertEqual(set(source), {"candidate_id", "source_units"})
+            self.assertEqual(set(source), {"candidate_id", "source_units",
+                                           "context_before", "context_after", "context_status"})
             self.assertNotIn("LABEL_MUST_NOT_LEAK", json.dumps(source))
             return {"verdict": "ad", "evidence_id": "h0002"}
 
