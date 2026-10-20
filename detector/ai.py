@@ -158,6 +158,7 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
     stats = {"mode": "policy" if use_ml else "diagnostic", "laya_confidence_threshold": laya_confidence_threshold,
              "policy": "laya_low_confidence_only",
              "laya_inputs": 0, "laya_preflight_rejected": 0,
+             "length_skipped": [], "length_skipped_count": 0, "length_skipped_laya": 0, "length_skipped_gemma": 0,
              "gemma_verify": 0, "gemma_extract": 0, "residual_screened_clean": 0,
              "gemma_requests": dict.fromkeys(("attempted", "succeeded", "transport_failed", "output_failed", "preflight_failed", "reused"), 0),
              "source_rows": 0, "unique_count": 0, "cache_reuse": 0,
@@ -174,6 +175,9 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                     and gemma["settled"] == gemma["eligible_verify"] + gemma["eligible_extract"])
         stats["telemetry"] = meter.progress(
             "complete" if complete else "incomplete" if use_ml else "diagnostic")
+        for stage in ("laya", "gemma"):
+            stats[f"length_skipped_{stage}"] = sum(x["stage"] == stage for x in stats["length_skipped"])
+        stats["length_skipped_count"] = len(stats["length_skipped"])
         return stats
 
     def check():
@@ -187,6 +191,19 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
     def unresolved(row, reason, status="review"):
         stats["unresolved_sources"].append({**source_fields(row), "selector": row.get("selector"),
                                             "url": row.get("url"), "reason": str(reason), "processing_status": status})
+
+    length_seen = set()
+
+    def length_skip(stage, row, reason, tokens=None, limit=None):
+        """입력 길이 때문에 모델이 판정하지 못한 원문을 대시보드용으로 따로 모은다(단계별 중복 제외)."""
+        marker = (stage, row.get("source_id"))
+        if marker in length_seen:
+            return
+        length_seen.add(marker)
+        stats["length_skipped"].append({
+            "source_id": row.get("source_id"), "stage": stage, "url": row.get("url"), "selector": row.get("selector"),
+            "chars": len(row.get("evidence_text") or row.get("text") or ""),
+            "input_tokens": tokens, "token_limit": limit, "reason": str(reason)})
 
     def about(c):
         return any(n in ("page-context", "body-context") for n, _ in c.get("context", []))
@@ -325,6 +342,7 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
             rejection = None if about(c) else rejections.get(key(c))
             if rejection:
                 c["laya_preflight"] = dict(rejection)
+                length_skip("laya", c, rejection["reason"], rejection["input_tokens"], rejection["token_limit"])
             review(c, rejection["reason"] if rejection else
                    "문맥 검토 대상 또는 유효 Laya 확률 없음: Gemma 대체 판정 금지")
             return
@@ -383,6 +401,7 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                        "유효 Laya 확률 없음: Gemma 대체 추출 금지")
             if rejection:
                 stats["unresolved_sources"][-1]["laya_preflight"] = dict(rejection)
+                length_skip("laya", row, rejection["reason"], rejection["input_tokens"], rejection["token_limit"])
         elif max(p, 1 - p) >= laya_confidence_threshold:
             if p < .5:
                 stats["residual_screened_clean"] += 1
@@ -512,7 +531,13 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                             or row.get("candidate_id") != item["candidate_id"]
                             or row.get("verdict") not in ("ad", "clean")
                             or not valid_binding(row, item, item["candidate_id"])):
-                        review(c, "Gemma 보류/누락/원문 결합 실패")
+                        call = row.get("call") or {}
+                        if "input_overflow" in str(call.get("error", "")):
+                            ctx = getattr(getattr(client, "server", None), "ctx_size", None)
+                            length_skip("gemma", c, call["error"], call.get("preflight_prompt_tokens"),
+                                        ctx - call.get("max_tokens", 0) - 64 if ctx else None)
+                        review(c, "Gemma 입력 길이 초과: 판정 보류" if "input_overflow" in str(call.get("error", ""))
+                               else "Gemma 보류/누락/원문 결합 실패")
                     elif row["verdict"] == "ad" and row.get("source_field") != "html":
                         review(c, "광고 근거가 source_html에 없음: 주변 문맥만으로 현재 위치를 확정할 수 없음")
                     elif row["verdict"] == "ad" and not matching_recovery_text(row, c):
@@ -578,6 +603,8 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                 for sid, row in by_id.items():
                     if sid in failed:
                         unresolved(row, failed[sid])
+                        if "input_overflow" in str(failed[sid]):
+                            length_skip("gemma", row, failed[sid])
                     elif sid in recovered:
                         recover_row(row, recovered[sid])
                     elif sid in cleaned:
