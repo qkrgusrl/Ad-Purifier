@@ -1,7 +1,10 @@
-"""display:none으로 접힌 UI 부품(메뉴·탭·모바일 전용)과 숨김 광고의 구분. 모델은 실행하지 않는다."""
+"""display:none으로 접힌 UI 부품(메뉴·탭·모바일 전용)과 숨김 광고의 구분, 불법 중계 사전 보강. 모델은 실행하지 않는다."""
 import unittest
 
 from fixtures.ai_contract import main, pages, source
+
+from detector import adscore
+from detector.textnorm import normalize
 
 
 def judged(selector, text, signals):
@@ -40,6 +43,12 @@ class HiddenUiWidgetTests(unittest.TestCase):
         c = judged("div.gnb-submenu", "카지노 교육기관",
                    [["OFFSCREEN", "display:none"], ["OFFSCREEN", "clip/1px(sr-only)"]])
         self.assertEqual(c["verdict"], "borderline")
+
+    def test_illegal_streaming_names_are_rule_confirmed(self):
+        for text in ("벳모아티비", "구구티비"):
+            with self.subTest(text=text):
+                self.assertGreaterEqual(adscore.score(normalize(text))[0], adscore.HIGH)
+        self.assertIn("gugutv", adscore.score(normalize("gugutvon1.com"))[1])
 
 
 if __name__ == "__main__":
