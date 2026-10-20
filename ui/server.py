@@ -10,6 +10,7 @@
 """
 import argparse
 import csv
+import copy
 import hashlib
 import io
 import importlib.util
@@ -42,7 +43,7 @@ REVIEW_STATES = {"new", "confirmed", "false_positive", "resolved"}
 
 state_lock = threading.Lock()
 state = {"running": False, "phase": "idle", "entry_url": "", "pages_done": 0, "pages_found": 0, "current_url": "",
-         "started": None, "run_id": None, "error": None, "cancelling": False, "max_pages": 0}
+         "started": None, "run_id": None, "error": None, "cancelling": False, "max_pages": 0, "ai_progress": None}
 cancel_event = threading.Event()  # 탐지 취소 신호 (진행 중인 점검 하나에만 쓰고, 새 점검을 시작할 때 비운다)
 
 
@@ -100,6 +101,17 @@ def cand_key(c):
 
 
 def scan_job(entry_url, use_ml, max_pages):
+    with state_lock:
+        started = state["started"]
+
+    def observer(event):
+        if event.get("event") != "progress":
+            return
+        with state_lock:
+            if state["started"] != started:
+                return
+            state["ai_progress"] = copy.deepcopy(event["snapshot"])
+
     def progress(done, found, url):
         with state_lock:
             state.update(pages_done=done, pages_found=found, current_url=url)
@@ -113,7 +125,7 @@ def scan_job(entry_url, use_ml, max_pages):
     try:
         budget = {} if options["time_limit"] else {"time_budget": NO_LIMIT_BUDGET}
         report = run(entry_url, app_dir(), max_pages=max_pages, use_ml=use_ml, progress=progress, phase=phase,
-            cancel=cancel_event, complete_validation=options["complete_validation"], **budget)
+            cancel=cancel_event, complete_validation=options["complete_validation"], telemetry=observer, **budget)
         dest = HISTORY / run_id
         dest.mkdir(parents=True, exist_ok=True)
         for name in ("result.json", "report.json"):
@@ -403,7 +415,8 @@ class Handler(BaseHTTPRequestHandler):
                 if state["running"] or (previous_worker is not None and previous_worker.is_alive()):
                     return self.send(409, {"error": "이미 탐지가 진행 중입니다."})
                 state.update(running=True, phase="start", entry_url=url, pages_done=0, pages_found=1, current_url=url,
-                             started=time.time(), run_id=None, error=None, cancelling=False, max_pages=max_pages)
+                             started=time.time(), run_id=None, error=None, cancelling=False, max_pages=max_pages,
+                             ai_progress=None)
                 cancel_event.clear()
                 self.server.scan_worker = threading.Thread(target=scan_job, args=(url, use_ml, max_pages),
                                                            name="scan-worker")

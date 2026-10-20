@@ -486,6 +486,11 @@ tr.row.in-page td:first-child { padding-left: 28px; }
         </div>
         <div class="bar" id="bar"><div></div></div>
         <div class="line"><span><span id="progText"></span><span id="progTime"></span></span><span id="progUrl"></span></div>
+        <div class="hint" id="aiProgress">
+          <div id="layaProgress"></div>
+          <div id="gemmaProgress"></div>
+          <div id="aiAuditStatus"></div>
+        </div>
       </div>
     </section>
 
@@ -1184,9 +1189,36 @@ $("stopYes").onclick = async () => {
   } catch (e) { stopMode = "idle"; setRunning(true); toast(`중지하지 못했습니다: ${e.message}`, true); }
 };
 
+function renderAIProgress(progress, phase) {
+  const layaRow = $("layaProgress"), gemmaRow = $("gemmaProgress"), auditRow = $("aiAuditStatus");
+  layaRow.textContent = "";
+  gemmaRow.textContent = "";
+  auditRow.textContent = "";
+  if (!progress) {
+    layaRow.textContent = phase === "crawl" || phase === "start"
+      ? "입력 수집 중 · AI 대상 집계 전 · 이번 실행은 AI 세부 진행 미계측"
+      : "이번 실행은 AI 세부 진행 미계측";
+    return;
+  }
+  const count = value => Number.isInteger(value) && value >= 0 ? String(value) : "미계측";
+  const l = progress.laya || {}, g = progress.gemma || {};
+  const stages = {preflight: "AI 사전 준비 중", laya: "Laya 처리 중", gemma: "Gemma 처리 중"};
+  const stage = stages[progress.stage] || (phase === "crawl" ? "입력 수집 중 · AI 대상 집계 전" : "AI 진행 집계");
+  layaRow.textContent = `${stage} · Laya 전체 ${count(l.total)} / 시도 ${count(l.attempted)} / 유효 ${count(l.completed)} / 실패 ${count(l.failed)} / 진행 중 ${count(l.in_flight)} / 남음 ${count(l.remaining)}`;
+  gemmaRow.textContent = `Gemma 논리 항목: 검증 대상 ${count(g.eligible_verify)} / 추출 대상 ${count(g.eligible_extract)} / 처리 종료(성공·실패 포함) ${count(g.settled)} / 남음 ${count(g.remaining)}(현재 확정분, 진행 중 포함 · 추출 후 증가 가능)
+실제 모델 요청 ${count(g.requests_started)} / 응답 ${count(g.responses_completed)} / 요청 실패 ${count(g.requests_failed)} / 진행 중 ${count(g.in_flight)} / 출력 거절 ${count(g.output_failed)} / 사전 실패 ${count(g.preflight_failed)} / 재사용 ${count(g.reused)}`;
+  gemmaRow.style.whiteSpace = "pre-line";
+  const auditErrors = Number.isInteger(progress.audit_errors) ? progress.audit_errors : null;
+  const auditMissing = !progress.audit_path;
+  const warning = progress.audit_degraded || auditMissing || (auditErrors !== null && auditErrors > 0);
+  // 감사 경로와 실행 ID는 외부 데이터이므로 HTML로 삽입하지 않는다.
+  auditRow.textContent = `${warning ? "경고: 감사 기록 누락 또는 기록 상태 확인 필요" : "감사 기록 경로"} · 오류 ${count(auditErrors)}${progress.run_id ? ` · 실행 ${progress.run_id}` : ""}${progress.audit_path ? ` · ${progress.audit_path}` : " · 감사 파일 경로 미제공"}`;
+}
+
 async function pollStatus() {
   const s = await api("/api/status");
   setRunning(s.running);
+  renderAIProgress(s.ai_progress, s.phase);
   if (s.running) {
     if (s.entry_url && !$("url").value) $("url").value = s.entry_url;  // 탐지 중에 새로고침해도 점검 중인 주소가 보이게
     const crawl = s.phase === "crawl" || s.phase === "start";
@@ -1251,6 +1283,7 @@ $("scanForm").onsubmit = async e => {
     });
     showHome();
     setRunning(true);
+    renderAIProgress(null, "start");
     $("progText").textContent = PHASE.start;
     $("progUrl").textContent = "";
     startPolling();
@@ -1289,6 +1322,7 @@ document.querySelectorAll(".nav a[data-nav]").forEach(a => a.addEventListener("c
       $("mlLabel").append(" (AI 자산 미준비 · 해제 시 진단 모드)");
     }
     setRunning(s.running);
+    renderAIProgress(s.ai_progress, s.phase);
     await loadHistory();
     if (s.running) startPolling();
   } catch (e) {

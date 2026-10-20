@@ -36,6 +36,8 @@ class EvidenceIntegrationTests(unittest.TestCase):
                 return {"tokens": list(range(100))}
             if path != "/v1/chat/completions":
                 raise AssertionError("예상하지 않은 transport: " + path)
+            if kwargs.get("on_dispatch") is not None:
+                kwargs["on_dispatch"]()
             return {"choices": [{"finish_reason": "stop", "message": {"content": json.dumps(
                 {"verdict": verdict, "evidence_id": evidence_id})}}]}
 

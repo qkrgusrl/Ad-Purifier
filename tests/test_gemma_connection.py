@@ -39,6 +39,8 @@ class GemmaConnectionTests(unittest.TestCase):
                 return {"tokens": list(range(tokens))}
             if path != "/v1/chat/completions":
                 raise AssertionError("예상하지 않은 HTTP 경계: " + path)
+            if kwargs.get("on_dispatch") is not None:
+                kwargs["on_dispatch"]()
             self.chats.append(copy.deepcopy(payload))
             if fault == "transport":
                 raise OSError("fixture transport failure")
@@ -217,6 +219,8 @@ class GemmaConnectionTests(unittest.TestCase):
                 if path == "/tokenize":
                     return {"tokens": list(range(100))}
                 self.assertEqual(path, "/v1/chat/completions")
+                if kwargs.get("on_dispatch") is not None:
+                    kwargs["on_dispatch"]()
                 self.chats.append(copy.deepcopy(payload))
                 model_input = json.loads(payload["messages"][1]["content"])
                 owner = model_input["candidate_id"]

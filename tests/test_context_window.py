@@ -131,6 +131,8 @@ class ContextWindowTests(unittest.TestCase):
             if path == '/tokenize':
                 return {'tokens': [1]}
             self.assertEqual(path, '/v1/chat/completions')
+            if kwargs.get('on_dispatch') is not None:
+                kwargs['on_dispatch']()
             generations.append(json.loads(payload['messages'][1]['content']))
             return {'choices': [{'finish_reason': 'stop', 'message': {'content': '{"verdict":"ad","evidence_id":"h0001"}'}}]}
 

@@ -9,6 +9,7 @@ import platform
 import queue
 import secrets
 import socket
+import uuid
 import subprocess
 import tempfile
 import threading
@@ -90,7 +91,8 @@ def http_json(base, path, payload=None, timeout=300, api_key=None):
 
 class LocalServer:
     def __init__(self, log_dir=None, threads=None, ctx_size=4096, repack=True,
-                 cache_prompt=None, deadline=None, cancel=None, budget=None):
+                 cache_prompt=None, deadline=None, cancel=None, budget=None, on_event=None):
+        self.on_event = on_event
         self.paths = {'server': str(llama_server()), 'model': str(gemma_model())}
         self.threads, self.ctx_size = threads, ctx_size
         self.repack, self.cache_prompt = repack, cache_prompt
@@ -184,7 +186,7 @@ class LocalServer:
                         self.key_file.unlink(missing_ok=True)
                     self.api_key = None
 
-    def request(self, path, payload=None, timeout=300):
+    def request(self, path, payload=None, timeout=300, on_dispatch=None):
         # socket timeout은 개별 read마다 갱신될 수 있으므로 전체 요청도 절대시각으로 제한한다.
         allowed = min(timeout, self.budget.remaining())
         if allowed <= 0:
@@ -197,6 +199,8 @@ class LocalServer:
                 completed.put((True, http_json(base, path, payload, allowed, api_key)))
             except BaseException as exc:
                 completed.put((False, exc))
+        if on_dispatch is not None:
+            on_dispatch()
         threading.Thread(target=fetch, daemon=True).start()
         while True:
             wait = min(.05, self.budget.remaining(), expires-time.perf_counter())
@@ -223,6 +227,18 @@ class LocalServer:
         template = self.request("/apply-template", {"messages": messages, "chat_template_kwargs": {"enable_thinking": False}, "reasoning_effort": "none"})
         return len(self.request("/tokenize", {"content": template["prompt"], "add_special": False, "parse_special": True})["tokens"])
 
+    def _emit_event(self, event):
+        observer = getattr(self, "on_event", None)
+        if observer is not None:
+            try:
+                observer(dict(event))
+            except Exception:
+                # 관측 실패는 추론 결과나 모델 실행 정책을 바꾸지 않는다.
+                try:
+                    observer({"event": "audit_error"})
+                except Exception:
+                    pass
+
     def infer(self, task, data, version=DEFAULT_VERSION, max_tokens=None):
         if version != DEFAULT_VERSION:
             raise ValueError("v15만 지원")
@@ -237,6 +253,16 @@ class LocalServer:
         result = {"task": task, "version": version, "input": clean_input,
                   "prompt_sha256": hashlib.sha256(system.encode()).hexdigest(), "max_tokens": limit,
                   "temperature": 0, "seed": 42, "thinking": False, "cache_prompt": use_cache, "request_count":0}
+        request_id = uuid.uuid4().hex
+        overflow_preflight = False
+        def emit(name):
+            self._emit_event({"event": name, "request_id": request_id,
+                              "candidate_id": clean_input.get("candidate_id"), "task": task,
+                              "status": result.get("status", "started"),
+                              "completion_received": bool(result.get("completion_received", False)),
+                              "request_count": result["request_count"],
+                              "preflight_failed": int(bool(result.get("preflight_failed") or overflow_preflight or
+                                  result.get("decision_rule") == "empty_source_needs_review"))})
         try:
             model_input=prepare_input(task,clean_input,version)
             if version in SENTENCE_ID_VERSIONS:
@@ -257,13 +283,16 @@ class LocalServer:
                 raise
             result["preflight_prompt_tokens"] = prompt_tokens
             if prompt_tokens + limit + 64 > self.ctx_size:
+                overflow_preflight = True
                 raise ValueError("input_overflow: 원문을 자르지 않고 입력을 분할해야 함")
             request = {"messages": messages, "temperature": 0, "seed": 42, "max_tokens": limit,
                        "cache_prompt": use_cache, "chat_template_kwargs": {"enable_thinking": False},
                        "reasoning_effort": "none", "response_format": {"type": "json_object", "schema": schema_for(task, model_input, version)}}
             inference_start = time.perf_counter()
-            result['request_count']=1
-            response = self.request("/v1/chat/completions", request)
+            def on_dispatch():
+                result['request_count'] = 1
+                emit('request_start')
+            response = self.request("/v1/chat/completions", request, on_dispatch=on_dispatch)
             result['completion_received'] = True
             result["inference_seconds"] = time.perf_counter() - inference_start
             result["raw_response"] = response
@@ -281,6 +310,12 @@ class LocalServer:
         except Exception as exc:
             result["status"] = "error"
             result["error"] = f"{type(exc).__name__}: {exc}"
+        finally:
+            if "status" not in result:
+                result["status"] = "cancelled"
+            if result["request_count"]:
+                emit("request_end")
+            emit("item_end")
         result["wall_seconds"] = time.perf_counter() - started
         return result
 

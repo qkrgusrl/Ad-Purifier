@@ -79,6 +79,8 @@ class GemmaProtocolTests(unittest.TestCase):
             if path == "/health":
                 return {"status": "ok"}
             self.assertEqual(path, "/v1/chat/completions")
+            if kwargs.get("on_dispatch") is not None:
+                kwargs["on_dispatch"]()
             value = content(payload) if callable(content) else content
             if isinstance(value, BaseException):
                 raise value

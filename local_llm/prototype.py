@@ -43,7 +43,7 @@ def bind_candidates(blocks, candidates, bindings=None):
     return bound
 
 
-def run_extract(server, data, version):
+def run_extract(server, data, version, on_preflight=None):
     clean = input_only("extract", data)
     blocks = clean["blocks"]
     ids = [b["block_id"] for b in blocks]
@@ -52,6 +52,14 @@ def run_extract(server, data, version):
     calls, candidates, failures = [], [], []
     chunks, oversized = plan_chunks(server, blocks, version, preflight_errors=failures)
     failures.extend({"block_ids": [bid], "error": "input_overflow", "action": "상위 파서에서 문맥을 보존해 더 작은 블록으로 분할"} for bid in oversized)
+    if on_preflight is not None:
+        try:
+            # 계획 단계에서 제외된 owner만, 첫 실제 추론 전에 종료 통지한다.
+            on_preflight(tuple(bid for failure in failures for bid in failure["block_ids"]))
+        except Exception:
+            notify = getattr(server, "_emit_event", None)
+            if notify is not None:
+                notify({"event": "audit_error"})
 
     def process(chunk):
         result = server.infer("extract", {"blocks": chunk}, version)

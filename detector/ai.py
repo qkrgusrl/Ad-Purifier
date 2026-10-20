@@ -142,7 +142,8 @@ def matching_recovery_text(binding, row):
             and parser.body_start <= binding["start_char"] < binding["end_char"] <= parser.body_end)
 
 
-def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_confidence_threshold=.8, cancel_error=None, detect_posted=True):
+def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_confidence_threshold=.8, cancel_error=None, detect_posted=True, telemetry=None):
+    from .ai_telemetry import AIProgress
     from .main import ScanCancelled, candidates_from, judge, source_fields
     ScanCancelled = cancel_error or ScanCancelled
     if not .5 <= laya_confidence_threshold <= 1:
@@ -155,6 +156,17 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
              "laya_sec": 0.0, "gemma_verify_sec": 0.0, "gemma_extract_sec": 0.0,
              "unresolved_sources": [], "failures": [], "source_results": [],
              "scope": "수집된 DOM 텍스트 소유 단위; 전체 HTTP 원문 및 이미지 검사는 포함하지 않음"}
+
+    meter = AIProgress(telemetry)
+    stats["telemetry"] = meter.snapshot
+
+    def finish():
+        laya, gemma = meter.snapshot["laya"], meter.snapshot["gemma"]
+        complete = (use_ml and check() and laya["completed"] + laya["failed"] == laya["total"]
+                    and gemma["settled"] == gemma["eligible_verify"] + gemma["eligible_extract"])
+        stats["telemetry"] = meter.progress(
+            "complete" if complete else "incomplete" if use_ml else "diagnostic")
+        return stats
 
     def check():
         if cancel is not None and cancel.is_set():
@@ -196,13 +208,6 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
         else:
             c.update(processing_status="completed", reason="기존 규칙 확정")
 
-    if not use_ml:
-        for c in border:
-            review(c, "명시적 진단 모드: AI 판정 생략")
-        for row in residual:
-            unresolved(row, "명시적 진단 모드: 잔여 선별 생략")
-        return stats
-
     predictions = {}
     rows_by_key = {}
     for row in [c for c in border if not about(c)] + residual:
@@ -210,6 +215,16 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
     stats["source_rows"] = sum(len(owners) for owners in rows_by_key.values())
     stats["unique_count"] = len(rows_by_key)
     stats["cache_reuse"] = stats["source_rows"] - stats["unique_count"]
+    laya_counts = meter.snapshot["laya"]
+    laya_counts["total"] = len(rows_by_key)
+    meter.progress("laya")
+    if not use_ml:
+        for c in border:
+            review(c, "명시적 진단 모드: AI 판정 생략")
+        for row in residual:
+            unresolved(row, "명시적 진단 모드: 잔여 선별 생략")
+        return finish()
+
     laya_started = time.perf_counter()
     try:
         if rows_by_key and check():
@@ -221,6 +236,10 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                         break
                     chunk = keys[offset:offset + 64]
                     stats["laya_inputs"] += len(chunk)
+                    laya_counts["attempted"] += len(chunk)
+                    laya_counts["in_flight"] += len(chunk)
+                    settled_before = laya_counts["completed"] + laya_counts["failed"]
+                    meter.progress()
                     try:
                         outputs = runner.predict_batch(chunk, QUESTION, batch_size=16)
                         if not check():
@@ -237,15 +256,22 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                                 if not math.isfinite(p) or not 0 <= p <= 1:
                                     raise ValueError("잘못된 Laya 확률")
                                 predictions[k] = p
+                                laya_counts["completed"] += 1
                             except (IndexError, KeyError, TypeError, ValueError):
+                                laya_counts["failed"] += 1
                                 stats["failures"].extend({"source_id": owner.get("source_id"), "stage": "laya", "reason": "출력 누락/잘림/오류"}
                                                          for owner in rows_by_key[k])
                     except LayaCleanupError:
                         raise
                     except Exception as exc:
                         check()
+                        settled = laya_counts["completed"] + laya_counts["failed"] - settled_before
+                        laya_counts["failed"] += len(chunk) - settled
                         stats["failures"].extend({"source_id": owner.get("source_id"), "stage": "laya", "reason": str(exc)}
                                                  for k in chunk for owner in rows_by_key[k])
+                    finally:
+                        laya_counts["in_flight"] -= len(chunk)
+                        meter.progress()
     except LayaCleanupError as exc:
         # __enter__ 실패 때도 PID/정리 단계가 포함된 전용 타입으로 Gemma 시작을 차단한다.
         stats["failures"].extend({"source_id": r.get("source_id"), "stage": "laya_cleanup", "reason": str(exc)}
@@ -254,6 +280,7 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
             review(c, str(exc), "error")
         for row in residual:
             unresolved(row, str(exc), "error")
+        meter.progress("incomplete")
         return stats
     except Exception as exc:
         check()
@@ -279,6 +306,8 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                      processing_status="completed", reason="Laya 정상 출력의 confidence가 운영 임계값 이상")
         else:
             pending.append(c)
+            meter.snapshot["gemma"]["eligible_verify"] += 1
+            meter.progress("gemma")
     for c in border:
         route(c)
 
@@ -331,6 +360,8 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                 recover_row(row)
         else:
             extract_rows.append(row)
+            meter.snapshot["gemma"]["eligible_extract"] += 1
+            meter.progress("gemma")
 
     with ExitStack() as stack:
         client = None
@@ -387,11 +418,25 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                 try:
                     from local_llm.client import GemmaClient
                     # Budget의 None은 30분 기본값이므로 무제한을 명시한다. 보고서에는 저장하지 않는다.
-                    client = stack.enter_context(GemmaClient(deadline=math.inf if deadline is None else deadline, cancel=cancel))
+                    client = stack.enter_context(GemmaClient(deadline=math.inf if deadline is None else deadline, cancel=cancel, on_event=meter.event))
                 except Exception as exc:
                     client_error = str(exc)
                     raise
             return client
+
+        def register(owner, row, route):
+            p = predictions[key(row)]
+            meter.register(owner, row, route, p, laya_confidence_threshold,
+                           digest(input_for(row)), hashlib.sha256(key(row).encode()).hexdigest())
+
+        def item_end(owner, status, preflight_failed=0):
+            if owner not in meter.owners:
+                return
+            import uuid
+            meter.event({"event": "item_end", "request_id": uuid.uuid4().hex,
+                         "candidate_id": owner, "task": "verify", "status": status,
+                         "request_count": 0, "completion_received": False,
+                         "preflight_failed": preflight_failed})
 
         def verify_pending(start, end):
             verify_started = time.perf_counter()
@@ -400,10 +445,14 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                 if not check():
                     review(c, "공유 점검 시간 예산 초과", "timeout")
                     continue
+                owner = f"{c.get('source_id', 'source')}:{index}"
+                register(owner, c, "verify")
                 if c.get("attr", "").startswith("::"):
+                    item_end(owner, "preflight_failed", 1)
                     review(c, "CSS 가상 문구는 원본 HTML 텍스트에 결합할 수 없음")
                     continue
                 if not c.get("source_html"):
+                    item_end(owner, "preflight_failed", 1)
                     review(c, "원본 HTML 없음: 재합성하지 않음")
                     continue
                 item = {"candidate_id": f"{c.get('source_id', 'source')}:{index}", **input_for(c)}
@@ -411,6 +460,9 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                     response = reusable_proof(c)
                     if response is not None:
                         item["candidate_id"] = c["extraction"]["block_id"]
+                        meter.owners[item["candidate_id"]] = meter.owners.pop(owner)
+                        meter.owners[item["candidate_id"]]["owner_id"] = item["candidate_id"]
+                        item_end(item["candidate_id"], "reused")
                         stats["gemma_requests"]["reused"] += 1
                     else:
                         gemma = get_client()
@@ -439,6 +491,7 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                         c.update(verdict=row["verdict"], decided_by="gemma", processing_status="completed", reason="Gemma v15 원문 결합 검증 완료")
                 except Exception as exc:
                     check()
+                    item_end(item["candidate_id"], "preflight_failed", 1)
                     review(c, f"{type(exc).__name__}: {exc}", "timeout" if isinstance(exc, TimeoutError) else "error")
             stats["gemma_verify_sec"] = round(stats["gemma_verify_sec"] + time.perf_counter() - verify_started, 3)
 
@@ -449,6 +502,8 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
             extract_started = time.perf_counter()
             blocks = [{"block_id": r["source_id"], **input_for(r)} for r in extract_rows]
             by_id = {r["source_id"]: r for r in extract_rows}
+            for row in extract_rows:
+                register(row["source_id"], row, "extract")
             try:
                 gemma = get_client()
                 stats["gemma_extract"] += len(blocks)
@@ -498,6 +553,7 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
             except Exception as exc:
                 check()
                 for row in extract_rows:
+                    item_end(row["source_id"], "preflight_failed", 1)
                     unresolved(row, f"{type(exc).__name__}: {exc}", "timeout" if isinstance(exc, TimeoutError) else "error")
             finally:
                 stats["gemma_extract_sec"] = round(time.perf_counter() - extract_started, 3)
@@ -506,4 +562,4 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
     check()
     stats["failures"].extend({"source_id": c.get("source_id"), "stage": "verify", "reason": c["reason"]}
                              for c in pending if c["verdict"] == "uncertain")
-    return stats
+    return finish()

@@ -142,6 +142,8 @@ class GemmaOwnerVoidTests(unittest.TestCase):
                 if path == "/tokenize":
                     return {"tokens": list(range(100))}
                 self.assertEqual(path, "/v1/chat/completions")
+                if kwargs.get("on_dispatch") is not None:
+                    kwargs["on_dispatch"]()
                 completions.append(payload)
                 return {"choices": [{"finish_reason": "stop", "message": {
                     "content": json.dumps({"verdict": "clean", "evidence_id": "c0001"})}}]}
