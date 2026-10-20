@@ -19,12 +19,12 @@ Python 표준 unittest만 필요하다. Playwright, Laya, Gemma 패키지·브�
 ## 최신 동작 범위
 
 - LOW=1.5, HIGH=4.0 및 기존 judge의 룰 선별을 유지한다. 기존 확정 rule ad/clean은 Laya/Gemma를 호출하지 않는다.
-- Laya는 기존 borderline에만 적용하며 예방 page/body-context 우회도 유지한다. 우회된 borderline은 Gemma 대상이다.
-- 경계 후보에서 Laya confidence < 0.8, 오류, 누락, 잘림은 Gemma 검증 대상이다. confidence는 이 이진 출력 더블에서 max(p, 1-p)다. 실제 성능 확률 보장이 아니다.
+- Laya는 기존 borderline과 잔여 단위를 선별하며 예방 page/body-context 우회도 유지한다. 우회되어 유효 확률이 없는 borderline은 review로 남긴다.
+- Gemma는 유효 Laya confidence < 0.8인 단위만 검증·추출한다. 오류·누락·잘림은 Gemma로 대체하지 않고 review로 남긴다. confidence는 max(p, 1-p)이며 실제 정확도 보장이 아니다.
 - 공개 설정 seam 제안: `run(..., laya_confidence_threshold=0.8)`. 이름을 바꾸려면 테스트 작성자와 합의한다. 규칙 임계값은 바꾸지 않는다.
 - --no-ml/use_ml=False는 명시적 진단 모드다. 애매한 경계는 uncertain + review로 남기고 ai.mode=diagnostic을 기록한다.
 - 잔여는 기존 후보가 사용한 source_id만 제외한다. 문구가 같다는 이유로 다른 DOM 소유 단위를 제외하지 않는다.
-- 잔여 단위별 Laya screening → 의심/불확실 시 Gemma.extract → 회수 후보는 기존 judge → 필요 시 Gemma.verify로 합류한다. 동일 원문 Laya 캐시 재사용을 허용한다.
+- 잔여 단위별 Laya screening 후 고신뢰 정상은 제외하고, 고신뢰 광고는 기존 candidates_from으로 위치·기법을 회수한다. 회수 불가 시 원문과 Laya 판정을 보존해 review로 남긴다. 저신뢰만 Gemma.extract로 보내며 회수 후에도 유효 저신뢰 조건을 만족해야 Gemma.verify를 호출한다. 동일 원문 Laya 캐시 재사용을 허용한다.
 - 회수 뒤 룰 ad가 되면 verify를 호출하지 않는다. 재추출과 반복 회수는 source 단위로 유한해야 한다.
 
 ## 수집 더블과 소유권

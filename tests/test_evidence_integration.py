@@ -113,7 +113,7 @@ class EvidenceIntegrationTests(unittest.TestCase):
         self.assertEqual(main.adscore.score(main.normalize(text))[0], 0)
         self.assertEqual(main.candidates_from(page_data, detect_posted=True), [])
         harness = OfflineRun(page_data=page_data,
-                             predict=lambda ts: [prediction(.99) for _ in ts],
+                             predict=lambda ts: [prediction(.55) for _ in ts],
                              extract=lambda data: self.protocol("extract", data, "ad", "h0001"))
         report = self.run_case(harness, detect_posted=True)
         self.assertEqual(harness.laya_inputs, [main.normalize(text)])
@@ -130,8 +130,8 @@ class EvidenceIntegrationTests(unittest.TestCase):
         self.assertEqual(candidate["source_html"], original)
         self.assertEqual(candidate["extraction"], self.trace[0]["reply"]["candidates"][0])
         self.assertEqual((candidate["verdict"], candidate["processing_status"], candidate["decided_by"]),
-                         ("ad", "completed", "laya"))
-        self.assertEqual(candidate["ml_prob"], .99)
+                         ("ad", "completed", "gemma"))
+        self.assertEqual(candidate["ml_prob"], .55)
         self.assertIs(report["needs_review"], False)
         self.assertEqual(report["unresolved_count"], 0)
 

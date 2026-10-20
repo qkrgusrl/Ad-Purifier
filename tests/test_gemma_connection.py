@@ -111,7 +111,8 @@ class GemmaConnectionTests(unittest.TestCase):
                 if p > .5:
                     c, = report["candidates"]
                     self.assertEqual((c["verdict"], c["decided_by"]), (verdict, "laya"))
-                    self.assertEqual(len(self.chats), 1)
+                    self.assertEqual(len(self.chats), 0)
+                    self.metrics(report)
                 else:
                     self.assertEqual(h.extract_requests, [])
                     self.assertEqual(report["ai"]["residual_screened_clean"], 1)
@@ -292,9 +293,9 @@ class GemmaConnectionTests(unittest.TestCase):
                                 ("output", "output_failed")):
             with self.subTest(fault=fault):
                 self.chats.clear()
-                h = self.residual(.99, extract=lambda d: self.protocol("extract", d, fault=fault))
+                h = self.residual(.55, extract=lambda d: self.protocol("extract", d, fault=fault))
                 report = self.run_case(h, detect_posted=True)
-                self.metrics(report, attempted=1, **{expected: 1})
+                self.metrics(report, attempted=1, reused=int(fault is None), **{expected: 1})
                 self.assertEqual(report["ai"]["gemma_extract"], 1)
                 self.assertEqual(report["ai"]["gemma_verify"], 0)
 

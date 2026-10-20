@@ -148,6 +148,7 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
     if not .5 <= laya_confidence_threshold <= 1:
         raise ValueError("laya_confidence_threshold는 0.5~1 범위여야 합니다")
     stats = {"mode": "policy" if use_ml else "diagnostic", "laya_confidence_threshold": laya_confidence_threshold,
+             "policy": "laya_low_confidence_only",
              "laya_inputs": 0, "gemma_verify": 0, "gemma_extract": 0, "residual_screened_clean": 0,
              "gemma_requests": dict.fromkeys(("attempted", "succeeded", "transport_failed", "output_failed", "preflight_failed", "reused"), 0),
              "source_rows": 0, "unique_count": 0, "cache_reuse": 0,
@@ -268,10 +269,12 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
             stats["failures"].append({"source_id": c.get("source_id"), "stage": "source", "reason": c["reason"]})
             return
         p = None if about(c) else predictions.get(key(c))
-        if p is not None:
-            c["ml_prob"] = round(p, 4)
-            c["laya_confidence"] = max(p, 1 - p)
-        if p is not None and max(p, 1 - p) >= laya_confidence_threshold:
+        if p is None:
+            review(c, "문맥 검토 대상 또는 유효 Laya 확률 없음: Gemma 대체 판정 금지")
+            return
+        c["ml_prob"] = round(p, 4)
+        c["laya_confidence"] = max(p, 1 - p)
+        if max(p, 1 - p) >= laya_confidence_threshold:
             c.update(verdict="ad" if p >= .5 else "clean", decided_by="laya",
                      processing_status="completed", reason="Laya 정상 출력의 confidence가 운영 임계값 이상")
         else:
@@ -279,14 +282,53 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
     for c in border:
         route(c)
 
+    def recover_row(row, extraction=None):
+        data = {"frame_url": row["url"], "hidden": [row] if row.get("signals") else [],
+                "texts": [] if row.get("signals") else [row], "head": [], "links": []}
+        new = candidates_from([(row["url"], [(row["prefix"], data)])],
+                              detect_posted=detect_posted, recover_posted=True)
+        if not new and not detect_posted:
+            result = {"source_id": row["source_id"], "processing_status": "excluded",
+                      "reason": "게시형 탐지 제외 설정"}
+            if extraction is not None:
+                result["extraction"] = extraction
+            stats["source_results"].append(result)
+            return
+        if not new:
+            unresolved(row, "광고 근거 회수됨; 원문에서 기법을 확정할 수 없음")
+            if extraction is not None:
+                stats["source_results"].append({"source_id": row["source_id"], "extraction": extraction})
+            return
+        judge(new, model_path, False)
+        for c in new:
+            if extraction is not None:
+                c["extraction"] = extraction
+            if (extraction is not None and c["verdict"] != "borderline"
+                    and not c.get("recovered_without_rule_hit")):
+                c.update(processing_status="completed", reason="회수 후 기존 규칙 확정")
+            elif key(c) != key(row):
+                review(c, "회수 문구와 선별 문구가 다름: Laya 확률 재사용 및 Gemma 판정 금지")
+            elif about(c):
+                review(c, "문맥 검토 대상: 유효 Laya 확률 없음")
+            else:
+                route(c)
+        cands.extend(new)
+
     extract_rows = []
     for row in residual:
         p = predictions.get(key(row))
         if not row.get("source_html"):
             unresolved(row, "원본 HTML 없음: 재합성하지 않음")
-        elif p is not None and p < .5 and max(p, 1 - p) >= laya_confidence_threshold:
-            stats["residual_screened_clean"] += 1
-            stats["source_results"].append({"source_id": row["source_id"], "verdict": "clean", "decided_by": "laya"})
+        elif p is None:
+            unresolved(row, "유효 Laya 확률 없음: Gemma 대체 추출 금지")
+        elif max(p, 1 - p) >= laya_confidence_threshold:
+            if p < .5:
+                stats["residual_screened_clean"] += 1
+                stats["source_results"].append({"source_id": row["source_id"], "verdict": "clean", "decided_by": "laya"})
+            else:
+                stats["source_results"].append({**source_fields(row), "verdict": "ad", "decided_by": "laya",
+                                                "ml_prob": round(p, 4), "laya_confidence": max(p, 1 - p)})
+                recover_row(row)
         else:
             extract_rows.append(row)
 
@@ -448,27 +490,7 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                     if sid in failed:
                         unresolved(row, failed[sid])
                     elif sid in recovered:
-                        data = {"frame_url": row["url"], "hidden": [row] if row.get("signals") else [],
-                                "texts": [] if row.get("signals") else [row], "head": [], "links": []}
-                        new = candidates_from([(row["url"], [(row["prefix"], data)])],
-                                              detect_posted=detect_posted, recover_posted=True)
-                        if not new and not detect_posted:
-                            stats["source_results"].append({"source_id": sid, "processing_status": "excluded",
-                                                            "reason": "게시형 탐지 제외 설정", "extraction": recovered[sid]})
-                            continue
-                        if not new:
-                            unresolved(row, "광고 근거 회수됨; 원문에서 기법을 확정할 수 없음")
-                            stats["source_results"].append({"source_id": sid, "extraction": recovered[sid]})
-                            continue
-                        judge(new, model_path, False)
-                        for c in new:
-                            c["extraction"] = recovered[sid]
-                            if c["verdict"] == "borderline" or c.get("recovered_without_rule_hit"):
-                                review(c, "회수된 새 문구 AI 재판정 대기")
-                                route(c)
-                            else:
-                                c.update(processing_status="completed", reason="회수 후 기존 규칙 확정")
-                        cands.extend(new)
+                        recover_row(row, recovered[sid])
                     elif sid in cleaned:
                         stats["source_results"].append({"source_id": sid, "verdict": "clean", "decided_by": "gemma", "binding": cleaned[sid]})
                     else:
