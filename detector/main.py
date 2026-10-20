@@ -387,20 +387,27 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
         ctx = await secure_context(browser, user_agent)
 
         async def worker(idx):
+            retry_item = None
             while True:
                 if cancel is not None and cancel.is_set():
+                    if retry_item is not None:
+                        frontier.requeue(*retry_item)
                     return
                 if deadline is not None and time.perf_counter() >= deadline:
+                    if retry_item is not None:
+                        frontier.requeue(*retry_item)
                     state["stopped_by_time"] = state["stopped_by_time"] or len(frontier) > 0
                     return
-                if max_pages and state["visited"] >= max_pages:
+                if retry_item is None and max_pages and state["visited"] >= max_pages:
                     return
-                if state["slow"] and idx >= SLOW_CONCURRENCY:  # 느린 모드: 탭 수를 줄여 서버 부담을 덜어 줌
+                if retry_item is None and state["slow"] and idx >= SLOW_CONCURRENCY:  # 느린 모드: 탭 수를 줄여 서버 부담을 덜어 줌
                     if not len(frontier) and state["inflight"] == 0:
                         return
                     await asyncio.sleep(0.5)
                     continue
-                item = frontier.pop()
+                is_retry = retry_item is not None
+                item = retry_item if is_retry else frontier.pop()
+                retry_item = None
                 if item is None:
                     if state["inflight"] == 0:  # 대기열도 비고 검사 중인 페이지도 없음 → 끝
                         return
@@ -408,7 +415,7 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
                     continue
                 url, depth = item
                 state["inflight"] += 1
-                state["visited"] += 1
+                state["visited"] += 0 if is_retry else 1
                 try:
                     is_entry = url == entry  # 시작 주소가 www 등 다른 주소로 넘어가면 그곳을 사이트로 삼는다
                     # 시작 페이지를 못 열면 점검 전체가 0건이 된다 — 첫 응답만 8~10초 걸리는 사이트(s-solution 등)도 있어 넉넉히 기다린다
@@ -441,7 +448,10 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
                         print(f"[info] 시간 초과가 잦아 느린 모드로 전환 (제한 {SLOW_TIMEOUT_MS // 1000}초, 동시 {SLOW_CONCURRENCY}개)")
                     if timed_out and url not in retried:  # 시간 초과는 한 번 더 (느린 모드라면 늘어난 제한 시간으로)
                         retried.add(url)
-                        frontier.requeue(url, depth)
+                        if max_pages:
+                            retry_item = (url, depth)
+                        else:
+                            frontier.requeue(url, depth)
                     else:
                         failed.append({"url": url, "reason": str(e) if isinstance(e, PageLoadError) else f"{type(e).__name__}: {e}"})
                         print(f"[warn] {url}: {e}")
