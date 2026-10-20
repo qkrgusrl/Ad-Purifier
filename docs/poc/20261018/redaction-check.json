@@ -1,0 +1,8 @@
+{
+  "scanned_files": 14,
+  "forbidden_personal_paths_or_secret_material_found": false,
+  "signed_or_credential_url_found": false,
+  "private_execution_fields_found": false,
+  "original_used_artifacts_unchanged": true,
+  "scan_scope": "exported text and JSON only; pattern and structural-field checks, not an OS network audit"
+}

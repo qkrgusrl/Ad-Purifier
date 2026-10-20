@@ -1,0 +1,98 @@
+{
+  "frozen_at": "2026-10-18T09:20:36.786317+00:00",
+  "git_commit": "e6cd33168c7544019c603af05c789c6d4bed2183",
+  "source_hashes": {
+    "detector/main.py": "45d4676ed32ef86666d064b2a3f28e18d844d6fe5ab6de5dd13ed7e42ae39bbd",
+    "detector/adscore.py": "dceafe9eba53d3b6a40629ac3c0f750ee4e9ffd37368e83801b0a79a34d6d038",
+    "detector/textnorm.py": "640631eb84dd6976d7e8725dd9a1a46645c7079e08d3960fa500ab740d0a52dd",
+    "detector/extract.js": "2c008f1c1f5eb8ed5e7decf29e818abc3bc396a148510bd2bcbdc2e7e7aa8859",
+    "training/make_dataset.py": "1a5ef091654dcb356a0f05a58ccc3af5ab16e99ac8a097c86316d2eda9b6edbb"
+  },
+  "labels_fixed_before_inference": true,
+  "original_private_dataset_sha256": "e80027c1a3d61c0444addfca81ba70b3c023d970040f66cc0ea8f55079c209d0",
+  "original_private_artifact_sha256": {
+    "cases.frozen.json": "e80027c1a3d61c0444addfca81ba70b3c023d970040f66cc0ea8f55079c209d0",
+    "routes.json": "c83ebc8664ce0ad70da7e78693c3701df55769a861e56b81945e813eb4632bec",
+    "laya.raw.json": "8a1636e01da9c968680e46114ad2fa2e8f5cc4351813c29dd992bb3f269024ef",
+    "laya.rows.jsonl": "b9300fd831da208cc047e5b7f96055bd93883e279e8b79b58db6db1f5682725b",
+    "gemma.rows.jsonl": "f3e1560d1ea19637898ae2fda1ae1fa4e4de267d70f2798f67942259b64ff90d",
+    "gemma.runtime.json": "6f92673e3d2ca1353fd15a3f2863555499e5a981273ed50f0a9fd3ba01c4eee3",
+    "manifest.json": "4d94a0f675f1ad63954b38b3b44158cb78f711bb5a54ac530354e110609fb9f5",
+    "lifecycle.json": "86755d5c972e1fdd398cb095e92e04840a3008239275949e02d03d0d201f7a5c",
+    "verification.json": "7a6dddfddd43bcc02acb73ecffa73d41eec139199b3dee08d8d97da5e85fa1a5",
+    "recovery.json": "dfe7ce7d195cc4f06bc5020233aec7ec2b9745db66742540b1c3fa1a1eee8cdc",
+    "prompt-v15.txt": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+    "results.raw.json": "1cfa4d47117038da23833a07c91f09a23c2fa86bd424f8a4742998e4b4a7516b"
+  },
+  "original_dataset_hash_note": "개인 경로 제거 전 원본 해시. 이 export의 파일 무결성은 checksums.json으로 확인한다.",
+  "initial_experiment_policy": {
+    "laya": "actual judge border excluding page/body context",
+    "gemma": "EXPERIMENTAL confidence < 0.8; error/missing/truncated => review",
+    "diagnostic": "all other actual Laya border candidates; no rule-control calls",
+    "threshold_is_accuracy_guarantee": false
+  },
+  "confirmed_deployment_policy": {
+    "laya_confidence_gte_0_8": "bypass Gemma",
+    "low_confidence": "Gemma 검증 대상",
+    "page_body_context_laya_bypass_borderline": "미처리 후보로 Gemma 검증 대상; S06/S07 새 production client 연동 검증은 아직 미실행",
+    "full_diagnostic_mode": "PoC에만 허용; 실제 배포 전수 모드 없음",
+    "initial_zero_count_scope": "초기 low-confidence 조건에 해당한 0건; 전체 앱 Gemma 호출이 0이라는 뜻이 아님"
+  },
+  "gemma": {
+    "started_at": "2026-10-18T09:20:43.980791+00:00",
+    "finished_at": "2026-10-18T09:21:10.017045+00:00",
+    "model_sha256": "fa401b55b07ee70a54c6dae3903c783a6e65064312529ea57175cb5f8dec6634",
+    "runtime_sha256": "1bf5602a2be50097c44282a6ecc63234d94ee8f96d39fd45fed6eff4e74b6b41",
+    "source_hashes": {
+      "engine.py": "ba3efa294482f16297b65f18ca6959b844d65fd1de75a3896d7bf84d175991c1",
+      "prompts.py": "d44fc376c30daf907e95bd785fc0b8858b1ac3f57c190ed7cf8b3aa375ba0829"
+    },
+    "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+    "threads": 2,
+    "version": "v15",
+    "laya_not_running": true,
+    "server_returncode": 0,
+    "server_running": false,
+    "session_key_removed": true,
+    "configuration": {
+      "threads": 2,
+      "context_tokens": 4096,
+      "repack": true,
+      "backend": "CPU",
+      "startup_seconds": 1.354907250002725,
+      "peak_server_rss_bytes": 5085102080,
+      "sampling_seconds": 0.1,
+      "model_revision": "675cff42a74c774d6cb76f76d8eacb49b48c9b93",
+      "runtime_tag": "b11429",
+      "runtime_archive_sha256": "740288ec6887be94280a5dfa25b5e23a78285cab104519e6c7e218904ee82459"
+    },
+    "sampling": {
+      "temperature": 0,
+      "seed": 42,
+      "thinking": false,
+      "cache_prompt": true,
+      "max_tokens": 192,
+      "parallel": 1
+    }
+  },
+  "execution": {
+    "started_at": "2026-10-18T09:20:37.614859+00:00",
+    "max_concurrent_model_processes": 1,
+    "laya_exit_code": 0,
+    "laya_wait_completed_at": "2026-10-18T09:20:42.611792+00:00",
+    "gemma_exit_code": 0,
+    "gemma_wait_completed_at": "2026-10-18T09:21:10.029836+00:00",
+    "finished_at": "2026-10-18T09:21:10.030112+00:00"
+  },
+  "offline_execution": "HF와 Transformers의 offline 설정으로 실행. Gemma 요청은 localhost로만 전송. 환경변수 값과 실행 명령은 내보내지 않음.",
+  "independent_review": "이 worker는 독립 재검토를 수행하지 않음; 부모 게이트 별도",
+  "redactions": [
+    "개인 절대경로",
+    "프로세스 ID",
+    "세션키와 세션키 경로",
+    "명령어와 실행 환경",
+    "호스트 플랫폼 식별정보",
+    "작업 트리 상태"
+  ],
+  "response_redaction": "Gemma raw_response.model 절대경로만 모델 파일명으로 교체. 실제 choices, model_output, parsed, usage, timings 보존."
+}

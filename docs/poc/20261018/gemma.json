@@ -1,0 +1,1101 @@
+[
+  {
+    "id": "S08",
+    "label": "clean",
+    "gemma_route": "off_policy_diagnostic",
+    "started_at": "2026-10-18T09:20:45.337577+00:00",
+    "finished_at": "2026-10-18T09:20:54.491433+00:00",
+    "result": {
+      "task": "verify",
+      "version": "v15",
+      "input": {
+        "candidate_id": "S08",
+        "html": "<p id=\"target\">카지노</p>",
+        "context": "어휘 수업에서 이 단어의 음절 수를 세고 있습니다. 이용을 권유하지 않습니다."
+      },
+      "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+      "max_tokens": 192,
+      "temperature": 0,
+      "seed": 42,
+      "thinking": false,
+      "cache_prompt": true,
+      "request_count": 1,
+      "model_input": {
+        "candidate_id": "S08",
+        "source_units": [
+          {
+            "id": "h0001",
+            "source_field": "html",
+            "text": "<p id=\"target\">카지노</p>",
+            "selectable": true
+          },
+          {
+            "id": "c0001",
+            "source_field": "context",
+            "text": "어휘 수업에서 이 단어의 음절 수를 세고 있습니다.",
+            "selectable": true
+          },
+          {
+            "id": "c0002",
+            "source_field": "context",
+            "text": " 이용을 권유하지 않습니다.",
+            "selectable": true
+          }
+        ]
+      },
+      "preflight_prompt_tokens": 1148,
+      "inference_seconds": 9.12562833300035,
+      "raw_response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\"verdict\": \"clean\", \"evidence_id\": \"c0002\"}"
+            }
+          }
+        ],
+        "created": 1792315254,
+        "model": "gemma-4-E2B_q4_0-it.gguf",
+        "system_fingerprint": "b11429-d81235049",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 25,
+          "prompt_tokens": 1149,
+          "total_tokens": 1174,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "id": "chatcmpl-wY268s0dJjQKD0fMaJvrlUluZnbHDlvX",
+        "timings": {
+          "cache_n": 0,
+          "prompt_n": 1149,
+          "prompt_ms": 8422.895,
+          "prompt_per_token_ms": 7.330630983463882,
+          "prompt_per_second": 136.41390519530398,
+          "predicted_n": 25,
+          "predicted_ms": 688.026,
+          "predicted_per_token_ms": 28.667749999999998,
+          "predicted_per_second": 34.882402699897966
+        }
+      },
+      "model_output": {
+        "verdict": "clean",
+        "evidence_id": "c0002"
+      },
+      "parsed": {
+        "verdict": "clean",
+        "model_verdict": "clean",
+        "evidence": " 이용을 권유하지 않습니다.",
+        "evidence_id": "c0002",
+        "source_field": "context",
+        "start_char": 28,
+        "end_char": 43,
+        "source_sha256": "6117e9af2847455e3b31c2c97ecc7883c050d8ba47685fad7ccdd8219493f997",
+        "owner_id": "S08",
+        "evidence_scope": "source_unit_selection"
+      },
+      "validation": {
+        "errors": [],
+        "accepted": [],
+        "rejected_count": 0
+      },
+      "status": "ok",
+      "wall_seconds": 9.153695040993625
+    }
+  },
+  {
+    "id": "S09",
+    "label": "ad",
+    "gemma_route": "off_policy_diagnostic",
+    "started_at": "2026-10-18T09:20:54.491707+00:00",
+    "finished_at": "2026-10-18T09:20:56.476072+00:00",
+    "result": {
+      "task": "verify",
+      "version": "v15",
+      "input": {
+        "candidate_id": "S09",
+        "html": "<p id=\"target\">카지노</p>",
+        "context": "현금을 걸고 게임을 시작하세요. 이 항목을 눌러 가입하고 지금 입금하세요."
+      },
+      "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+      "max_tokens": 192,
+      "temperature": 0,
+      "seed": 42,
+      "thinking": false,
+      "cache_prompt": true,
+      "request_count": 1,
+      "model_input": {
+        "candidate_id": "S09",
+        "source_units": [
+          {
+            "id": "h0001",
+            "source_field": "html",
+            "text": "<p id=\"target\">카지노</p>",
+            "selectable": true
+          },
+          {
+            "id": "c0001",
+            "source_field": "context",
+            "text": "현금을 걸고 게임을 시작하세요.",
+            "selectable": true
+          },
+          {
+            "id": "c0002",
+            "source_field": "context",
+            "text": " 이 항목을 눌러 가입하고 지금 입금하세요.",
+            "selectable": true
+          }
+        ]
+      },
+      "preflight_prompt_tokens": 1148,
+      "inference_seconds": 1.9630115410109283,
+      "raw_response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\n  \"verdict\": \"ad\",\n  \"evidence_id\": \"c0002\"\n}"
+            }
+          }
+        ],
+        "created": 1792315256,
+        "model": "gemma-4-E2B_q4_0-it.gguf",
+        "system_fingerprint": "b11429-d81235049",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 32,
+          "prompt_tokens": 1149,
+          "total_tokens": 1181,
+          "prompt_tokens_details": {
+            "cached_tokens": 1023
+          }
+        },
+        "id": "chatcmpl-nGSkRdBhxw8OXbsZsNl04jra91GgaELz",
+        "timings": {
+          "cache_n": 1023,
+          "prompt_n": 126,
+          "prompt_ms": 1048.57,
+          "prompt_per_token_ms": 8.321984126984127,
+          "prompt_per_second": 120.16365144911641,
+          "predicted_n": 32,
+          "predicted_ms": 902.218,
+          "predicted_per_token_ms": 29.1038064516129,
+          "predicted_per_second": 34.35976670826785
+        }
+      },
+      "model_output": {
+        "verdict": "ad",
+        "evidence_id": "c0002"
+      },
+      "parsed": {
+        "verdict": "ad",
+        "model_verdict": "ad",
+        "evidence": " 이 항목을 눌러 가입하고 지금 입금하세요.",
+        "evidence_id": "c0002",
+        "source_field": "context",
+        "start_char": 17,
+        "end_char": 41,
+        "source_sha256": "086c8175c1105b7d322298293972ac8647eb28ba809b5de3321bbe81a09ee15d",
+        "owner_id": "S09",
+        "evidence_scope": "source_unit_selection"
+      },
+      "validation": {
+        "errors": [],
+        "accepted": [],
+        "rejected_count": 0
+      },
+      "status": "ok",
+      "wall_seconds": 1.9843258750042878
+    }
+  },
+  {
+    "id": "S10",
+    "label": "uncertain",
+    "gemma_route": "off_policy_diagnostic",
+    "started_at": "2026-10-18T09:20:56.476322+00:00",
+    "finished_at": "2026-10-18T09:20:57.834573+00:00",
+    "result": {
+      "task": "verify",
+      "version": "v15",
+      "input": {
+        "candidate_id": "S10",
+        "html": "<p id=\"target\">카지노</p>",
+        "context": ""
+      },
+      "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+      "max_tokens": 192,
+      "temperature": 0,
+      "seed": 42,
+      "thinking": false,
+      "cache_prompt": true,
+      "request_count": 1,
+      "model_input": {
+        "candidate_id": "S10",
+        "source_units": [
+          {
+            "id": "h0001",
+            "source_field": "html",
+            "text": "<p id=\"target\">카지노</p>",
+            "selectable": true
+          }
+        ]
+      },
+      "preflight_prompt_tokens": 1072,
+      "inference_seconds": 1.3368091669981368,
+      "raw_response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\"verdict\": \"clean\", \"evidence_id\": \"h0001\"}"
+            }
+          }
+        ],
+        "created": 1792315257,
+        "model": "gemma-4-E2B_q4_0-it.gguf",
+        "system_fingerprint": "b11429-d81235049",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 25,
+          "prompt_tokens": 1073,
+          "total_tokens": 1098,
+          "prompt_tokens_details": {
+            "cached_tokens": 1022
+          }
+        },
+        "id": "chatcmpl-s5i2qZEPAGYZ2LUZIWzs3TvUPzRZJGzq",
+        "timings": {
+          "cache_n": 1022,
+          "prompt_n": 51,
+          "prompt_ms": 633.456,
+          "prompt_per_token_ms": 12.42070588235294,
+          "prompt_per_second": 80.51072213381829,
+          "predicted_n": 25,
+          "predicted_ms": 692.349,
+          "predicted_per_token_ms": 28.847875000000002,
+          "predicted_per_second": 34.664598345632044
+        }
+      },
+      "model_output": {
+        "verdict": "clean",
+        "evidence_id": "h0001"
+      },
+      "parsed": {
+        "verdict": "clean",
+        "model_verdict": "clean",
+        "evidence": "<p id=\"target\">카지노</p>",
+        "evidence_id": "h0001",
+        "source_field": "html",
+        "start_char": 0,
+        "end_char": 22,
+        "source_sha256": "db64770055c875c92937487118727ae8a296aa09ea961c91fc3cebec675edff2",
+        "owner_id": "S10",
+        "evidence_scope": "source_unit_selection"
+      },
+      "validation": {
+        "errors": [],
+        "accepted": [],
+        "rejected_count": 0
+      },
+      "status": "ok",
+      "wall_seconds": 1.358222292008577
+    }
+  },
+  {
+    "id": "S11",
+    "label": "ad",
+    "gemma_route": "off_policy_diagnostic",
+    "started_at": "2026-10-18T09:20:57.834762+00:00",
+    "finished_at": "2026-10-18T09:20:59.242228+00:00",
+    "result": {
+      "task": "verify",
+      "version": "v15",
+      "input": {
+        "candidate_id": "S11",
+        "html": "<p id=\"target\">비아그라 처방전 없이 판매합니다.</p>",
+        "context": ""
+      },
+      "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+      "max_tokens": 192,
+      "temperature": 0,
+      "seed": 42,
+      "thinking": false,
+      "cache_prompt": true,
+      "request_count": 1,
+      "model_input": {
+        "candidate_id": "S11",
+        "source_units": [
+          {
+            "id": "h0001",
+            "source_field": "html",
+            "text": "<p id=\"target\">비아그라 처방전 없이 판매합니다.</p>",
+            "selectable": true
+          }
+        ]
+      },
+      "preflight_prompt_tokens": 1079,
+      "inference_seconds": 1.380456957995193,
+      "raw_response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\"verdict\": \"clean\", \"evidence_id\": \"h0001\"}"
+            }
+          }
+        ],
+        "created": 1792315259,
+        "model": "gemma-4-E2B_q4_0-it.gguf",
+        "system_fingerprint": "b11429-d81235049",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 25,
+          "prompt_tokens": 1080,
+          "total_tokens": 1105,
+          "prompt_tokens_details": {
+            "cached_tokens": 1023
+          }
+        },
+        "id": "chatcmpl-l4sN0QoJkquOaSM6nF7JxfPAG7O5eA3j",
+        "timings": {
+          "cache_n": 1023,
+          "prompt_n": 57,
+          "prompt_ms": 684.806,
+          "prompt_per_token_ms": 12.014140350877193,
+          "prompt_per_second": 83.23525202758154,
+          "predicted_n": 25,
+          "predicted_ms": 684.694,
+          "predicted_per_token_ms": 28.528916666666664,
+          "predicted_per_second": 35.05215468515863
+        }
+      },
+      "model_output": {
+        "verdict": "clean",
+        "evidence_id": "h0001"
+      },
+      "parsed": {
+        "verdict": "clean",
+        "model_verdict": "clean",
+        "evidence": "<p id=\"target\">비아그라 처방전 없이 판매합니다.</p>",
+        "evidence_id": "h0001",
+        "source_field": "html",
+        "start_char": 0,
+        "end_char": 37,
+        "source_sha256": "af53c7d3cd433db8fc88a924238fce46ec2bc85de4a6a9f364f9cbd4b1e7ca74",
+        "owner_id": "S11",
+        "evidence_scope": "source_unit_selection"
+      },
+      "validation": {
+        "errors": [],
+        "accepted": [],
+        "rejected_count": 0
+      },
+      "status": "ok",
+      "wall_seconds": 1.4074368329893332
+    }
+  },
+  {
+    "id": "S12",
+    "label": "clean",
+    "gemma_route": "off_policy_diagnostic",
+    "started_at": "2026-10-18T09:20:59.242442+00:00",
+    "finished_at": "2026-10-18T09:21:00.902501+00:00",
+    "result": {
+      "task": "verify",
+      "version": "v15",
+      "input": {
+        "candidate_id": "S12",
+        "html": "<p id=\"target\">비아그라 성분을 설명합니다.</p>",
+        "context": "약학 강의 자료이며 구매나 판매를 권하지 않습니다."
+      },
+      "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+      "max_tokens": 192,
+      "temperature": 0,
+      "seed": 42,
+      "thinking": false,
+      "cache_prompt": true,
+      "request_count": 1,
+      "model_input": {
+        "candidate_id": "S12",
+        "source_units": [
+          {
+            "id": "h0001",
+            "source_field": "html",
+            "text": "<p id=\"target\">비아그라 성분을 설명합니다.</p>",
+            "selectable": true
+          },
+          {
+            "id": "c0001",
+            "source_field": "context",
+            "text": "약학 강의 자료이며 구매나 판매를 권하지 않습니다.",
+            "selectable": true
+          }
+        ]
+      },
+      "preflight_prompt_tokens": 1117,
+      "inference_seconds": 1.6381180830067024,
+      "raw_response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\"verdict\": \"clean\", \"evidence_id\": \"c0001\"}"
+            }
+          }
+        ],
+        "created": 1792315260,
+        "model": "gemma-4-E2B_q4_0-it.gguf",
+        "system_fingerprint": "b11429-d81235049",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 25,
+          "prompt_tokens": 1118,
+          "total_tokens": 1143,
+          "prompt_tokens_details": {
+            "cached_tokens": 1023
+          }
+        },
+        "id": "chatcmpl-ePu5dQ0Q0MonK493MmmHGtC2izsJgGiU",
+        "timings": {
+          "cache_n": 1023,
+          "prompt_n": 95,
+          "prompt_ms": 925.185,
+          "prompt_per_token_ms": 9.73878947368421,
+          "prompt_per_second": 102.68216626944881,
+          "predicted_n": 25,
+          "predicted_ms": 701.753,
+          "predicted_per_token_ms": 29.239708333333336,
+          "predicted_per_second": 34.2000675451334
+        }
+      },
+      "model_output": {
+        "verdict": "clean",
+        "evidence_id": "c0001"
+      },
+      "parsed": {
+        "verdict": "clean",
+        "model_verdict": "clean",
+        "evidence": "약학 강의 자료이며 구매나 판매를 권하지 않습니다.",
+        "evidence_id": "c0001",
+        "source_field": "context",
+        "start_char": 0,
+        "end_char": 28,
+        "source_sha256": "9378d798d43680d47e6037173ac86a8b79a364f22298a8caf0991beac180ae18",
+        "owner_id": "S12",
+        "evidence_scope": "source_unit_selection"
+      },
+      "validation": {
+        "errors": [],
+        "accepted": [],
+        "rejected_count": 0
+      },
+      "status": "ok",
+      "wall_seconds": 1.660026084005949
+    }
+  },
+  {
+    "id": "S13",
+    "label": "ad",
+    "gemma_route": "off_policy_diagnostic",
+    "started_at": "2026-10-18T09:21:00.902906+00:00",
+    "finished_at": "2026-10-18T09:21:02.264497+00:00",
+    "result": {
+      "task": "verify",
+      "version": "v15",
+      "input": {
+        "candidate_id": "S13",
+        "html": "<p id=\"target\">필로폰 팝니다.</p>",
+        "context": ""
+      },
+      "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+      "max_tokens": 192,
+      "temperature": 0,
+      "seed": 42,
+      "thinking": false,
+      "cache_prompt": true,
+      "request_count": 1,
+      "model_input": {
+        "candidate_id": "S13",
+        "source_units": [
+          {
+            "id": "h0001",
+            "source_field": "html",
+            "text": "<p id=\"target\">필로폰 팝니다.</p>",
+            "selectable": true
+          }
+        ]
+      },
+      "preflight_prompt_tokens": 1075,
+      "inference_seconds": 1.339244291986688,
+      "raw_response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\"verdict\": \"ad\", \"evidence_id\": \"h0001\"}"
+            }
+          }
+        ],
+        "created": 1792315262,
+        "model": "gemma-4-E2B_q4_0-it.gguf",
+        "system_fingerprint": "b11429-d81235049",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 25,
+          "prompt_tokens": 1076,
+          "total_tokens": 1101,
+          "prompt_tokens_details": {
+            "cached_tokens": 1023
+          }
+        },
+        "id": "chatcmpl-Ed4JArwJpCLqpa24luAgaeNhKVBTesy5",
+        "timings": {
+          "cache_n": 1023,
+          "prompt_n": 53,
+          "prompt_ms": 641.167,
+          "prompt_per_token_ms": 12.097490566037736,
+          "prompt_per_second": 82.6617714261651,
+          "predicted_n": 25,
+          "predicted_ms": 686.89,
+          "predicted_per_token_ms": 28.620416666666667,
+          "predicted_per_second": 34.94009230007716
+        }
+      },
+      "model_output": {
+        "verdict": "ad",
+        "evidence_id": "h0001"
+      },
+      "parsed": {
+        "verdict": "ad",
+        "model_verdict": "ad",
+        "evidence": "<p id=\"target\">필로폰 팝니다.</p>",
+        "evidence_id": "h0001",
+        "source_field": "html",
+        "start_char": 0,
+        "end_char": 27,
+        "source_sha256": "394f65733b7e36ab7c672ade73f44b0a91dbc485b93fc8b58a575b362b18bb1c",
+        "owner_id": "S13",
+        "evidence_scope": "source_unit_selection"
+      },
+      "validation": {
+        "errors": [],
+        "accepted": [],
+        "rejected_count": 0
+      },
+      "status": "ok",
+      "wall_seconds": 1.3615593330032425
+    }
+  },
+  {
+    "id": "S14",
+    "label": "clean",
+    "gemma_route": "off_policy_diagnostic",
+    "started_at": "2026-10-18T09:21:02.264719+00:00",
+    "finished_at": "2026-10-18T09:21:03.885353+00:00",
+    "result": {
+      "task": "verify",
+      "version": "v15",
+      "input": {
+        "candidate_id": "S14",
+        "html": "<p id=\"target\">대마초의 잎 구조를 관찰합니다.</p>",
+        "context": "식물학 수업에서 표본의 잎 구조를 비교합니다."
+      },
+      "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+      "max_tokens": 192,
+      "temperature": 0,
+      "seed": 42,
+      "thinking": false,
+      "cache_prompt": true,
+      "request_count": 1,
+      "model_input": {
+        "candidate_id": "S14",
+        "source_units": [
+          {
+            "id": "h0001",
+            "source_field": "html",
+            "text": "<p id=\"target\">대마초의 잎 구조를 관찰합니다.</p>",
+            "selectable": true
+          },
+          {
+            "id": "c0001",
+            "source_field": "context",
+            "text": "식물학 수업에서 표본의 잎 구조를 비교합니다.",
+            "selectable": true
+          }
+        ]
+      },
+      "preflight_prompt_tokens": 1122,
+      "inference_seconds": 1.5984109170094598,
+      "raw_response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\"verdict\": \"clean\", \"evidence_id\": \"c0001\"}"
+            }
+          }
+        ],
+        "created": 1792315263,
+        "model": "gemma-4-E2B_q4_0-it.gguf",
+        "system_fingerprint": "b11429-d81235049",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 25,
+          "prompt_tokens": 1123,
+          "total_tokens": 1148,
+          "prompt_tokens_details": {
+            "cached_tokens": 1023
+          }
+        },
+        "id": "chatcmpl-qYZCKzSClmfK6fUJfFULwhw4vnCnOQFP",
+        "timings": {
+          "cache_n": 1023,
+          "prompt_n": 100,
+          "prompt_ms": 896.216,
+          "prompt_per_token_ms": 8.96216,
+          "prompt_per_second": 111.58024404830978,
+          "predicted_n": 25,
+          "predicted_ms": 691.121,
+          "predicted_per_token_ms": 28.79670833333333,
+          "predicted_per_second": 34.726191216878085
+        }
+      },
+      "model_output": {
+        "verdict": "clean",
+        "evidence_id": "c0001"
+      },
+      "parsed": {
+        "verdict": "clean",
+        "model_verdict": "clean",
+        "evidence": "식물학 수업에서 표본의 잎 구조를 비교합니다.",
+        "evidence_id": "c0001",
+        "source_field": "context",
+        "start_char": 0,
+        "end_char": 25,
+        "source_sha256": "720eddf0d329a61623451080c73e1017933256cd6603002142e13925f1f95a30",
+        "owner_id": "S14",
+        "evidence_scope": "source_unit_selection"
+      },
+      "validation": {
+        "errors": [],
+        "accepted": [],
+        "rejected_count": 0
+      },
+      "status": "ok",
+      "wall_seconds": 1.620600915994146
+    }
+  },
+  {
+    "id": "S15",
+    "label": "clean",
+    "gemma_route": "off_policy_diagnostic",
+    "started_at": "2026-10-18T09:21:03.885569+00:00",
+    "finished_at": "2026-10-18T09:21:05.413509+00:00",
+    "result": {
+      "task": "verify",
+      "version": "v15",
+      "input": {
+        "candidate_id": "S15",
+        "html": "<p id=\"target\">포커 확률을 계산합니다.</p>",
+        "context": "확률 수업의 조합 계산 예제입니다."
+      },
+      "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+      "max_tokens": 192,
+      "temperature": 0,
+      "seed": 42,
+      "thinking": false,
+      "cache_prompt": true,
+      "request_count": 1,
+      "model_input": {
+        "candidate_id": "S15",
+        "source_units": [
+          {
+            "id": "h0001",
+            "source_field": "html",
+            "text": "<p id=\"target\">포커 확률을 계산합니다.</p>",
+            "selectable": true
+          },
+          {
+            "id": "c0001",
+            "source_field": "context",
+            "text": "확률 수업의 조합 계산 예제입니다.",
+            "selectable": true
+          }
+        ]
+      },
+      "preflight_prompt_tokens": 1112,
+      "inference_seconds": 1.5001540000084788,
+      "raw_response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\"verdict\": \"clean\", \"evidence_id\": \"c0001\"}"
+            }
+          }
+        ],
+        "created": 1792315265,
+        "model": "gemma-4-E2B_q4_0-it.gguf",
+        "system_fingerprint": "b11429-d81235049",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 25,
+          "prompt_tokens": 1113,
+          "total_tokens": 1138,
+          "prompt_tokens_details": {
+            "cached_tokens": 1023
+          }
+        },
+        "id": "chatcmpl-vJ96i4Viv9vrF7VX9tWAwo9V7XwXK5TX",
+        "timings": {
+          "cache_n": 1023,
+          "prompt_n": 90,
+          "prompt_ms": 814.036,
+          "prompt_per_token_ms": 9.044844444444443,
+          "prompt_per_second": 110.56022092389034,
+          "predicted_n": 25,
+          "predicted_ms": 674.833,
+          "predicted_per_token_ms": 28.118041666666667,
+          "predicted_per_second": 35.56435444028375
+        }
+      },
+      "model_output": {
+        "verdict": "clean",
+        "evidence_id": "c0001"
+      },
+      "parsed": {
+        "verdict": "clean",
+        "model_verdict": "clean",
+        "evidence": "확률 수업의 조합 계산 예제입니다.",
+        "evidence_id": "c0001",
+        "source_field": "context",
+        "start_char": 0,
+        "end_char": 19,
+        "source_sha256": "d65b75f7e5de4da9b0dd6c41789e00e60e129614bcfcc78edeac176be216f665",
+        "owner_id": "S15",
+        "evidence_scope": "source_unit_selection"
+      },
+      "validation": {
+        "errors": [],
+        "accepted": [],
+        "rejected_count": 0
+      },
+      "status": "ok",
+      "wall_seconds": 1.52790862499387
+    }
+  },
+  {
+    "id": "S16",
+    "label": "ad",
+    "gemma_route": "off_policy_diagnostic",
+    "started_at": "2026-10-18T09:21:05.413730+00:00",
+    "finished_at": "2026-10-18T09:21:06.758126+00:00",
+    "result": {
+      "task": "verify",
+      "version": "v15",
+      "input": {
+        "candidate_id": "S16",
+        "html": "<p id=\"target\">포커 현금을 걸고 참여하세요.</p>",
+        "context": ""
+      },
+      "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+      "max_tokens": 192,
+      "temperature": 0,
+      "seed": 42,
+      "thinking": false,
+      "cache_prompt": true,
+      "request_count": 1,
+      "model_input": {
+        "candidate_id": "S16",
+        "source_units": [
+          {
+            "id": "h0001",
+            "source_field": "html",
+            "text": "<p id=\"target\">포커 현금을 걸고 참여하세요.</p>",
+            "selectable": true
+          }
+        ]
+      },
+      "preflight_prompt_tokens": 1077,
+      "inference_seconds": 1.3236605419951957,
+      "raw_response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\"verdict\": \"ad\", \"evidence_id\": \"h0001\"}"
+            }
+          }
+        ],
+        "created": 1792315266,
+        "model": "gemma-4-E2B_q4_0-it.gguf",
+        "system_fingerprint": "b11429-d81235049",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 25,
+          "prompt_tokens": 1078,
+          "total_tokens": 1103,
+          "prompt_tokens_details": {
+            "cached_tokens": 1023
+          }
+        },
+        "id": "chatcmpl-VdY7kDayhebIvG3l3x8ozDZKHf6XTSVM",
+        "timings": {
+          "cache_n": 1023,
+          "prompt_n": 55,
+          "prompt_ms": 649.576,
+          "prompt_per_token_ms": 11.810472727272728,
+          "prompt_per_second": 84.67061590945477,
+          "predicted_n": 25,
+          "predicted_ms": 663.119,
+          "predicted_per_token_ms": 27.629958333333335,
+          "predicted_per_second": 36.19259891512685
+        }
+      },
+      "model_output": {
+        "verdict": "ad",
+        "evidence_id": "h0001"
+      },
+      "parsed": {
+        "verdict": "ad",
+        "model_verdict": "ad",
+        "evidence": "<p id=\"target\">포커 현금을 걸고 참여하세요.</p>",
+        "evidence_id": "h0001",
+        "source_field": "html",
+        "start_char": 0,
+        "end_char": 35,
+        "source_sha256": "fb15c9a0933a0e2e4e05876056beea108acf53b6fe62a8d8ca5d4af65a476d31",
+        "owner_id": "S16",
+        "evidence_scope": "source_unit_selection"
+      },
+      "validation": {
+        "errors": [],
+        "accepted": [],
+        "rejected_count": 0
+      },
+      "status": "ok",
+      "wall_seconds": 1.3443684580124682
+    }
+  },
+  {
+    "id": "S17",
+    "label": "uncertain",
+    "gemma_route": "off_policy_diagnostic",
+    "started_at": "2026-10-18T09:21:06.758417+00:00",
+    "finished_at": "2026-10-18T09:21:08.063034+00:00",
+    "result": {
+      "task": "verify",
+      "version": "v15",
+      "input": {
+        "candidate_id": "S17",
+        "html": "<p id=\"target\">홈타이</p>",
+        "context": ""
+      },
+      "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+      "max_tokens": 192,
+      "temperature": 0,
+      "seed": 42,
+      "thinking": false,
+      "cache_prompt": true,
+      "request_count": 1,
+      "model_input": {
+        "candidate_id": "S17",
+        "source_units": [
+          {
+            "id": "h0001",
+            "source_field": "html",
+            "text": "<p id=\"target\">홈타이</p>",
+            "selectable": true
+          }
+        ]
+      },
+      "preflight_prompt_tokens": 1072,
+      "inference_seconds": 1.2837854170065839,
+      "raw_response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\"verdict\": \"clean\", \"evidence_id\": \"h0001\"}"
+            }
+          }
+        ],
+        "created": 1792315268,
+        "model": "gemma-4-E2B_q4_0-it.gguf",
+        "system_fingerprint": "b11429-d81235049",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 25,
+          "prompt_tokens": 1073,
+          "total_tokens": 1098,
+          "prompt_tokens_details": {
+            "cached_tokens": 1023
+          }
+        },
+        "id": "chatcmpl-gb9L3pZ2IXF1zd5bRDolfRkus5t6brOH",
+        "timings": {
+          "cache_n": 1023,
+          "prompt_n": 50,
+          "prompt_ms": 610.14,
+          "prompt_per_token_ms": 12.2028,
+          "prompt_per_second": 81.94840528403317,
+          "predicted_n": 25,
+          "predicted_ms": 662.668,
+          "predicted_per_token_ms": 27.611166666666666,
+          "predicted_per_second": 36.21723095124557
+        }
+      },
+      "model_output": {
+        "verdict": "clean",
+        "evidence_id": "h0001"
+      },
+      "parsed": {
+        "verdict": "clean",
+        "model_verdict": "clean",
+        "evidence": "<p id=\"target\">홈타이</p>",
+        "evidence_id": "h0001",
+        "source_field": "html",
+        "start_char": 0,
+        "end_char": 22,
+        "source_sha256": "73ae8ae5bef99f44feb9e36c9622af4e0dccadc8f77b583a40f98392f3fdcdcb",
+        "owner_id": "S17",
+        "evidence_scope": "source_unit_selection"
+      },
+      "validation": {
+        "errors": [],
+        "accepted": [],
+        "rejected_count": 0
+      },
+      "status": "ok",
+      "wall_seconds": 1.3045890409994172
+    }
+  },
+  {
+    "id": "S18",
+    "label": "clean",
+    "gemma_route": "off_policy_diagnostic",
+    "started_at": "2026-10-18T09:21:08.063283+00:00",
+    "finished_at": "2026-10-18T09:21:09.864714+00:00",
+    "result": {
+      "task": "verify",
+      "version": "v15",
+      "input": {
+        "candidate_id": "S18",
+        "html": "<p id=\"target\">홈타이</p>",
+        "context": "자격을 갖춘 치료사가 의료기관의 처방에 따라 방문 재활 치료를 제공합니다. 성적 서비스는 없습니다."
+      },
+      "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+      "max_tokens": 192,
+      "temperature": 0,
+      "seed": 42,
+      "thinking": false,
+      "cache_prompt": true,
+      "request_count": 1,
+      "model_input": {
+        "candidate_id": "S18",
+        "source_units": [
+          {
+            "id": "h0001",
+            "source_field": "html",
+            "text": "<p id=\"target\">홈타이</p>",
+            "selectable": true
+          },
+          {
+            "id": "c0001",
+            "source_field": "context",
+            "text": "자격을 갖춘 치료사가 의료기관의 처방에 따라 방문 재활 치료를 제공합니다.",
+            "selectable": true
+          },
+          {
+            "id": "c0002",
+            "source_field": "context",
+            "text": " 성적 서비스는 없습니다.",
+            "selectable": true
+          }
+        ]
+      },
+      "preflight_prompt_tokens": 1153,
+      "inference_seconds": 1.7771161669952562,
+      "raw_response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\"verdict\": \"clean\", \"evidence_id\": \"c0002\"}"
+            }
+          }
+        ],
+        "created": 1792315269,
+        "model": "gemma-4-E2B_q4_0-it.gguf",
+        "system_fingerprint": "b11429-d81235049",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 25,
+          "prompt_tokens": 1154,
+          "total_tokens": 1179,
+          "prompt_tokens_details": {
+            "cached_tokens": 1023
+          }
+        },
+        "id": "chatcmpl-tcgsTCzs3UhLsJE2yAp0qVT2CN7s53yL",
+        "timings": {
+          "cache_n": 1023,
+          "prompt_n": 131,
+          "prompt_ms": 1086.185,
+          "prompt_per_token_ms": 8.29148854961832,
+          "prompt_per_second": 120.60560585903875,
+          "predicted_n": 25,
+          "predicted_ms": 679.889,
+          "predicted_per_token_ms": 28.328708333333335,
+          "predicted_per_second": 35.29987983332573
+        }
+      },
+      "model_output": {
+        "verdict": "clean",
+        "evidence_id": "c0002"
+      },
+      "parsed": {
+        "verdict": "clean",
+        "model_verdict": "clean",
+        "evidence": " 성적 서비스는 없습니다.",
+        "evidence_id": "c0002",
+        "source_field": "context",
+        "start_char": 41,
+        "end_char": 55,
+        "source_sha256": "cfde3d8cfb794ff8a7bf019595d01023e8c153706c8d5dcd474245bb1cff002d",
+        "owner_id": "S18",
+        "evidence_scope": "source_unit_selection"
+      },
+      "validation": {
+        "errors": [],
+        "accepted": [],
+        "rejected_count": 0
+      },
+      "status": "ok",
+      "wall_seconds": 1.8013959169911686
+    }
+  }
+]

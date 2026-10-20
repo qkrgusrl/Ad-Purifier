@@ -1,0 +1,32 @@
+{
+  "checked_at": "2026-10-18T09:24:13.050010+00:00",
+  "dataset_unchanged": true,
+  "git_origin_main_at_finish": "e6cd33168c7544019c603af05c789c6d4bed2183",
+  "frozen_sources_match": {
+    "detector/main.py": true,
+    "detector/adscore.py": true,
+    "detector/textnorm.py": true,
+    "detector/extract.js": true,
+    "training/make_dataset.py": true
+  },
+  "source_model_files_unchanged": {
+    "model.safetensors": true,
+    "questions.json": true,
+    "train_report.json": true,
+    "rl_agent_config.json": true,
+    "encoder/config.json": true,
+    "tokenizer/tokenizer_config.json": true,
+    "tokenizer/tokenizer.json": true
+  },
+  "gemma_source_unchanged": {
+    "engine.py": true,
+    "prompts.py": true
+  },
+  "processes_terminated": {
+    "laya": true,
+    "gemma_wrapper": true,
+    "gemma_server": true
+  },
+  "context_in_DOM_routes_equal": true,
+  "context_replay_model_inputs_unchanged": true
+}

@@ -1,0 +1,22 @@
+{
+  "frozen_at": "2026-10-18T10:32:10.878698+00:00",
+  "branch": "feature/windows-installer",
+  "commit": "5ccf04c918ded2c5e9d042bc9d90f7664d1d45be",
+  "inputs_sha256": "2e83e258bb9baa1fc58b718f2519549444f02ea52ff1fc82c6e03090495d8f14",
+  "source_hashes": {
+    "detector/ai.py": "776f39c1b049a3afc6b00a7aa734f02d1b1f00e3716ca3a65d2507bbd7dde15b",
+    "detector/adscore.py": "dceafe9eba53d3b6a40629ac3c0f750ee4e9ffd37368e83801b0a79a34d6d038",
+    "detector/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "detector/textnorm.py": "640631eb84dd6976d7e8725dd9a1a46645c7079e08d3960fa500ab740d0a52dd",
+    "detector/main.py": "4e1d1135afbfff7cecc501935e24e017d2e7e7969ff700adebb7ba43bb9591af",
+    "detector/frontier.py": "ecca83add6ac14f4a6d2a141480b92d9f295d7656bab99fc8e5c2f64475e5e46",
+    "detector/extract.js": "742097e1f31510900d278015cf4428e334610ddf55d32de313c07b521a6bc67f",
+    "training/make_dataset.py": "1a5ef091654dcb356a0f05a58ccc3af5ab16e99ac8a097c86316d2eda9b6edbb"
+  },
+  "max_cases": 16,
+  "adaptive_generation": false,
+  "threshold": 0.8,
+  "selection": "현재 candidates_from/judge의 실제 borderline이며 예방 문맥 우회가 없는 후보만 Laya 입력",
+  "gold_policy": "모든 gold=null; 의미 정확도 계산 금지",
+  "production_run": "Laya 자식 프로세스 분리 후 최종 런타임 통합 검증은 미실행"
+}

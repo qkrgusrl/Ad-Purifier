@@ -1,0 +1,2491 @@
+{
+  "events": [
+    {
+      "event": "phase",
+      "phase": "crawl",
+      "at": "2026-10-18T10:59:16.523075+00:00"
+    },
+    {
+      "event": "phase",
+      "phase": "judge",
+      "at": "2026-10-18T10:59:21.590068+00:00"
+    },
+    {
+      "event": "laya_exchange_start",
+      "at": "2026-10-18T10:59:21.663824+00:00",
+      "pid": 19253,
+      "request_op": "load_ready",
+      "child_alive": true
+    },
+    {
+      "event": "laya_exchange_end",
+      "at": "2026-10-18T10:59:24.899426+00:00",
+      "pid": 19253,
+      "seconds": 3.2357275410031434,
+      "response_status": "ready"
+    },
+    {
+      "event": "laya_ready",
+      "at": "2026-10-18T10:59:24.899440+00:00",
+      "pid": 19253,
+      "alive": true,
+      "start_method": "spawn",
+      "test_target_is_none": true
+    },
+    {
+      "event": "laya_exchange_start",
+      "at": "2026-10-18T10:59:24.899514+00:00",
+      "pid": 19253,
+      "request_op": "predict",
+      "child_alive": true
+    },
+    {
+      "event": "laya_exchange_end",
+      "at": "2026-10-18T10:59:25.327456+00:00",
+      "pid": 19253,
+      "seconds": 0.42795983400719706,
+      "response_status": "ok"
+    },
+    {
+      "event": "laya_process_close",
+      "at": "2026-10-18T10:59:25.365229+00:00",
+      "pid": 19253,
+      "exitcode": -15
+    },
+    {
+      "event": "laya_close",
+      "at": "2026-10-18T10:59:25.365263+00:00",
+      "pid": 19253,
+      "process_absent": true,
+      "process_handle_cleared": true,
+      "pipe_closed": true,
+      "io_thread_cleared": true
+    },
+    {
+      "event": "gemma_enter",
+      "at": "2026-10-18T10:59:25.383744+00:00",
+      "laya_pids_seen": [
+        19253
+      ],
+      "laya_all_absent": true
+    },
+    {
+      "event": "gemma_ready",
+      "at": "2026-10-18T10:59:26.432577+00:00",
+      "pid": 19255,
+      "threads": 2,
+      "startup_seconds": 1.048313874998712
+    },
+    {
+      "event": "gemma_exit",
+      "at": "2026-10-18T10:59:46.435303+00:00",
+      "pid": 19255,
+      "returncode": 0,
+      "key_removed": true
+    },
+    {
+      "event": "phase",
+      "phase": "save",
+      "at": "2026-10-18T10:59:46.435590+00:00"
+    }
+  ],
+  "ipc": [
+    {
+      "at": "2026-10-18T10:59:24.899336+00:00",
+      "direction": "parent_receive",
+      "message": {
+        "status": "ready"
+      }
+    },
+    {
+      "at": "2026-10-18T10:59:24.899629+00:00",
+      "direction": "parent_send",
+      "message": {
+        "op": "predict",
+        "texts": [
+          "도박 예방교육",
+          "도박 예방교육 자료의 용어 목록입니다.",
+          "예방 교육 본문의 인용 용어입니다.",
+          "자료",
+          "자료",
+          "제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+          "제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+          "제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+          "제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+          "제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+          "제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+          "제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+          "제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+          "처방전 없이 수면제를 판매합니다",
+          "홀덤 동호회 참가 문의",
+          "홈타이 예약 문의"
+        ],
+        "questions": {
+          "is_illegal_ad": {
+            "type": "noul",
+            "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"
+          }
+        },
+        "batch_size": 16
+      }
+    },
+    {
+      "at": "2026-10-18T10:59:25.327373+00:00",
+      "direction": "parent_receive",
+      "message": {
+        "status": "ok",
+        "outputs": [
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.0641,
+                "confidence": 0.9359,
+                "answer_confidence": 0.9359,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 62,
+              "output_tokens": 0,
+              "state_tokens": 6,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.0476,
+                "confidence": 0.9524,
+                "answer_confidence": 0.9524,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 69,
+              "output_tokens": 0,
+              "state_tokens": 13,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.056,
+                "confidence": 0.944,
+                "answer_confidence": 0.944,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 68,
+              "output_tokens": 0,
+              "state_tokens": 12,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.0496,
+                "confidence": 0.9504,
+                "answer_confidence": 0.9504,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 57,
+              "output_tokens": 0,
+              "state_tokens": 1,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.0496,
+                "confidence": 0.9504,
+                "answer_confidence": 0.9504,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 57,
+              "output_tokens": 0,
+              "state_tokens": 1,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.0442,
+                "confidence": 0.9558,
+                "answer_confidence": 0.9558,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 78,
+              "output_tokens": 0,
+              "state_tokens": 22,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.0427,
+                "confidence": 0.9573,
+                "answer_confidence": 0.9573,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 78,
+              "output_tokens": 0,
+              "state_tokens": 22,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.0441,
+                "confidence": 0.9559,
+                "answer_confidence": 0.9559,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 78,
+              "output_tokens": 0,
+              "state_tokens": 22,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.0439,
+                "confidence": 0.9561,
+                "answer_confidence": 0.9561,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 78,
+              "output_tokens": 0,
+              "state_tokens": 22,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.0436,
+                "confidence": 0.9564,
+                "answer_confidence": 0.9564,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 78,
+              "output_tokens": 0,
+              "state_tokens": 22,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.0423,
+                "confidence": 0.9577,
+                "answer_confidence": 0.9577,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 78,
+              "output_tokens": 0,
+              "state_tokens": 22,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.0432,
+                "confidence": 0.9568,
+                "answer_confidence": 0.9568,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 78,
+              "output_tokens": 0,
+              "state_tokens": 22,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.0434,
+                "confidence": 0.9566,
+                "answer_confidence": 0.9566,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 78,
+              "output_tokens": 0,
+              "state_tokens": 22,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.8722,
+                "confidence": 0.8722,
+                "answer_confidence": 0.8722,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 68,
+              "output_tokens": 0,
+              "state_tokens": 12,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.4855,
+                "confidence": 0.5145,
+                "answer_confidence": 0.5145,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 66,
+              "output_tokens": 0,
+              "state_tokens": 10,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.4658,
+                "confidence": 0.5342,
+                "answer_confidence": 0.5342,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 63,
+              "output_tokens": 0,
+              "state_tokens": 7,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "gemma_calls": [
+    {
+      "task": "verify",
+      "version": "v15",
+      "input": {
+        "candidate_id": "5984c34b2735ef2757539fee:5984c34b2735ef2757539fee:dom-1",
+        "html": "<p id=\"target\">처방전 없이 수면제를 판매합니다</p>",
+        "context": "<p id=\"target\">처방전 없이 수면제를 판매합니다</p>"
+      },
+      "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+      "max_tokens": 192,
+      "temperature": 0,
+      "seed": 42,
+      "thinking": false,
+      "cache_prompt": true,
+      "request_count": 1,
+      "model_input": {
+        "candidate_id": "5984c34b2735ef2757539fee:5984c34b2735ef2757539fee:dom-1",
+        "source_units": [
+          {
+            "id": "h0001",
+            "source_field": "html",
+            "text": "<p id=\"target\">처방전 없이 수면제를 판매합니다</p>",
+            "selectable": true
+          },
+          {
+            "id": "c0001",
+            "source_field": "context",
+            "text": "<p id=\"target\">처방전 없이 수면제를 판매합니다</p>",
+            "selectable": true
+          }
+        ]
+      },
+      "preflight_prompt_tokens": 1166,
+      "inference_seconds": 9.294617958003073,
+      "raw_response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\"verdict\": \"ad\", \"evidence_id\": \"h0001\"}"
+            }
+          }
+        ],
+        "created": 1792321175,
+        "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+        "system_fingerprint": "b11429-d81235049",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 25,
+          "prompt_tokens": 1167,
+          "total_tokens": 1192,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "id": "chatcmpl-jrjXSqvHXqztYXvsckGx2x2FT0qnK3fY",
+        "timings": {
+          "cache_n": 0,
+          "prompt_n": 1167,
+          "prompt_ms": 8512.092,
+          "prompt_per_token_ms": 7.293994858611826,
+          "prompt_per_second": 137.0990821057855,
+          "predicted_n": 25,
+          "predicted_ms": 765.801,
+          "predicted_per_token_ms": 31.908375000000003,
+          "predicted_per_second": 31.339734474099668
+        }
+      },
+      "model_output": {
+        "verdict": "ad",
+        "evidence_id": "h0001"
+      },
+      "parsed": {
+        "verdict": "ad",
+        "model_verdict": "ad",
+        "evidence": "<p id=\"target\">처방전 없이 수면제를 판매합니다</p>",
+        "evidence_id": "h0001",
+        "source_field": "html",
+        "start_char": 0,
+        "end_char": 36,
+        "source_sha256": "9167a81a657a4363f92fe69cc20ff5c1bdfe3688d4b99456dab2686380b7cb03",
+        "owner_id": "5984c34b2735ef2757539fee:5984c34b2735ef2757539fee:dom-1",
+        "evidence_scope": "source_unit_selection"
+      },
+      "validation": {
+        "errors": [],
+        "accepted": [],
+        "rejected_count": 0
+      },
+      "status": "ok",
+      "wall_seconds": 9.337740708011552
+    },
+    {
+      "task": "verify",
+      "version": "v15",
+      "input": {
+        "candidate_id": "64dcd40f0e6ef353f13c16fd:64dcd40f0e6ef353f13c16fd:dom-1:0",
+        "html": "<p id=\"target\">홀덤 동호회 참가 문의</p>",
+        "context": "<p id=\"target\">홀덤 동호회 참가 문의</p>"
+      },
+      "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+      "max_tokens": 192,
+      "temperature": 0,
+      "seed": 42,
+      "thinking": false,
+      "cache_prompt": true,
+      "request_count": 1,
+      "model_input": {
+        "candidate_id": "64dcd40f0e6ef353f13c16fd:64dcd40f0e6ef353f13c16fd:dom-1:0",
+        "source_units": [
+          {
+            "id": "h0001",
+            "source_field": "html",
+            "text": "<p id=\"target\">홀덤 동호회 참가 문의</p>",
+            "selectable": true
+          },
+          {
+            "id": "c0001",
+            "source_field": "context",
+            "text": "<p id=\"target\">홀덤 동호회 참가 문의</p>",
+            "selectable": true
+          }
+        ]
+      },
+      "preflight_prompt_tokens": 1164,
+      "inference_seconds": 2.4584169589943485,
+      "raw_response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\"verdict\": \"clean\", \"evidence_id\": \"c0001\"}"
+            }
+          }
+        ],
+        "created": 1792321178,
+        "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+        "system_fingerprint": "b11429-d81235049",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 25,
+          "prompt_tokens": 1165,
+          "total_tokens": 1190,
+          "prompt_tokens_details": {
+            "cached_tokens": 1021
+          }
+        },
+        "id": "chatcmpl-UrWreJX2aiglQmNRBxJm7owzS9y7SqYb",
+        "timings": {
+          "cache_n": 1021,
+          "prompt_n": 144,
+          "prompt_ms": 1749.488,
+          "prompt_per_token_ms": 12.149222222222223,
+          "prompt_per_second": 82.30979578025114,
+          "predicted_n": 25,
+          "predicted_ms": 695.555,
+          "predicted_per_token_ms": 28.981458333333332,
+          "predicted_per_second": 34.50481989202867
+        }
+      },
+      "model_output": {
+        "verdict": "clean",
+        "evidence_id": "c0001"
+      },
+      "parsed": {
+        "verdict": "clean",
+        "model_verdict": "clean",
+        "evidence": "<p id=\"target\">홀덤 동호회 참가 문의</p>",
+        "evidence_id": "c0001",
+        "source_field": "context",
+        "start_char": 0,
+        "end_char": 31,
+        "source_sha256": "d3db6d4010824e93f4b22ddfb6b1fe4290adf5516bfa1ac4225e16e1678b76e9",
+        "owner_id": "64dcd40f0e6ef353f13c16fd:64dcd40f0e6ef353f13c16fd:dom-1:0",
+        "evidence_scope": "source_unit_selection"
+      },
+      "validation": {
+        "errors": [],
+        "accepted": [],
+        "rejected_count": 0
+      },
+      "status": "ok",
+      "wall_seconds": 2.4989876670006197
+    },
+    {
+      "task": "verify",
+      "version": "v15",
+      "input": {
+        "candidate_id": "632d171a0806e11d9f1e90f9:632d171a0806e11d9f1e90f9:dom-1:1",
+        "html": "<p id=\"target\">홈타이 예약 문의</p>",
+        "context": "<p id=\"target\">홈타이 예약 문의</p>"
+      },
+      "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+      "max_tokens": 192,
+      "temperature": 0,
+      "seed": 42,
+      "thinking": false,
+      "cache_prompt": true,
+      "request_count": 1,
+      "model_input": {
+        "candidate_id": "632d171a0806e11d9f1e90f9:632d171a0806e11d9f1e90f9:dom-1:1",
+        "source_units": [
+          {
+            "id": "h0001",
+            "source_field": "html",
+            "text": "<p id=\"target\">홈타이 예약 문의</p>",
+            "selectable": true
+          },
+          {
+            "id": "c0001",
+            "source_field": "context",
+            "text": "<p id=\"target\">홈타이 예약 문의</p>",
+            "selectable": true
+          }
+        ]
+      },
+      "preflight_prompt_tokens": 1166,
+      "inference_seconds": 1.9673119999933988,
+      "raw_response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\"verdict\": \"clean\", \"evidence_id\": \"h0001\"}"
+            }
+          }
+        ],
+        "created": 1792321180,
+        "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+        "system_fingerprint": "b11429-d81235049",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 25,
+          "prompt_tokens": 1167,
+          "total_tokens": 1192,
+          "prompt_tokens_details": {
+            "cached_tokens": 1022
+          }
+        },
+        "id": "chatcmpl-0Is1u2Sb0pr9z7QMVJMaXVShbXAUIGQW",
+        "timings": {
+          "cache_n": 1022,
+          "prompt_n": 145,
+          "prompt_ms": 1254.821,
+          "prompt_per_token_ms": 8.653937931034482,
+          "prompt_per_second": 115.55433005982528,
+          "predicted_n": 25,
+          "predicted_ms": 698.566,
+          "predicted_per_token_ms": 29.106916666666667,
+          "predicted_per_second": 34.3560952007398
+        }
+      },
+      "model_output": {
+        "verdict": "clean",
+        "evidence_id": "h0001"
+      },
+      "parsed": {
+        "verdict": "clean",
+        "model_verdict": "clean",
+        "evidence": "<p id=\"target\">홈타이 예약 문의</p>",
+        "evidence_id": "h0001",
+        "source_field": "html",
+        "start_char": 0,
+        "end_char": 28,
+        "source_sha256": "cc90b184dc510c5a7874b9e5193efac813636e538c364f0b3b971dba70219846",
+        "owner_id": "632d171a0806e11d9f1e90f9:632d171a0806e11d9f1e90f9:dom-1:1",
+        "evidence_scope": "source_unit_selection"
+      },
+      "validation": {
+        "errors": [],
+        "accepted": [],
+        "rejected_count": 0
+      },
+      "status": "ok",
+      "wall_seconds": 1.9964312920055818
+    },
+    {
+      "task": "verify",
+      "version": "v15",
+      "input": {
+        "candidate_id": "137423ddba91f3051d328831:137423ddba91f3051d328831:dom-1:2",
+        "html": "<p id=\"target\">카지노 바카라</p>",
+        "context": "<p id=\"target\">카지노 바카라</p>\n<aside class=\"related\">도박 예방교육 자료의 용어 목록입니다.</aside>"
+      },
+      "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+      "max_tokens": 192,
+      "temperature": 0,
+      "seed": 42,
+      "thinking": false,
+      "cache_prompt": true,
+      "request_count": 1,
+      "model_input": {
+        "candidate_id": "137423ddba91f3051d328831:137423ddba91f3051d328831:dom-1:2",
+        "source_units": [
+          {
+            "id": "h0001",
+            "source_field": "html",
+            "text": "<p id=\"target\">카지노 바카라</p>",
+            "selectable": true
+          },
+          {
+            "id": "c0001",
+            "source_field": "context",
+            "text": "<p id=\"target\">카지노 바카라</p>",
+            "selectable": true
+          },
+          {
+            "id": "c0002",
+            "source_field": "context",
+            "text": "\n",
+            "selectable": false
+          },
+          {
+            "id": "c0003",
+            "source_field": "context",
+            "text": "<aside class=\"related\">",
+            "selectable": true
+          },
+          {
+            "id": "c0004",
+            "source_field": "context",
+            "text": "도박 예방교육 자료의 용어 목록입니다.",
+            "selectable": true
+          },
+          {
+            "id": "c0005",
+            "source_field": "context",
+            "text": "</aside>",
+            "selectable": false
+          }
+        ]
+      },
+      "preflight_prompt_tokens": 1294,
+      "inference_seconds": 3.207639125001151,
+      "raw_response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\n  \"verdict\": \"clean\",\n  \"evidence_id\": \"c0004\"\n}"
+            }
+          }
+        ],
+        "created": 1792321183,
+        "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+        "system_fingerprint": "b11429-d81235049",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 32,
+          "prompt_tokens": 1295,
+          "total_tokens": 1327,
+          "prompt_tokens_details": {
+            "cached_tokens": 1021
+          }
+        },
+        "id": "chatcmpl-YxNAgJ9myJPyRbjokpRwHF6C8EdtLWm2",
+        "timings": {
+          "cache_n": 1021,
+          "prompt_n": 274,
+          "prompt_ms": 2298.64,
+          "prompt_per_token_ms": 8.38919708029197,
+          "prompt_per_second": 119.20091880416246,
+          "predicted_n": 32,
+          "predicted_ms": 891.528,
+          "predicted_per_token_ms": 28.758967741935486,
+          "predicted_per_second": 34.77176263673154
+        }
+      },
+      "model_output": {
+        "verdict": "clean",
+        "evidence_id": "c0004"
+      },
+      "parsed": {
+        "verdict": "clean",
+        "model_verdict": "clean",
+        "evidence": "도박 예방교육 자료의 용어 목록입니다.",
+        "evidence_id": "c0004",
+        "source_field": "context",
+        "start_char": 50,
+        "end_char": 71,
+        "source_sha256": "c95424929ad94beeccc00312dc7fdd28326b9dd5d5e5d8873ce5b6895b4dfcbd",
+        "owner_id": "137423ddba91f3051d328831:137423ddba91f3051d328831:dom-1:2",
+        "evidence_scope": "source_unit_selection"
+      },
+      "validation": {
+        "errors": [],
+        "accepted": [],
+        "rejected_count": 0
+      },
+      "status": "ok",
+      "wall_seconds": 3.2378590000007534
+    },
+    {
+      "task": "verify",
+      "version": "v15",
+      "input": {
+        "candidate_id": "0c9e4081be13b8a57b83c556:0c9e4081be13b8a57b83c556:dom-1:3",
+        "html": "<p id=\"target\">카지노 바카라</p>",
+        "context": "<p id=\"target\">카지노 바카라</p>\n<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>"
+      },
+      "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+      "max_tokens": 192,
+      "temperature": 0,
+      "seed": 42,
+      "thinking": false,
+      "cache_prompt": true,
+      "request_count": 1,
+      "model_input": {
+        "candidate_id": "0c9e4081be13b8a57b83c556:0c9e4081be13b8a57b83c556:dom-1:3",
+        "source_units": [
+          {
+            "id": "h0001",
+            "source_field": "html",
+            "text": "<p id=\"target\">카지노 바카라</p>",
+            "selectable": true
+          },
+          {
+            "id": "c0001",
+            "source_field": "context",
+            "text": "<p id=\"target\">카지노 바카라</p>",
+            "selectable": true
+          },
+          {
+            "id": "c0002",
+            "source_field": "context",
+            "text": "\n",
+            "selectable": false
+          },
+          {
+            "id": "c0003",
+            "source_field": "context",
+            "text": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+            "selectable": true
+          }
+        ]
+      },
+      "preflight_prompt_tokens": 1247,
+      "inference_seconds": 2.7988968340068823,
+      "raw_response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\n  \"verdict\": \"clean\",\n  \"evidence_id\": \"c0003\"\n}"
+            }
+          }
+        ],
+        "created": 1792321186,
+        "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+        "system_fingerprint": "b11429-d81235049",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 32,
+          "prompt_tokens": 1248,
+          "total_tokens": 1280,
+          "prompt_tokens_details": {
+            "cached_tokens": 1011
+          }
+        },
+        "id": "chatcmpl-RZSw3IlRQBcO6aqwEXc63BmBI8wyK2nm",
+        "timings": {
+          "cache_n": 1011,
+          "prompt_n": 237,
+          "prompt_ms": 1941.948,
+          "prompt_per_token_ms": 8.19387341772152,
+          "prompt_per_second": 122.0424027831847,
+          "predicted_n": 32,
+          "predicted_ms": 843.874,
+          "predicted_per_token_ms": 27.221741935483873,
+          "predicted_per_second": 36.735342006034074
+        }
+      },
+      "model_output": {
+        "verdict": "clean",
+        "evidence_id": "c0003"
+      },
+      "parsed": {
+        "verdict": "clean",
+        "model_verdict": "clean",
+        "evidence": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+        "evidence_id": "c0003",
+        "source_field": "context",
+        "start_char": 27,
+        "end_char": 71,
+        "source_sha256": "6b97cfb4674c3e416ce67e3a1c61a3b65e44b529afb1bb3a1bb07c1df5ef3458",
+        "owner_id": "0c9e4081be13b8a57b83c556:0c9e4081be13b8a57b83c556:dom-1:3",
+        "evidence_scope": "source_unit_selection"
+      },
+      "validation": {
+        "errors": [],
+        "accepted": [],
+        "rejected_count": 0
+      },
+      "status": "ok",
+      "wall_seconds": 2.8240312909911154
+    }
+  ],
+  "browser_requests": [
+    {
+      "url": "http://127.0.0.1:59290/P03.html",
+      "resource_type": "document"
+    },
+    {
+      "url": "http://127.0.0.1:59290/P03.html",
+      "resource_type": "document"
+    },
+    {
+      "url": "http://127.0.0.1:59290/P11.html",
+      "resource_type": "document"
+    },
+    {
+      "url": "http://127.0.0.1:59290/P11.html",
+      "resource_type": "document"
+    },
+    {
+      "url": "http://127.0.0.1:59290/S06.html",
+      "resource_type": "document"
+    },
+    {
+      "url": "http://127.0.0.1:59290/S06.html",
+      "resource_type": "document"
+    },
+    {
+      "url": "http://127.0.0.1:59290/S07.html",
+      "resource_type": "document"
+    },
+    {
+      "url": "http://127.0.0.1:59290/S07.html",
+      "resource_type": "document"
+    },
+    {
+      "url": "http://127.0.0.1:59290/R01.html",
+      "resource_type": "document"
+    },
+    {
+      "url": "http://127.0.0.1:59290/R01.html",
+      "resource_type": "document"
+    }
+  ],
+  "fixture_requests": [
+    {
+      "at": "2026-10-18T10:59:16.542919+00:00",
+      "path": "/sitemap.xml"
+    },
+    {
+      "at": "2026-10-18T10:59:17.193733+00:00",
+      "path": "/P03.html"
+    },
+    {
+      "at": "2026-10-18T10:59:18.106054+00:00",
+      "path": "/P11.html"
+    },
+    {
+      "at": "2026-10-18T10:59:18.984428+00:00",
+      "path": "/S06.html"
+    },
+    {
+      "at": "2026-10-18T10:59:19.862393+00:00",
+      "path": "/S07.html"
+    },
+    {
+      "at": "2026-10-18T10:59:20.732772+00:00",
+      "path": "/R01.html"
+    }
+  ],
+  "laya_pids": [
+    19253
+  ],
+  "gemma_pids": [
+    19255
+  ],
+  "max_observed_gemma_servers": 1,
+  "samples": [
+    {
+      "at": "2026-10-18T10:59:16.636554+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:16.749506+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:16.863167+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:16.979910+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:17.093917+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:17.209377+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:17.322420+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:17.442963+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:17.572452+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:17.694141+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:17.815057+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:17.935673+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:18.060461+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:18.176182+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:18.295806+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:18.423303+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:18.555212+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:18.679871+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:18.799041+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:18.931983+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:19.046680+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:19.167568+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:19.292566+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:19.437241+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:19.561401+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:19.679040+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:19.810840+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:19.925362+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:20.041993+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:20.161663+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:20.293342+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:20.409813+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:20.550310+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:20.678169+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:20.792426+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:20.907628+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:21.027876+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:21.158796+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:21.275844+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:21.404731+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:21.533747+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:21.649580+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:21.762745+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:21.875143+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:21.987746+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:22.100884+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:22.214584+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:22.327817+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:22.441000+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:22.554116+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:22.662902+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:22.776167+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:22.891037+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:23.004613+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:23.118149+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:23.232124+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:23.345097+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:23.455373+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:23.568196+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:23.681151+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:23.793752+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:23.906325+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:24.019658+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:24.132840+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:24.245833+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:24.358636+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:24.471272+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:24.583831+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:24.696758+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:24.811524+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:24.922994+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:25.036338+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:25.150137+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:25.262846+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:25.376638+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:25.489613+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:25.599500+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:25.714162+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:25.824963+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:25.937369+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:26.050336+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:26.161605+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:26.272913+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:26.386359+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:26.500667+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:26.616230+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:26.734855+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:26.854191+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:26.967224+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:27.080636+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:27.190176+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:27.302386+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:27.415661+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:27.527811+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:27.641588+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:27.755212+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:27.868823+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:27.980658+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:28.093538+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:28.206693+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:28.319532+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:28.442137+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:28.565377+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:28.684887+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:28.797925+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:28.911065+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:29.021345+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:29.134401+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:29.247378+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:29.359883+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:29.477706+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:29.589209+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:29.699521+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:29.812902+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:29.925840+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:30.042183+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:30.160852+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:30.271189+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:30.384208+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:30.497712+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:30.610136+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:30.722081+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:30.835841+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:30.949445+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:31.062654+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:31.180009+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:31.293592+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:31.403421+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:31.516241+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:31.630566+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:31.749507+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:31.868247+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:31.981921+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:32.095578+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:32.208560+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:32.317949+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:32.430555+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:32.543573+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:32.657316+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:32.766880+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:32.879788+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:32.990802+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:33.101416+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:33.218431+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:33.336283+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:33.459135+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:33.583268+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:33.707149+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:33.818927+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:33.937592+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:34.050748+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:34.162225+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:34.275894+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:34.389071+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:34.499350+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:34.612967+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:34.726113+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:34.839087+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:34.952735+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:35.082703+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:35.216865+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:35.339724+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:35.464604+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:35.591166+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:35.704636+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:35.818382+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:35.932166+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:36.045878+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:36.159717+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:36.272963+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:36.402737+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:36.514521+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:36.639994+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:36.764729+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:36.941569+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:37.055254+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:37.168805+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:37.283886+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:37.397906+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:37.515777+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:37.640061+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:37.758721+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:37.871177+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:37.984998+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:38.099213+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:38.213056+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:38.327258+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:38.441116+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:38.552400+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:38.669353+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:38.782563+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:38.895657+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:39.016758+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:39.140560+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:39.254092+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:39.368664+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:39.482760+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:39.595909+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:39.706343+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:39.820692+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:39.935075+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:40.049707+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:40.168424+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:40.278311+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:40.429144+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:40.541865+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:40.651923+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:40.774207+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:40.898896+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:41.018635+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:41.132422+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:41.252588+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:41.365831+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:41.477859+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:41.591294+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:41.702881+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:41.816894+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:41.928809+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:42.042002+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:42.152611+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:42.266394+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:42.387378+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:42.509396+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:42.623346+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:42.741608+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:42.855229+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:42.964817+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:43.079296+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:43.193335+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:43.304973+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:43.419684+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:43.533875+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:43.647117+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:43.759156+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:43.871119+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:43.995480+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:44.119705+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:44.249067+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:44.366531+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:44.479751+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:44.593679+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:44.707284+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:44.818773+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:44.929076+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:45.050500+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:45.162021+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:45.275315+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:45.389271+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:45.505816+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:45.618478+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:45.733482+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:45.853128+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:45.973159+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:46.085773+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:46.199960+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:46.312928+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:46.424715+00:00",
+      "gemma_pids": [
+        19255
+      ]
+    },
+    {
+      "at": "2026-10-18T10:59:46.536137+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:46.655567+00:00",
+      "gemma_pids": []
+    },
+    {
+      "at": "2026-10-18T10:59:46.785939+00:00",
+      "gemma_pids": []
+    }
+  ],
+  "laya_processes_absent": true,
+  "gemma_processes_absent": true,
+  "remaining_children": [
+    {
+      "pid": 19252,
+      "name": "Python"
+    }
+  ]
+}

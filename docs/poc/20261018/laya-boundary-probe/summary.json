@@ -1,0 +1,16 @@
+{
+  "frozen_count": 16,
+  "eligible_count": 16,
+  "actual_laya_inputs": 16,
+  "outputs": 16,
+  "low_confidence_ids": [
+    "P03",
+    "P06",
+    "P11"
+  ],
+  "invalid_outputs": 0,
+  "gemma_calls": 0,
+  "production_runner_executed": false,
+  "more_probes_generated": false,
+  "semantic_accuracy_not_evaluated": true
+}

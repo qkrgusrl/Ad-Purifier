@@ -1,0 +1,11 @@
+{
+  "meta": {
+    "topic": "불법광고",
+    "entry_url": "http://127.0.0.1:59290/P03.html",
+    "started_at": "2026-10-18T19:59:16+09:00",
+    "finished_at": "2026-10-18T19:59:46+09:00",
+    "elapsed_sec": 29.91,
+    "tool_version": "0.2.0-preview.1"
+  },
+  "findings": []
+}

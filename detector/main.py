@@ -1,13 +1,14 @@
 """불법광고 탐지기 (프로토타입).
 
 사용: python -m detector.main <진입URL> [--out 폴더(기본: 프로젝트 루트/exe 폴더)] [--max-pages 0(제한 없음)]
-      [--time-budget 1620] [--llm-reserve 360] [--model 경로] [--no-ml]
+      [--time-budget 1740] [--llm-reserve 360] [--model 경로] [--no-ml]
 산출: result.json (적격평가 스키마), report.json (판정 근거 포함 내부 리포트)
 """
 import argparse
 import asyncio
 import collections
 import json
+import hashlib
 import os
 import re
 import sys
@@ -19,11 +20,13 @@ from xml.etree import ElementTree as ET
 
 from playwright.async_api import async_playwright
 
+from app_paths import app_root, resource_root, laya_model
+
 from . import adscore
 from .frontier import Frontier
 from .textnorm import homoglyph_signals, jamo_signal, normalize
 
-TOOL_VERSION = "0.1.0-proto"
+TOOL_VERSION = "0.2.0-preview.1"
 
 
 async def _fetch_sitemap(entry: str, timeout_s: float = 8) -> list[str]:
@@ -37,7 +40,10 @@ async def _fetch_sitemap(entry: str, timeout_s: float = 8) -> list[str]:
             req = urllib.request.Request(sitemap_url,
                                          headers={"User-Agent": "Mozilla/5.0 Ad-Purifier/0.1"})
             with urllib.request.urlopen(req, timeout=timeout_s) as r:
-                return r.read() if r.status == 200 else None
+                if r.status != 200:
+                    return None
+                data = r.read(SITEMAP_MAX_BYTES + 1)  # 끝없이 큰 응답으로 메모리를 채우지 못하게
+                return data if len(data) <= SITEMAP_MAX_BYTES else None
         except Exception:
             return None
 
@@ -51,9 +57,10 @@ async def _fetch_sitemap(entry: str, timeout_s: float = 8) -> list[str]:
                 if loc.text]
     except Exception:
         return []
+SITEMAP_MAX_BYTES = 20 * 1024 * 1024
 TOPIC = "불법광고"  # 요강 예시는 "TOPIC" 문자열 — 주최 측 확인 필요
 KST = timezone(timedelta(hours=9))
-EXTRACT_JS = (Path(__file__).parent / "extract.js").read_text(encoding="utf-8")
+EXTRACT_JS = (resource_root() / "detector" / "extract.js").read_text(encoding="utf-8")
 SKIP_EXT = (".pdf", ".hwp", ".hwpx", ".doc", ".docx", ".xls", ".xlsx", ".zip", ".jpg", ".jpeg", ".png", ".gif", ".mp4")
 
 # Playwright 기본 UA에는 "HeadlessChrome"이 들어가 일부 사이트가 다른(또는 빈) 화면을 준다.
@@ -132,6 +139,10 @@ ENTRY_TIMEOUT_MS = 45000  # 시작 페이지 접속 제한 시간 (일반 페이
 SLOW_WINDOW, SLOW_TIMEOUT_MS, SLOW_CONCURRENCY = 10, 45000, 2
 
 
+class ScanCancelled(Exception):
+    """사용자가 탐지를 취소함. 결과 파일(result.json·report.json)은 쓰지 않는다."""
+
+
 class PageLoadError(Exception):
     """페이지에 접속하지 못함(연결 거부·DNS 실패·시간 초과 등). 브라우저 오류 화면을 '깨끗한 페이지'로 오판하지 않기 위해 구분한다."""
 
@@ -156,6 +167,85 @@ def slash_variant(url):
     return urlunparse(p._replace(path=p.path + "/"))
 
 
+# ---------- 크롤러 보안: 점검하는 페이지에 심어진 악성 코드로부터 이 컴퓨터를 지킨다 ----------
+# 불법광고가 심어진 페이지에는 도박·성인 사이트의 스크립트나 iframe이 함께 들어 있을 수 있다. 크롤러는 글자만 읽으면 되므로
+# 그 밖의 브라우저 기능은 최대한 닫는다. 같은 사이트 문서의 스크립트는 그대로 둔다 — 스크립트로 늦게 끼워 넣는 광고도 봐야 하므로.
+# 다른 사이트 iframe 문서: 글자는 읽되 스크립트·플러그인은 못 돌게 하는 보안 정책(CSP)을 붙여 준다
+FOREIGN_FRAME_CSP = "script-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+FOREIGN_FRAME_TIMEOUT_MS = 10000
+# 글자 탐지에 필요 없고 공격 면만 넓히는 요청 종류 (동영상·음성, 웹 앱 매니페스트)
+BLOCKED_TYPES = {"media", "manifest"}
+# 팝업 창(window.open)으로 다른 사이트를 여는 것을 막는다. 그래도 열린 창은 on_popup이 바로 닫는다
+NO_POPUP_JS = "window.open = () => null;"
+# 다시 보낼 때 빼는 응답 헤더: route.fetch가 압축을 풀어 주므로 원래 길이·압축 표시가 남으면 문서가 깨진다
+HOP_HEADERS = {"content-encoding", "content-length", "transfer-encoding", "connection"}
+
+
+async def launch_browser(pw):
+    """Chromium을 운영체제 샌드박스 안에서 실행한다 (Playwright 기본값은 샌드박스 꺼짐).
+
+    샌드박스는 브라우저 취약점이 뚫려도 페이지 코드가 파일·프로그램에 손대지 못하게 막는 마지막 방어선이다.
+    샌드박스를 지원하지 않는 환경(일부 리눅스 컨테이너 등)에서는 경고를 남기고 끈 채로 실행한다.
+    """
+    try:
+        return await pw.chromium.launch(headless=True, chromium_sandbox=True)
+    except Exception as e:
+        print(f"[warn] 브라우저 샌드박스를 켤 수 없어 끄고 실행합니다: {str(e).splitlines()[0]}")
+        return await pw.chromium.launch(headless=True)
+
+
+async def secure_context(browser, user_agent):
+    """크롤링용 브라우저 컨텍스트. 다운로드·서비스 워커·팝업을 막고 요청마다 secure_route를 거친다.
+
+    권한(위치·카메라·알림 등)은 하나도 주지 않는다(기본값). 쿠키·저장소는 이 컨텍스트에만 있고 점검이 끝나면 사라진다.
+    """
+    ctx = await browser.new_context(viewport={"width": 1280, "height": 900}, ignore_https_errors=True,
+                                    accept_downloads=False, service_workers="block",
+                                    user_agent=user_agent, locale="ko-KR",
+                                    extra_http_headers={"Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7"})
+    await ctx.add_init_script(NO_POPUP_JS)
+    ctx.on("page", on_popup)
+    await ctx.route("**/*", secure_route)
+    return ctx
+
+
+async def on_popup(page):
+    """크롤러가 연 페이지가 아니라 페이지 스크립트가 띄운 창이면 바로 닫는다."""
+    try:
+        if await page.opener() is not None:
+            await page.close()
+    except Exception:
+        pass
+
+
+async def secure_route(route, request):
+    """모든 요청이 마지막으로 거치는 보안 규칙 (guard_navigation 다음)."""
+    try:
+        if request.resource_type in BLOCKED_TYPES:
+            return await route.abort()
+        frame = request.frame
+        if request.is_navigation_request() and frame.parent_frame is not None:
+            top = urlparse(frame.page.url).netloc
+            if top and site_key(urlparse(request.url).netloc) != site_key(top):
+                return await fulfill_without_scripts(route)
+    except Exception:  # 서비스 워커 요청 등 frame이 없는 요청은 그대로 보낸다
+        pass
+    await route.continue_()
+
+
+async def fulfill_without_scripts(route):
+    """다른 사이트 iframe 문서를 대신 받아, 스크립트를 금지하는 CSP를 붙여 돌려준다. 받지 못하면 iframe을 비운다."""
+    try:
+        resp = await route.fetch(timeout=FOREIGN_FRAME_TIMEOUT_MS)
+    except Exception:
+        return await route.fulfill(status=204, body="")
+    headers = {k: v for k, v in resp.headers.items() if k.lower() not in HOP_HEADERS}
+    old = headers.pop("content-security-policy", None)
+    # 정책을 쉼표로 이으면 둘 다 적용된다 — 사이트 원래 정책을 약하게 바꾸지 않고 우리 정책만 더한다
+    headers["content-security-policy"] = f"{old}, {FOREIGN_FRAME_CSP}" if old else FOREIGN_FRAME_CSP
+    await route.fulfill(response=resp, headers=headers)
+
+
 async def guard_navigation(page, on_site, blocked):
     """페이지가 스크립트로 다른 사이트로 넘어가려 하면 막는다(blocked에 그 주소를 기록).
 
@@ -170,7 +260,7 @@ async def guard_navigation(page, on_site, blocked):
             # abort하면 크롬이 오류 화면으로 바꿔 원래 문서가 사라진다. 204(내용 없음)로 답하면 이동만 취소되고 그대로 남는다.
             await route.fulfill(status=204, body="")
         else:
-            await route.continue_()
+            await route.fallback()  # 크롤러 보안 규칙(secure_route)으로 넘김
     await page.route("**/*", handler)
 
 
@@ -230,13 +320,19 @@ async def scan_page(ctx, url, timeout_ms, on_site=None, guard=None):
         except Exception:
             pass
         frames = []
-        for fr in page.frames:
+        for frame_index, fr in enumerate(page.frames):
             try:
                 data = await fr.evaluate(EXTRACT_JS)
                 data["frame_url"] = fr.url
+                namespace = hashlib.sha256(f"{url}|{page.url}|{frame_index}|{fr.url}".encode()).hexdigest()[:24]
+                for group in ("hidden", "texts", "head", "source_blocks"):
+                    for row in data.get(group, []):
+                        if row.get("source_id"):
+                            row["source_id"] = namespace + ":" + row["source_id"]
                 frames.append((await frame_prefix(fr), data))
-            except Exception:
-                continue
+            except Exception as exc:
+                frames.append(("", {"frame_url": fr.url, "hidden": [], "texts": [], "head": [], "links": [],
+                                    "source_blocks": [], "collection_error": f"{type(exc).__name__}: {exc}"}))
         if blocked and frames:  # 다른 사이트로 넘기려던 페이지 — 판정 때 그 페이지 문구에 가산점 (candidates_from)
             frames[0][1]["blocked_nav"] = sorted({urlparse(b).netloc for b in blocked})
         return strip_fragment(page.url if page.url.startswith(("http://", "https://")) else url), frames, status
@@ -244,12 +340,14 @@ async def scan_page(ctx, url, timeout_ms, on_site=None, guard=None):
         await close_page(page)
 
 
-async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_agent=DEFAULT_UA, deadline=None):
+async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_agent=DEFAULT_UA, deadline=None,
+                cancel=None):
     """(페이지 목록, 문제 목록). progress(완료 페이지 수, 발견 페이지 수, 방금 끝난 URL) — UI 진행률 표시용.
 
     방문 순서는 Frontier가 정한다(게시판·수상한 제목 우선, 나머지도 버리지 않음 — frontier.py 참고).
     max_pages: 방문할 최대 페이지 수(0 = 제한 없음). deadline: time.perf_counter() 기준 크롤링 마감 시각(None = 없음).
     마감이 되면 새 페이지는 열지 않고, 열어 둔 페이지만 마저 검사한 뒤 끝낸다.
+    cancel: threading.Event. 켜지면 브라우저를 바로 닫아 열려 있던 페이지 대기까지 끊고 돌아온다(결과는 버림 — run이 처리).
     문제 목록: {"failed": 접속 실패 [{url, reason}], "http_errors": 4xx/5xx 응답 [{url, status}],
                "external_skipped": 다른 사이트로 넘어가 제외한 페이지 [{url, final_url}],
                "stopped_by_time": 마감으로 멈췄는지, "left_in_queue": 못 본 대기 주소 수, "dropped_endless": 버린 검색·정렬 주소 수}
@@ -285,24 +383,31 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
     t_start = time.perf_counter()
     visit_log = []  # [크롤링 시작 후 초, 최종 URL, 요청 URL] — 시간에 따라 무엇을 찾았는지(발견 곡선)·리디렉트 분석용
     async with async_playwright() as pw:
-        browser = await pw.chromium.launch(headless=True)
-        ctx = await browser.new_context(viewport={"width": 1280, "height": 900}, ignore_https_errors=True,
-                                         user_agent=user_agent, locale="ko-KR",
-                                         extra_http_headers={"Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7"})
+        browser = await launch_browser(pw)
+        ctx = await secure_context(browser, user_agent)
 
         async def worker(idx):
+            retry_item = None
             while True:
+                if cancel is not None and cancel.is_set():
+                    if retry_item is not None:
+                        frontier.requeue(*retry_item)
+                    return
                 if deadline is not None and time.perf_counter() >= deadline:
+                    if retry_item is not None:
+                        frontier.requeue(*retry_item)
                     state["stopped_by_time"] = state["stopped_by_time"] or len(frontier) > 0
                     return
-                if max_pages and state["visited"] >= max_pages:
+                if retry_item is None and max_pages and state["visited"] >= max_pages:
                     return
-                if state["slow"] and idx >= SLOW_CONCURRENCY:  # 느린 모드: 탭 수를 줄여 서버 부담을 덜어 줌
+                if retry_item is None and state["slow"] and idx >= SLOW_CONCURRENCY:  # 느린 모드: 탭 수를 줄여 서버 부담을 덜어 줌
                     if not len(frontier) and state["inflight"] == 0:
                         return
                     await asyncio.sleep(0.5)
                     continue
-                item = frontier.pop()
+                is_retry = retry_item is not None
+                item = retry_item if is_retry else frontier.pop()
+                retry_item = None
                 if item is None:
                     if state["inflight"] == 0:  # 대기열도 비고 검사 중인 페이지도 없음 → 끝
                         return
@@ -310,7 +415,7 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
                     continue
                 url, depth = item
                 state["inflight"] += 1
-                state["visited"] += 1
+                state["visited"] += 0 if is_retry else 1
                 try:
                     is_entry = url == entry  # 시작 주소가 www 등 다른 주소로 넘어가면 그곳을 사이트로 삼는다
                     # 시작 페이지를 못 열면 점검 전체가 0건이 된다 — 첫 응답만 8~10초 걸리는 사이트(s-solution 등)도 있어 넉넉히 기다린다
@@ -343,7 +448,10 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
                         print(f"[info] 시간 초과가 잦아 느린 모드로 전환 (제한 {SLOW_TIMEOUT_MS // 1000}초, 동시 {SLOW_CONCURRENCY}개)")
                     if timed_out and url not in retried:  # 시간 초과는 한 번 더 (느린 모드라면 늘어난 제한 시간으로)
                         retried.add(url)
-                        frontier.requeue(url, depth)
+                        if max_pages:
+                            retry_item = (url, depth)
+                        else:
+                            frontier.requeue(url, depth)
                     else:
                         failed.append({"url": url, "reason": str(e) if isinstance(e, PageLoadError) else f"{type(e).__name__}: {e}"})
                         print(f"[warn] {url}: {e}")
@@ -352,7 +460,15 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
                     if progress:
                         progress(len(results) + len(failed) + len(external), len(frontier.seen), url)
 
+        async def watch_cancel():
+            while not cancel.is_set():
+                await asyncio.sleep(0.2)
+            await browser.close()  # 열려 있던 페이지 접속·대기가 곧바로 오류로 끝나 작업자들이 빠져나온다
+
+        watcher = asyncio.create_task(watch_cancel()) if cancel is not None else None
         await asyncio.gather(*(worker(i) for i in range(concurrency)))
+        if watcher:
+            watcher.cancel()
         await browser.close()
     # 순서상 iframe 문서가 먼저 큐에 들어갔던 경우까지 정리
     pages = [(u, f) for u, f in results if norm_url(u) not in frame_urls]
@@ -369,6 +485,18 @@ LINK_FARM_BONUS = 3    # 그중 하나라도 광고 키워드면 → 그 사이�
 REDIRECT_BONUS = 2     # 페이지가 스크립트로 다른 사이트로 넘기려 함(기생 페이지) → 광고 근거가 있는 문구에 가산점
 HEAD_TEXT_MIN = 10     # 본문 글자 요소가 이보다 적은 페이지는 제목·메타 태그 문구도 검사
 UI_CONTROL = re.compile(r"신고하기|신고 하기|고객센터|관련\s*글|목록|이전\s*글|다음\s*글|댓글|로그인|회원가입|바로가기")
+# 메뉴·탭·모바일 전용 같은 UI 부품은 display:none으로 접혀 있다가 누르면 보인다 — 숨김 광고가 아니다.
+# 클래스·태그 토큰이 부품 이름일 때만 본다 ('data-nav-hidden'처럼 이름 중간에 섞인 것은 아님).
+# 2026-10-20 외부 시험: gnb-submenu·util-menu mobile-only·탭 패널·breadcrumb의 '카지노 교육기관' 같은 항목을 Laya가 숨김 광고로 올리던 오탐
+UI_WIDGET = re.compile(r"^(?:gnb|lnb|snb|nav|navi|navbar|menu|submenu|dropdown|tab|tabs|accordion|modal|popup|mobile|util|allmenu|breadcrumbs?)(?:$|[-_\d])"
+                       r"|[-_](?:menu|submenu|tab|tabs|dropdown)$", re.I)
+
+
+def ui_widget_hidden(c):
+    """숨김 후보가 UI 부품을 display:none으로 접어 둔 것뿐인가 (다른 숨김 신호가 함께 있으면 아님)."""
+    if set(c.get("signals", [])) != {"display:none"}:
+        return False
+    return any(UI_WIDGET.search(tok) for tok in re.split(r"[\s>.#:()\[\]=\"']+", c["location"]) if tok)
 
 
 def link_farms(page_url, texts):
@@ -395,7 +523,18 @@ def link_farms(page_url, texts):
     return farms
 
 
-def candidates_from(pages, detect_posted=True):
+def source_fields(row):
+    """수집 원문은 점수용 context와 분리해 보존한다."""
+    fields = ("source_id", "source_html", "source_context", "source_near_text",
+              "raw", "href", "tag", "cls", "attr")
+    result = {k: row[k] for k in fields if k in row}
+    if isinstance(row.get("source_html"), str):
+        value = {"html": row["source_html"], "context": row.get("source_context", "")}
+        result["source_sha256"] = hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+    return result
+
+
+def candidates_from(pages, detect_posted=True, *, recover_posted=False):
     """페이지 스캔 결과 → (url, location, technique) 후보.
 
     detect_posted: 숨기지 않고 '게시된' 불법광고도 후보로 잡는다(기법 POSTED). 요강의 추가 탐지 유형.
@@ -409,9 +548,10 @@ def candidates_from(pages, detect_posted=True):
             redirect = [(f"external-redirect:{h}", REDIRECT_BONUS) for h in data.get("blocked_nav", [])][:1]
             for h in data["hidden"]:
                 for tech, why in h["signals"]:
-                    key = (norm_url(url), prefix + h["selector"], tech)
+                    key = (norm_url(url), prefix + h["selector"], tech, h.get("source_id"), h.get("attr", ""), h["text"], h["raw"])
                     c = cands.setdefault(key, {"url": url, "location": prefix + h["selector"], "technique": tech,
                                                "evidence_text": h["text"], "signals": []})
+                    c.update(source_fields(h))
                     c["signals"].append(why)
             # 제목·메타(head)는 본문이 거의 없거나 다른 사이트로 넘기려던 페이지(기생 페이지)에서만 본다.
             # 보통 게시판 페이지는 제목이 게시글 제목과 같아 같은 문구를 두 번 보고하게 되므로 쓰지 않는다.
@@ -441,20 +581,30 @@ def candidates_from(pages, detect_posted=True):
                 if jamo_signal(t["raw"]):
                     checks.append(("JAMO", ["decomposed-syllables"]))
                 for tech, why in checks:
-                    key = (norm_url(url), prefix + t["selector"], tech)
+                    key = (norm_url(url), prefix + t["selector"], tech, t.get("source_id"), t.get("attr", ""), t["text"], t["raw"])
                     c = cands.setdefault(key, {"url": url, "location": prefix + t["selector"], "technique": tech,
                                                "evidence_text": t["text"], "signals": []})
+                    c.update(source_fields(t))
                     c["signals"].extend(why)
                 if detect_posted and not checks:  # 닮은꼴·자모가 아닌 '보이는' 텍스트: 내용이 광고다울 때만
                     s, kw = adscore.score(normalize(t["text"]))
                     farm = farms.get(id(t))
-                    if adscore.verdict(s) != "clean" or farm or (redirect and s > 0):  # 후보 선정은 문장 자체 점수로
-                        key = (norm_url(url), prefix + t["selector"], "POSTED")
+                    selected_by_rules = adscore.verdict(s) != "clean" or farm or (redirect and s > 0)
+                    if selected_by_rules or recover_posted:  # 후보 선정은 문장 자체 점수로
+                        key = (norm_url(url), prefix + t["selector"], "POSTED", t.get("source_id"), t.get("attr", ""), t["text"], t["raw"])
                         c = cands.setdefault(key, {"url": url, "location": prefix + t["selector"], "technique": "POSTED",
                                                    "evidence_text": t["text"], "signals": [f"keyword:{','.join(kw[:6])}"]})
+                        c.update(source_fields(t))
+                        if not selected_by_rules:
+                            c["recovered_without_rule_hit"] = True
                         context = [(f"link-farm:{farm}", LINK_FARM_BONUS)] if farm else []
                         context += redirect if s > 0 else []
-                        context += page_ctx  # 제목·본문이 경고·보도·교육 글이면 감점 (게시형만 — 숨김형 광고는 그대로)
+                        local_ctx = page_ctx
+                        if "source_near_text" in t:
+                            local_ctx = adscore.page_context(normalize(t["source_near_text"]))
+                            if not local_ctx and BODY_CONTEXT:
+                                local_ctx = adscore.body_context([normalize(t["source_near_text"])])
+                        context += local_ctx  # 제목·본문이 경고·보도·교육 글이면 감점 (게시형만 — 숨김형 광고는 그대로)
                         if context:  # 판정 때 점수에 더할 문맥 가산점 (judge 참고)
                             c["signals"].extend(n for n, _ in context)
                             c["context"] = context
@@ -531,10 +681,10 @@ def collapse_repeats(cands):
     return [c for c in cands if id(c) not in drop], len(drop)
 
 
-def judge(cands, model_path, use_ml, deadline=None):
+def judge(cands, model_path, use_ml, deadline=None, cancel=None):
     """룰 점수로 1차 판정, 경계 구간만 Laya로 2차 판정.
 
-    deadline(time.perf_counter() 기준)을 넘기면 남은 경계 문구는 Laya 없이 규칙 판정(정상 처리)으로 둔다.
+    확정 규칙은 유지하고 경계 후보만 AI 경로로 보낸다.
     """
     for c in cands:
         c["normalized"] = normalize(c["evidence_text"])
@@ -545,47 +695,21 @@ def judge(cands, model_path, use_ml, deadline=None):
         c["hits"] = [n if w > 0 else "-" + n for n, w in c["score_detail"]]
         c["verdict"] = adscore.verdict(c["score"])
         c["decided_by"] = "rules"
-    # 제목·본문 맥락상 광고를 '다루는' 글(예방교육·보도·법령 안내)로 감점된 경계 문구는 AI가 광고로 올리지 않는다.
-    # 은어 설명·적발 사례는 광고 어휘투성이라 Laya가 확률 1.0을 주기도 한다(함께학교 도박 예방 안내 그림 설명).
-    # 저장 크롤링 14개 스팸 사이트에서 이 조건의 경계 문구는 0건 — 스팸을 놓치는 경우 없음. 남는 판단은 LLM 검증 단계 몫.
-    about = lambda c: any(n in ("page-context", "body-context") for n, _ in c.get("context", []))
-    border = [c for c in cands if c["verdict"] == "borderline" and not about(c)]
-    if border and use_ml:
-        try:
-            from laya.agent import Agent
-
-            from training.make_dataset import QUESTION
-            agent = Agent(model_path, device="cpu")
-            texts = sorted({c["normalized"] for c in border})
-            prob = {}
-            for i in range(0, len(texts), 64):  # 64개씩 끊어서, 마감이 지나면 멈춤
-                if deadline is not None and time.perf_counter() >= deadline:
-                    print(f"[warn] 판정 시간 제한: 경계 문구 {len(texts) - i}개는 AI 판정 없이 정상 처리")
-                    break
-                chunk = texts[i:i + 64]
-                out = agent.predict_batch(chunk, QUESTION, batch_size=16)
-                prob.update((t, o["answers"]["is_illegal_ad"]["noul"]) for t, o in zip(chunk, out))
-        except Exception as e:  # 모델 문제로 크롤링 결과 전체를 잃지 않도록 규칙 판정(--no-ml과 동일)으로 대체
-            print(f"[warn] Laya 판정 실패, 경계 구간은 정상 처리: {type(e).__name__}: {e}")
-            prob = None
-        for c in border if prob else []:
-            if c["normalized"] not in prob:
-                continue
-            c["ml_prob"] = round(prob[c["normalized"]], 4)
-            c["verdict"] = "ad" if c["ml_prob"] >= 0.5 else "clean"
-            c["decided_by"] = "laya"
+        if c["verdict"] == "borderline" and c["technique"] in CORE_TECHNIQUES and ui_widget_hidden(c):
+            c["verdict"] = "clean"  # 규칙이 확정(≥4)하지 않은 UI 부품 숨김은 AI로 넘기지 않는다
+            c["hits"].append("-ui-widget-hidden")
+    if use_ml:
+        from .ai import analyze
+        analyze(cands, [], model_path, use_ml, deadline, cancel, cancel_error=ScanCancelled)
     return cands
 
 
 def app_dir():
     """결과 파일 기본 위치: exe로 묶였으면 exe 폴더, 아니면 프로젝트 루트 (요강: 구동 파일 폴더에 생성)."""
-    if getattr(sys, "frozen", False):
-        return Path(sys.executable).resolve().parent
-    return Path(__file__).resolve().parents[1]
+    return app_root()
 
 
-# 경계 구간 판정 모델(jev). AD_PURIFIER_MODEL 환경변수로 다른 모델 폴더를 지정할 수 있다 (모델 비교용, 예: models/laya-illegal-ad-v3)
-DEFAULT_MODEL = Path(os.environ["AD_PURIFIER_MODEL"]) if os.environ.get("AD_PURIFIER_MODEL") else app_dir() / "models" / "laya-illegal-ad"
+DEFAULT_MODEL = laya_model()
 
 
 # 적격평가 대상 4종 (result.json). 그 외 추가 유형은 result_extra.json으로 분리한다.
@@ -594,31 +718,52 @@ EXTRA_LABEL = {"POSTED": "게시형 불법광고(은닉 없음)"}
 
 
 # 시간 예산(초). 적격평가 검출 시간 상한은 30분 — 넘기면 시간 점수 0점, result.json이 없으면 평가 제외될 수 있다.
-TIME_BUDGET = 27 * 60   # 전체 목표: 30분 상한에서 3분 여유
+TIME_BUDGET = 29 * 60   # 전체 목표: 30분 상한에서 1분 여유
 JUDGE_RESERVE = 2 * 60  # 로컬 판정(룰+Laya)·저장 몫. 실사이트 11곳 측정 시 판정은 0.4~11초
-LLM_RESERVE = 6 * 60    # 나중에 붙일 LLM 최종 검증 몫(아직 미구현 — 자리만 확보)
+LLM_RESERVE = 6 * 60    # Gemma 검증을 위해 크롤링에서 남길 시간
 
 
 def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT_MODEL, use_ml=True,
         progress=None, phase=None, user_agent=DEFAULT_UA, detect_posted=True,
-        time_budget=TIME_BUDGET, llm_reserve=LLM_RESERVE, collapse=False):
+        time_budget=TIME_BUDGET, llm_reserve=LLM_RESERVE, collapse=False, cancel=None,
+        laya_confidence_threshold=0.8, complete_validation=False):
     """크롤링 → 판정 → result.json/report.json 저장. report 딕셔너리를 돌려준다.
 
     phase(단계명): UI에 현재 단계(crawl/judge/save)를 알리는 콜백.
     detect_posted: 게시형(은닉 없는) 불법광고도 탐지해 result_extra.json으로 분리 저장.
     max_pages: 0이면 페이지 수 제한 없이 시간 예산 안에서 전부 탐색.
     time_budget: 전체 목표 시간(초). 크롤링은 time_budget - llm_reserve - 판정 몫까지만 한다.
+    complete_validation: 수집 시간 상한을 유지하고 수집된 항목의 AI 판정은 시간 상한 없이 완료.
+    cancel: threading.Event. 켜지면 ScanCancelled를 일으키고 결과 파일은 건드리지 않는다(지난 제출용 result.json 보존).
     """
+    model = Path(model)
+    if not model.is_absolute():
+        model = app_dir() / model
     phase = phase or (lambda name: None)
     started = datetime.now(KST)
     t0 = time.perf_counter()
     crawl_deadline = t0 + max(60, time_budget - llm_reserve - JUDGE_RESERVE)
-    judge_deadline = t0 + max(90, time_budget - llm_reserve - 30)
+    judge_deadline = None if complete_validation else t0 + max(0, time_budget - 30)
     phase("crawl")
-    pages, issues = asyncio.run(crawl(entry_url, max_pages, concurrency, timeout, progress, user_agent, crawl_deadline))
+    pages, issues = asyncio.run(crawl(entry_url, max_pages, concurrency, timeout, progress, user_agent, crawl_deadline,
+                                      cancel))
+    cancelled = lambda: cancel is not None and cancel.is_set()
+    if cancelled():
+        raise ScanCancelled()
     t_crawl = time.perf_counter() - t0
     phase("judge")
-    cands = judge(candidates_from(pages, detect_posted), str(model), use_ml, judge_deadline)
+    from .ai import analyze
+    cands = judge(candidates_from(pages, detect_posted), str(model), False)
+    try:
+        ai = analyze(cands, pages, str(model), use_ml, judge_deadline, cancel,
+                     laya_confidence_threshold=laya_confidence_threshold, cancel_error=ScanCancelled,
+                     detect_posted=detect_posted)
+    except asyncio.CancelledError as exc:
+        # Gemma context 정리 후 UI가 처리하는 취소 예외로 전달하며 저장 단계에 진입하지 않는다.
+        raise ScanCancelled() from exc
+    unresolved = sum(c["verdict"] == "uncertain" for c in cands) + len(ai["unresolved_sources"])
+    if cancelled():
+        raise ScanCancelled()
     cands, dups = dedupe(cands)
     # 여러 페이지 반복 합치기는 기본으로 끔(팀 결정: 다른 페이지의 같은 문구는 따로 센다). --collapse-repeats로 켬
     cands, n_repeats = collapse_repeats(cands) if collapse else (cands, 0)
@@ -640,7 +785,16 @@ def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT
                       for i, c in enumerate(extra_hits, 1)]
     # 접속 실패 정보는 내부 리포트에만 기록 (result.json은 요강 스키마 그대로 유지)
     entry_failed = any(f["url"] == entry_url for f in issues["failed"])
-    report = {"meta": meta, "pages": len(pages), "crawl_sec": round(t_crawl, 2), "entry_failed": entry_failed,
+    frame_failures = [{"url": url, "frame_url": data["frame_url"], "reason": data["collection_error"]}
+                      for url, frames in pages for _, data in frames if data.get("collection_error")]
+    coverage = {"visited_pages": len(pages), "failed_frames": len(frame_failures), "pending_pages": issues["left_in_queue"],
+                "failed_pages": len(issues["failed"]), "http_error_pages": len(issues["http_errors"]),
+                "stopped_by_time": issues["stopped_by_time"],
+                "discovered_pages": len(pages) + issues["left_in_queue"] + len(issues["failed"])}
+    crawl_incomplete = bool(issues["stopped_by_time"] or issues["left_in_queue"] or issues["failed"] or issues["http_errors"] or frame_failures)
+    report = {"validation_mode": "complete" if complete_validation else "bounded",
+              "needs_review": bool(unresolved or crawl_incomplete or not use_ml), "crawl_incomplete": crawl_incomplete,
+              "coverage": coverage, "failed_frames": frame_failures, "unresolved_count": unresolved, "ai": ai, "meta": meta, "pages": len(pages), "crawl_sec": round(t_crawl, 2), "entry_failed": entry_failed,
               "failed_pages": issues["failed"], "http_errors": issues["http_errors"],
               "stopped_by_time": issues["stopped_by_time"], "left_in_queue": issues["left_in_queue"],
               "dropped_endless": issues["dropped_endless"], "skipped_utility": issues["skipped_utility"], "time_budget": time_budget, "llm_reserve": llm_reserve,
@@ -650,8 +804,9 @@ def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT
               "model": Path(str(model)).name if use_ml else None,  # 경계 구간을 판정한 모델 폴더 이름 (규칙만이면 None)
               "repeats_collapsed": n_repeats,  # 여러 페이지 반복으로 대표에 합친 건수 (대표의 also_on에 페이지 목록)
               # 중복으로 합친 탐지 (같은 주소·내용·줄) — 어디에 합쳐졌는지(duplicate_of)만 남긴다
-              "duplicates": [{"url": c["url"], "location": c["location"], "technique": c["technique"],
-                              "evidence_text": c["evidence_text"], "duplicate_of": c["duplicate_of"]} for c in dups]}
+              "duplicates": dups}
+    if cancelled():
+        raise ScanCancelled()
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     (out / "result.json").write_text(json.dumps({"meta": meta, "findings": findings}, ensure_ascii=False, indent=2),
@@ -681,7 +836,10 @@ def main():
     ap.add_argument("--concurrency", type=int, default=4)
     ap.add_argument("--timeout", type=int, default=15000)
     ap.add_argument("--model", default=str(DEFAULT_MODEL))
-    ap.add_argument("--no-ml", action="store_true", help="경계 구간을 Laya 없이 정상으로 처리")
+    ap.add_argument("--laya-confidence-threshold", type=float, default=0.8)
+    ap.add_argument("--complete-validation", action="store_true",
+                    help="수집 시간 상한 유지; 수집된 항목의 AI 판정은 시간 상한 없이 완료")
+    ap.add_argument("--no-ml", action="store_true", help="진단 모드: AI를 생략하고 미판정 항목은 검토 필요로 표시")
     ap.add_argument("--user-agent", default=DEFAULT_UA,
                     help="크롤러 User-Agent (기본: 일반 Chrome). 점검 기관에 신원을 밝혀야 하면 뒤에 도구명을 덧붙여 쓰세요.")
     ap.add_argument("--no-extra", action="store_true",
@@ -692,7 +850,8 @@ def main():
 
     report = run(args.entry_url, args.out, args.max_pages, args.concurrency, args.timeout, args.model, not args.no_ml,
                  user_agent=args.user_agent, detect_posted=not args.no_extra,
-                 time_budget=args.time_budget, llm_reserve=args.llm_reserve, collapse=args.collapse_repeats)
+                 time_budget=args.time_budget, llm_reserve=args.llm_reserve, collapse=args.collapse_repeats,
+                 laya_confidence_threshold=args.laya_confidence_threshold, complete_validation=args.complete_validation)
     cands = report["candidates"]
     findings = sum(c["verdict"] == "ad" for c in cands)
     by = {}

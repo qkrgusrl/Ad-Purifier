@@ -1,0 +1,9 @@
+{
+  "status": "completed_for_recorded_commit",
+  "result_directory": "run-ef70919",
+  "summary": "run-ef70919/summary.json",
+  "report": "run-ef70919/output/report.json",
+  "model_observations": "run-ef70919/observations.json",
+  "source_status": "owner 구조 수정 포함 ef70919 실행 완료",
+  "runs_on_this_commit": 1
+}

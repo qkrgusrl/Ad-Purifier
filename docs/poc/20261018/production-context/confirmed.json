@@ -1,0 +1,1140 @@
+{
+  "summary": {
+    "status": "confirmed_with_documented_concurrent_bootstrap_file_change",
+    "visited_pages": 2,
+    "targets": [
+      {
+        "id": "S06",
+        "gold": "clean",
+        "initial_score": 2,
+        "observed_context_signal": [
+          [
+            "page-context",
+            -4
+          ]
+        ],
+        "laya_bypassed": true,
+        "verdict": "clean",
+        "decided_by": "gemma",
+        "source_html_matches_frozen": true,
+        "source_context_matches_frozen": false,
+        "source_sha256": "c95424929ad94beeccc00312dc7fdd28326b9dd5d5e5d8873ce5b6895b4dfcbd",
+        "binding_verified": true,
+        "evidence": "도박 예방교육 자료의 용어 목록입니다.",
+        "evidence_id": "c0004",
+        "source_field": "context",
+        "start_char": 50,
+        "end_char": 71
+      },
+      {
+        "id": "S07",
+        "gold": "clean",
+        "initial_score": 2,
+        "observed_context_signal": [
+          [
+            "page-context",
+            -4
+          ]
+        ],
+        "laya_bypassed": true,
+        "verdict": "clean",
+        "decided_by": "gemma",
+        "source_html_matches_frozen": true,
+        "source_context_matches_frozen": false,
+        "source_sha256": "6b97cfb4674c3e416ce67e3a1c61a3b65e44b529afb1bb3a1bb07c1df5ef3458",
+        "binding_verified": true,
+        "evidence": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+        "evidence_id": "c0003",
+        "source_field": "context",
+        "start_char": 27,
+        "end_char": 71
+      }
+    ],
+    "laya_inputs": 12,
+    "observed_laya_batches": 1,
+    "residual_screened_clean": 12,
+    "gemma_target_verify": 2,
+    "gemma_residual_extract": 0,
+    "gemma_actual_inference_requests": 2,
+    "gemma_prompt_tokens": 2537,
+    "gemma_completion_tokens": 57,
+    "ai_failure_records": 0,
+    "needs_review": false,
+    "result_findings": 0,
+    "elapsed_seconds": 32.8,
+    "max_observed_gemma_servers": 1,
+    "gemma_entry_laya_objects_alive": [
+      0
+    ],
+    "no_remaining_processes": true,
+    "production_source_changed_during_run": [
+      "app_paths.py"
+    ],
+    "shared_laya_bundle_unchanged": true,
+    "all_browser_requests_loopback": true
+  },
+  "metadata": {
+    "started_at": "2026-10-18T10:00:31.810769+00:00",
+    "git_head": "e6cd33168c7544019c603af05c789c6d4bed2183",
+    "source_identity": "working tree source hashes; production additions are not all committed",
+    "source_hashes": {
+      "detector/ai.py": "776f39c1b049a3afc6b00a7aa734f02d1b1f00e3716ca3a65d2507bbd7dde15b",
+      "detector/adscore.py": "dceafe9eba53d3b6a40629ac3c0f750ee4e9ffd37368e83801b0a79a34d6d038",
+      "detector/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "detector/textnorm.py": "640631eb84dd6976d7e8725dd9a1a46645c7079e08d3960fa500ab740d0a52dd",
+      "detector/main.py": "495ba47e1c2616673a1d9db459ad7d36f9cf466fe3bc3a5ddf0feb27722346c3",
+      "detector/frontier.py": "ecca83add6ac14f4a6d2a141480b92d9f295d7656bab99fc8e5c2f64475e5e46",
+      "local_llm/client.py": "f33731ed5ac0e134a4715b5992e5857a8f45288372cd7f6622dbbf279a6b71b0",
+      "local_llm/__init__.py": "81b7619d7c0af2d514a40f48bcc0cc216f720a609b4c3caacee51bdfb29d9738",
+      "local_llm/prompts.py": "4bcc06f6edcc2c9ff0c141e580b942a4f0f5e0e48bfeec1987ade49d17400016",
+      "local_llm/engine.py": "f6752b85e84036a76aff6e25908d939dac450d55369cb89ffb9fceb731817779",
+      "local_llm/prototype.py": "9ca4ed3e7d69a5c202b8143e6d73cf021a1af8447d2f175850dc276c963817b9",
+      "detector/extract.js": "742097e1f31510900d278015cf4428e334610ddf55d32de313c07b521a6bc67f",
+      "app_paths.py": "614f6290c844826b1fa44ef062e160462cd59b3710508c16d1285e0deda95c2d",
+      "training/make_dataset.py": "1a5ef091654dcb356a0f05a58ccc3af5ab16e99ac8a097c86316d2eda9b6edbb"
+    },
+    "laya_model_hashes": {
+      "model.safetensors": "391f38be190d50faf86efb62f6ba026697a1166a5af490bb7c72fc5aa626e14b",
+      "questions.json": "c524e1f65e82e77404f6ec567d2ad6ae92925f95ee020cb3718c7c219234932a",
+      "train_report.json": "45d38e007fcb75d665883cda0dbc11aff82b988708efc08b086928dae3b79807",
+      "rl_agent_config.json": "715cf2aa4fc32bf2ac83968cb7d96af25c2642676e5db8cc59fa5069f9371d3e",
+      "encoder/config.json": "3ceae14d210557b47abcde2768b27afbb2131974f9c4dd714f2236fd9ee54981",
+      "tokenizer/tokenizer_config.json": "5f36fa307ecb9e70c9b058ca0621530f6bd3e89b371c4d6c0279c48d9dbd2629",
+      "tokenizer/tokenizer.json": "dbba919c6e5e492bc22beb80abb64e6fcc7e8744dc696e8388b8c977767afa4b"
+    },
+    "gemma_model_sha256": "fa401b55b07ee70a54c6dae3903c783a6e65064312529ea57175cb5f8dec6634",
+    "llama_server_sha256": "1bf5602a2be50097c44282a6ecc63234d94ee8f96d39fd45fed6eff4e74b6b41",
+    "versions": {
+      "laya": "0.4.2",
+      "torch": "2.5.1",
+      "transformers": "4.57.6",
+      "playwright": "1.64.0"
+    },
+    "module_import": "from detector.main import run",
+    "torch_threads": 2,
+    "torch_interop_threads": 1,
+    "configuration": {
+      "time_budget": 120,
+      "llm_reserve": 30,
+      "concurrency": 1,
+      "max_pages": 0,
+      "timeout": 15000,
+      "use_ml": true,
+      "laya_confidence_threshold": 0.8
+    },
+    "profile_observation": "sys.setprofile call/return observation only; no model or production function replaced",
+    "original_cases_sha256": "e80027c1a3d61c0444addfca81ba70b3c023d970040f66cc0ea8f55079c209d0",
+    "replay_cases_sha256": "515532f25ee2682d147d6c8fa49417069e392507d5ffd516030b6155473f86a7",
+    "entry_url": "http://127.0.0.1:55911/S06.html",
+    "finished_at": "2026-10-18T10:01:06.126683+00:00",
+    "status": "ok",
+    "source_hashes_after": {
+      "detector/ai.py": "776f39c1b049a3afc6b00a7aa734f02d1b1f00e3716ca3a65d2507bbd7dde15b",
+      "detector/adscore.py": "dceafe9eba53d3b6a40629ac3c0f750ee4e9ffd37368e83801b0a79a34d6d038",
+      "detector/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "detector/textnorm.py": "640631eb84dd6976d7e8725dd9a1a46645c7079e08d3960fa500ab740d0a52dd",
+      "detector/main.py": "495ba47e1c2616673a1d9db459ad7d36f9cf466fe3bc3a5ddf0feb27722346c3",
+      "detector/frontier.py": "ecca83add6ac14f4a6d2a141480b92d9f295d7656bab99fc8e5c2f64475e5e46",
+      "local_llm/client.py": "f33731ed5ac0e134a4715b5992e5857a8f45288372cd7f6622dbbf279a6b71b0",
+      "local_llm/__init__.py": "81b7619d7c0af2d514a40f48bcc0cc216f720a609b4c3caacee51bdfb29d9738",
+      "local_llm/prompts.py": "4bcc06f6edcc2c9ff0c141e580b942a4f0f5e0e48bfeec1987ade49d17400016",
+      "local_llm/engine.py": "f6752b85e84036a76aff6e25908d939dac450d55369cb89ffb9fceb731817779",
+      "local_llm/prototype.py": "9ca4ed3e7d69a5c202b8143e6d73cf021a1af8447d2f175850dc276c963817b9",
+      "detector/extract.js": "742097e1f31510900d278015cf4428e334610ddf55d32de313c07b521a6bc67f",
+      "app_paths.py": "4ae7adc98f60becf6a7f5c7e5711d3a8bd54c1f1de7d186a40df9c864e859489",
+      "training/make_dataset.py": "1a5ef091654dcb356a0f05a58ccc3af5ab16e99ac8a097c86316d2eda9b6edbb"
+    },
+    "laya_model_hashes_after": {
+      "model.safetensors": "391f38be190d50faf86efb62f6ba026697a1166a5af490bb7c72fc5aa626e14b",
+      "questions.json": "c524e1f65e82e77404f6ec567d2ad6ae92925f95ee020cb3718c7c219234932a",
+      "train_report.json": "45d38e007fcb75d665883cda0dbc11aff82b988708efc08b086928dae3b79807",
+      "rl_agent_config.json": "715cf2aa4fc32bf2ac83968cb7d96af25c2642676e5db8cc59fa5069f9371d3e",
+      "encoder/config.json": "3ceae14d210557b47abcde2768b27afbb2131974f9c4dd714f2236fd9ee54981",
+      "tokenizer/tokenizer_config.json": "5f36fa307ecb9e70c9b058ca0621530f6bd3e89b371c4d6c0279c48d9dbd2629",
+      "tokenizer/tokenizer.json": "dbba919c6e5e492bc22beb80abb64e6fcc7e8744dc696e8388b8c977767afa4b"
+    }
+  },
+  "initial_rule_candidates": [
+    {
+      "url": "http://127.0.0.1:55911/S06.html",
+      "location": "p",
+      "technique": "POSTED",
+      "evidence_text": "카지노 바카라",
+      "signals": [
+        "keyword:카지노,바카라",
+        "page-context"
+      ],
+      "source_id": "c3dd07fa5c187d76d20dacc1:c3dd07fa5c187d76d20dacc1:dom-1",
+      "source_html": "<p id=\"target\">카지노 바카라</p>",
+      "source_context": "<p id=\"target\">카지노 바카라</p>\n<aside class=\"related\">도박 예방교육 자료의 용어 목록입니다.</aside>",
+      "source_near_text": "카지노 바카라\n도박 예방교육 자료의 용어 목록입니다.",
+      "raw": "카지노 바카라",
+      "href": null,
+      "tag": "p",
+      "cls": "",
+      "source_sha256": "c95424929ad94beeccc00312dc7fdd28326b9dd5d5e5d8873ce5b6895b4dfcbd",
+      "context": [
+        [
+          "page-context",
+          -4
+        ]
+      ],
+      "normalized": "카지노 바카라",
+      "score_detail": [
+        [
+          "카지노",
+          3
+        ],
+        [
+          "바카라",
+          3
+        ],
+        [
+          "page-context",
+          -4
+        ]
+      ],
+      "score": 2,
+      "hits": [
+        "카지노",
+        "바카라",
+        "-page-context"
+      ],
+      "verdict": "borderline",
+      "decided_by": "rules"
+    },
+    {
+      "url": "http://127.0.0.1:55911/S07.html",
+      "location": "p:nth-of-type(1)",
+      "technique": "POSTED",
+      "evidence_text": "카지노 바카라",
+      "signals": [
+        "keyword:카지노,바카라",
+        "page-context"
+      ],
+      "source_id": "2b79e7c0da0075fec772f200:2b79e7c0da0075fec772f200:dom-1",
+      "source_html": "<p id=\"target\">카지노 바카라</p>",
+      "source_context": "<p id=\"target\">카지노 바카라</p>\n<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+      "source_near_text": "카지노 바카라\n제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+      "raw": "카지노 바카라",
+      "href": null,
+      "tag": "p",
+      "cls": "",
+      "source_sha256": "6b97cfb4674c3e416ce67e3a1c61a3b65e44b529afb1bb3a1bb07c1df5ef3458",
+      "context": [
+        [
+          "page-context",
+          -4
+        ]
+      ],
+      "normalized": "카지노 바카라",
+      "score_detail": [
+        [
+          "카지노",
+          3
+        ],
+        [
+          "바카라",
+          3
+        ],
+        [
+          "page-context",
+          -4
+        ]
+      ],
+      "score": 2,
+      "hits": [
+        "카지노",
+        "바카라",
+        "-page-context"
+      ],
+      "verdict": "borderline",
+      "decided_by": "rules"
+    }
+  ],
+  "report": {
+    "needs_review": false,
+    "crawl_incomplete": false,
+    "coverage": {
+      "visited_pages": 2,
+      "failed_frames": 0,
+      "pending_pages": 0,
+      "failed_pages": 0,
+      "http_error_pages": 0,
+      "stopped_by_time": false,
+      "discovered_pages": 2
+    },
+    "failed_frames": [],
+    "unresolved_count": 0,
+    "ai": {
+      "mode": "policy",
+      "laya_confidence_threshold": 0.8,
+      "laya_inputs": 12,
+      "gemma_verify": 2,
+      "gemma_extract": 0,
+      "residual_screened_clean": 12,
+      "unresolved_sources": [],
+      "failures": [],
+      "source_results": [
+        {
+          "source_id": "c3dd07fa5c187d76d20dacc1:c3dd07fa5c187d76d20dacc1:dom-2",
+          "verdict": "clean",
+          "decided_by": "laya"
+        },
+        {
+          "source_id": "c3dd07fa5c187d76d20dacc1:c3dd07fa5c187d76d20dacc1:dom-3",
+          "verdict": "clean",
+          "decided_by": "laya"
+        },
+        {
+          "source_id": "2b79e7c0da0075fec772f200:2b79e7c0da0075fec772f200:dom-2",
+          "verdict": "clean",
+          "decided_by": "laya"
+        },
+        {
+          "source_id": "2b79e7c0da0075fec772f200:2b79e7c0da0075fec772f200:dom-3",
+          "verdict": "clean",
+          "decided_by": "laya"
+        },
+        {
+          "source_id": "2b79e7c0da0075fec772f200:2b79e7c0da0075fec772f200:dom-4",
+          "verdict": "clean",
+          "decided_by": "laya"
+        },
+        {
+          "source_id": "2b79e7c0da0075fec772f200:2b79e7c0da0075fec772f200:dom-5",
+          "verdict": "clean",
+          "decided_by": "laya"
+        },
+        {
+          "source_id": "2b79e7c0da0075fec772f200:2b79e7c0da0075fec772f200:dom-6",
+          "verdict": "clean",
+          "decided_by": "laya"
+        },
+        {
+          "source_id": "2b79e7c0da0075fec772f200:2b79e7c0da0075fec772f200:dom-7",
+          "verdict": "clean",
+          "decided_by": "laya"
+        },
+        {
+          "source_id": "2b79e7c0da0075fec772f200:2b79e7c0da0075fec772f200:dom-8",
+          "verdict": "clean",
+          "decided_by": "laya"
+        },
+        {
+          "source_id": "2b79e7c0da0075fec772f200:2b79e7c0da0075fec772f200:dom-9",
+          "verdict": "clean",
+          "decided_by": "laya"
+        },
+        {
+          "source_id": "2b79e7c0da0075fec772f200:2b79e7c0da0075fec772f200:dom-10",
+          "verdict": "clean",
+          "decided_by": "laya"
+        },
+        {
+          "source_id": "2b79e7c0da0075fec772f200:2b79e7c0da0075fec772f200:dom-11",
+          "verdict": "clean",
+          "decided_by": "laya"
+        }
+      ],
+      "scope": "수집된 DOM 텍스트 소유 단위; 전체 HTTP 원문 및 이미지 검사는 포함하지 않음"
+    },
+    "meta": {
+      "topic": "불법광고",
+      "entry_url": "http://127.0.0.1:55911/S06.html",
+      "started_at": "2026-10-18T19:00:33+09:00",
+      "finished_at": "2026-10-18T19:01:05+09:00",
+      "elapsed_sec": 32.8,
+      "tool_version": "0.1.0-proto"
+    },
+    "pages": 2,
+    "crawl_sec": 2.43,
+    "entry_failed": false,
+    "failed_pages": [],
+    "http_errors": [],
+    "stopped_by_time": false,
+    "left_in_queue": 0,
+    "dropped_endless": 0,
+    "skipped_utility": 0,
+    "time_budget": 120,
+    "llm_reserve": 30,
+    "visit_log": [
+      [
+        1.5,
+        "http://127.0.0.1:55911/S06.html",
+        "http://127.0.0.1:55911/S06.html"
+      ],
+      [
+        2.4,
+        "http://127.0.0.1:55911/S07.html",
+        "http://127.0.0.1:55911/S07.html"
+      ]
+    ],
+    "external_skipped": [],
+    "slow_mode": false,
+    "retried": 0,
+    "extra_count": 0,
+    "candidates": [
+      {
+        "url": "http://127.0.0.1:55911/S06.html",
+        "location": "p",
+        "technique": "POSTED",
+        "evidence_text": "카지노 바카라",
+        "signals": [
+          "keyword:카지노,바카라",
+          "page-context"
+        ],
+        "source_id": "c3dd07fa5c187d76d20dacc1:c3dd07fa5c187d76d20dacc1:dom-1",
+        "source_html": "<p id=\"target\">카지노 바카라</p>",
+        "source_context": "<p id=\"target\">카지노 바카라</p>\n<aside class=\"related\">도박 예방교육 자료의 용어 목록입니다.</aside>",
+        "source_near_text": "카지노 바카라\n도박 예방교육 자료의 용어 목록입니다.",
+        "raw": "카지노 바카라",
+        "href": null,
+        "tag": "p",
+        "cls": "",
+        "source_sha256": "c95424929ad94beeccc00312dc7fdd28326b9dd5d5e5d8873ce5b6895b4dfcbd",
+        "context": [
+          [
+            "page-context",
+            -4
+          ]
+        ],
+        "normalized": "카지노 바카라",
+        "score_detail": [
+          [
+            "카지노",
+            3
+          ],
+          [
+            "바카라",
+            3
+          ],
+          [
+            "page-context",
+            -4
+          ]
+        ],
+        "score": 2,
+        "hits": [
+          "카지노",
+          "바카라",
+          "-page-context"
+        ],
+        "verdict": "clean",
+        "decided_by": "gemma",
+        "processing_status": "completed",
+        "reason": "Gemma v15 원문 결합 검증 완료",
+        "gemma": {
+          "task": "verify",
+          "version": "v15",
+          "status": "ok",
+          "results": [
+            {
+              "candidate_id": "c3dd07fa5c187d76d20dacc1:c3dd07fa5c187d76d20dacc1:dom-1:0",
+              "status": "ok",
+              "verdict": "clean",
+              "evidence": "도박 예방교육 자료의 용어 목록입니다.",
+              "needs_review": false,
+              "call": {
+                "task": "verify",
+                "version": "v15",
+                "input": {
+                  "candidate_id": "c3dd07fa5c187d76d20dacc1:c3dd07fa5c187d76d20dacc1:dom-1:0",
+                  "html": "<p id=\"target\">카지노 바카라</p>",
+                  "context": "<p id=\"target\">카지노 바카라</p>\n<aside class=\"related\">도박 예방교육 자료의 용어 목록입니다.</aside>"
+                },
+                "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+                "max_tokens": 192,
+                "temperature": 0,
+                "seed": 42,
+                "thinking": false,
+                "cache_prompt": true,
+                "request_count": 1,
+                "model_input": {
+                  "candidate_id": "c3dd07fa5c187d76d20dacc1:c3dd07fa5c187d76d20dacc1:dom-1:0",
+                  "source_units": [
+                    {
+                      "id": "h0001",
+                      "source_field": "html",
+                      "text": "<p id=\"target\">카지노 바카라</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0001",
+                      "source_field": "context",
+                      "text": "<p id=\"target\">카지노 바카라</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0002",
+                      "source_field": "context",
+                      "text": "\n",
+                      "selectable": false
+                    },
+                    {
+                      "id": "c0003",
+                      "source_field": "context",
+                      "text": "<aside class=\"related\">",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0004",
+                      "source_field": "context",
+                      "text": "도박 예방교육 자료의 용어 목록입니다.",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0005",
+                      "source_field": "context",
+                      "text": "</aside>",
+                      "selectable": false
+                    }
+                  ]
+                },
+                "preflight_prompt_tokens": 1290,
+                "inference_seconds": 10.417648458998883,
+                "raw_response": {
+                  "choices": [
+                    {
+                      "finish_reason": "stop",
+                      "index": 0,
+                      "message": {
+                        "role": "assistant",
+                        "content": "{\n  \"verdict\": \"clean\",\n  \"evidence_id\": \"c0004\"\n}"
+                      }
+                    }
+                  ],
+                  "created": 1792317663,
+                  "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+                  "system_fingerprint": "b11429-d81235049",
+                  "object": "chat.completion",
+                  "usage": {
+                    "completion_tokens": 32,
+                    "prompt_tokens": 1291,
+                    "total_tokens": 1323,
+                    "prompt_tokens_details": {
+                      "cached_tokens": 0
+                    }
+                  },
+                  "id": "chatcmpl-12g8cRu2qKjQJgSAG2au3ofFEfJLuims",
+                  "timings": {
+                    "cache_n": 0,
+                    "prompt_n": 1291,
+                    "prompt_ms": 9526.608,
+                    "prompt_per_token_ms": 7.379247095274981,
+                    "prompt_per_second": 135.51518021944432,
+                    "predicted_n": 32,
+                    "predicted_ms": 876.368,
+                    "predicted_per_token_ms": 28.26993548387097,
+                    "predicted_per_second": 35.37326785094846
+                  }
+                },
+                "model_output": {
+                  "verdict": "clean",
+                  "evidence_id": "c0004"
+                },
+                "parsed": {
+                  "verdict": "clean",
+                  "model_verdict": "clean",
+                  "evidence": "도박 예방교육 자료의 용어 목록입니다.",
+                  "evidence_id": "c0004",
+                  "source_field": "context",
+                  "start_char": 50,
+                  "end_char": 71,
+                  "source_sha256": "c95424929ad94beeccc00312dc7fdd28326b9dd5d5e5d8873ce5b6895b4dfcbd",
+                  "owner_id": "c3dd07fa5c187d76d20dacc1:c3dd07fa5c187d76d20dacc1:dom-1:0",
+                  "evidence_scope": "source_unit_selection"
+                },
+                "validation": {
+                  "errors": [],
+                  "accepted": [],
+                  "rejected_count": 0
+                },
+                "status": "ok",
+                "wall_seconds": 10.446269291001954
+              },
+              "evidence_id": "c0004",
+              "source_field": "context",
+              "start_char": 50,
+              "end_char": 71,
+              "source_sha256": "c95424929ad94beeccc00312dc7fdd28326b9dd5d5e5d8873ce5b6895b4dfcbd",
+              "evidence_scope": "source_unit_selection",
+              "owner_id": "c3dd07fa5c187d76d20dacc1:c3dd07fa5c187d76d20dacc1:dom-1:0"
+            }
+          ]
+        }
+      },
+      {
+        "url": "http://127.0.0.1:55911/S07.html",
+        "location": "p:nth-of-type(1)",
+        "technique": "POSTED",
+        "evidence_text": "카지노 바카라",
+        "signals": [
+          "keyword:카지노,바카라",
+          "page-context"
+        ],
+        "source_id": "2b79e7c0da0075fec772f200:2b79e7c0da0075fec772f200:dom-1",
+        "source_html": "<p id=\"target\">카지노 바카라</p>",
+        "source_context": "<p id=\"target\">카지노 바카라</p>\n<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+        "source_near_text": "카지노 바카라\n제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+        "raw": "카지노 바카라",
+        "href": null,
+        "tag": "p",
+        "cls": "",
+        "source_sha256": "6b97cfb4674c3e416ce67e3a1c61a3b65e44b529afb1bb3a1bb07c1df5ef3458",
+        "context": [
+          [
+            "page-context",
+            -4
+          ]
+        ],
+        "normalized": "카지노 바카라",
+        "score_detail": [
+          [
+            "카지노",
+            3
+          ],
+          [
+            "바카라",
+            3
+          ],
+          [
+            "page-context",
+            -4
+          ]
+        ],
+        "score": 2,
+        "hits": [
+          "카지노",
+          "바카라",
+          "-page-context"
+        ],
+        "verdict": "clean",
+        "decided_by": "gemma",
+        "processing_status": "completed",
+        "reason": "Gemma v15 원문 결합 검증 완료",
+        "gemma": {
+          "task": "verify",
+          "version": "v15",
+          "status": "ok",
+          "results": [
+            {
+              "candidate_id": "2b79e7c0da0075fec772f200:2b79e7c0da0075fec772f200:dom-1:1",
+              "status": "ok",
+              "verdict": "clean",
+              "evidence": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "needs_review": false,
+              "call": {
+                "task": "verify",
+                "version": "v15",
+                "input": {
+                  "candidate_id": "2b79e7c0da0075fec772f200:2b79e7c0da0075fec772f200:dom-1:1",
+                  "html": "<p id=\"target\">카지노 바카라</p>",
+                  "context": "<p id=\"target\">카지노 바카라</p>\n<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>"
+                },
+                "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+                "max_tokens": 192,
+                "temperature": 0,
+                "seed": 42,
+                "thinking": false,
+                "cache_prompt": true,
+                "request_count": 1,
+                "model_input": {
+                  "candidate_id": "2b79e7c0da0075fec772f200:2b79e7c0da0075fec772f200:dom-1:1",
+                  "source_units": [
+                    {
+                      "id": "h0001",
+                      "source_field": "html",
+                      "text": "<p id=\"target\">카지노 바카라</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0001",
+                      "source_field": "context",
+                      "text": "<p id=\"target\">카지노 바카라</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0002",
+                      "source_field": "context",
+                      "text": "\n",
+                      "selectable": false
+                    },
+                    {
+                      "id": "c0003",
+                      "source_field": "context",
+                      "text": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    }
+                  ]
+                },
+                "preflight_prompt_tokens": 1245,
+                "inference_seconds": 2.57946812499722,
+                "raw_response": {
+                  "choices": [
+                    {
+                      "finish_reason": "stop",
+                      "index": 0,
+                      "message": {
+                        "role": "assistant",
+                        "content": "{\"verdict\": \"clean\", \"evidence_id\": \"c0003\"}"
+                      }
+                    }
+                  ],
+                  "created": 1792317665,
+                  "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+                  "system_fingerprint": "b11429-d81235049",
+                  "object": "chat.completion",
+                  "usage": {
+                    "completion_tokens": 25,
+                    "prompt_tokens": 1246,
+                    "total_tokens": 1271,
+                    "prompt_tokens_details": {
+                      "cached_tokens": 1011
+                    }
+                  },
+                  "id": "chatcmpl-RJ8tnS9q8NSmDTrjHnnFi4vVP577chxm",
+                  "timings": {
+                    "cache_n": 1011,
+                    "prompt_n": 235,
+                    "prompt_ms": 1912.249,
+                    "prompt_per_token_ms": 8.137229787234043,
+                    "prompt_per_second": 122.89194555729928,
+                    "predicted_n": 25,
+                    "predicted_ms": 655.859,
+                    "predicted_per_token_ms": 27.327458333333336,
+                    "predicted_per_second": 36.59323116706487
+                  }
+                },
+                "model_output": {
+                  "verdict": "clean",
+                  "evidence_id": "c0003"
+                },
+                "parsed": {
+                  "verdict": "clean",
+                  "model_verdict": "clean",
+                  "evidence": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "evidence_id": "c0003",
+                  "source_field": "context",
+                  "start_char": 27,
+                  "end_char": 71,
+                  "source_sha256": "6b97cfb4674c3e416ce67e3a1c61a3b65e44b529afb1bb3a1bb07c1df5ef3458",
+                  "owner_id": "2b79e7c0da0075fec772f200:2b79e7c0da0075fec772f200:dom-1:1",
+                  "evidence_scope": "source_unit_selection"
+                },
+                "validation": {
+                  "errors": [],
+                  "accepted": [],
+                  "rejected_count": 0
+                },
+                "status": "ok",
+                "wall_seconds": 2.6025007079879288
+              },
+              "evidence_id": "c0003",
+              "source_field": "context",
+              "start_char": 27,
+              "end_char": 71,
+              "source_sha256": "6b97cfb4674c3e416ce67e3a1c61a3b65e44b529afb1bb3a1bb07c1df5ef3458",
+              "evidence_scope": "source_unit_selection",
+              "owner_id": "2b79e7c0da0075fec772f200:2b79e7c0da0075fec772f200:dom-1:1"
+            }
+          ]
+        }
+      }
+    ],
+    "model": "laya-model-smoke",
+    "repeats_collapsed": 0,
+    "duplicates": []
+  },
+  "result": {
+    "meta": {
+      "topic": "불법광고",
+      "entry_url": "http://127.0.0.1:55911/S06.html",
+      "started_at": "2026-10-18T19:00:33+09:00",
+      "finished_at": "2026-10-18T19:01:05+09:00",
+      "elapsed_sec": 32.8,
+      "tool_version": "0.1.0-proto"
+    },
+    "findings": []
+  },
+  "observations": {
+    "events": [
+      {
+        "event": "phase",
+        "phase": "crawl",
+        "at": "2026-10-18T10:00:33.020874+00:00"
+      },
+      {
+        "event": "phase",
+        "phase": "judge",
+        "at": "2026-10-18T10:00:35.451209+00:00"
+      },
+      {
+        "event": "laya_object_created",
+        "at": "2026-10-18T10:00:50.107248+00:00"
+      },
+      {
+        "event": "gemma_server_enter",
+        "at": "2026-10-18T10:00:50.575338+00:00",
+        "laya_objects_alive": 0,
+        "torch_threads": 2
+      },
+      {
+        "event": "gemma_server_ready",
+        "at": "2026-10-18T10:00:52.644813+00:00",
+        "threads": 2,
+        "startup_seconds": 2.0688417089986615
+      },
+      {
+        "event": "gemma_server_exit",
+        "at": "2026-10-18T10:01:05.824940+00:00",
+        "returncode": 0,
+        "key_removed": true
+      },
+      {
+        "event": "phase",
+        "phase": "save",
+        "at": "2026-10-18T10:01:05.825060+00:00"
+      }
+    ],
+    "laya_calls": [
+      {
+        "started_at": "2026-10-18T10:00:50.110147+00:00",
+        "finished_at": "2026-10-18T10:00:50.471285+00:00",
+        "seconds": 0.36114429200824816,
+        "states": [
+          "도박 예방교육",
+          "도박 예방교육 자료의 용어 목록입니다.",
+          "예방 교육 본문의 인용 용어입니다.",
+          "자료",
+          "제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+          "제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+          "제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+          "제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+          "제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+          "제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+          "제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+          "제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다."
+        ],
+        "questions": {
+          "is_illegal_ad": {
+            "type": "noul",
+            "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"
+          }
+        },
+        "batch_size": 16,
+        "outputs": [
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.0641,
+                "confidence": 0.9359,
+                "answer_confidence": 0.9359,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 62,
+              "output_tokens": 0,
+              "state_tokens": 6,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.0476,
+                "confidence": 0.9524,
+                "answer_confidence": 0.9524,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 69,
+              "output_tokens": 0,
+              "state_tokens": 13,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.056,
+                "confidence": 0.944,
+                "answer_confidence": 0.944,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 68,
+              "output_tokens": 0,
+              "state_tokens": 12,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.0496,
+                "confidence": 0.9504,
+                "answer_confidence": 0.9504,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 57,
+              "output_tokens": 0,
+              "state_tokens": 1,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.0442,
+                "confidence": 0.9558,
+                "answer_confidence": 0.9558,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 78,
+              "output_tokens": 0,
+              "state_tokens": 22,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.0427,
+                "confidence": 0.9573,
+                "answer_confidence": 0.9573,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 78,
+              "output_tokens": 0,
+              "state_tokens": 22,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.0441,
+                "confidence": 0.9559,
+                "answer_confidence": 0.9559,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 78,
+              "output_tokens": 0,
+              "state_tokens": 22,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.0439,
+                "confidence": 0.9561,
+                "answer_confidence": 0.9561,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 78,
+              "output_tokens": 0,
+              "state_tokens": 22,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.0436,
+                "confidence": 0.9564,
+                "answer_confidence": 0.9564,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 78,
+              "output_tokens": 0,
+              "state_tokens": 22,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.0423,
+                "confidence": 0.9577,
+                "answer_confidence": 0.9577,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 78,
+              "output_tokens": 0,
+              "state_tokens": 22,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.0432,
+                "confidence": 0.9568,
+                "answer_confidence": 0.9568,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 78,
+              "output_tokens": 0,
+              "state_tokens": 22,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          },
+          {
+            "model": "laya-rl-agent",
+            "answers": {
+              "is_illegal_ad": {
+                "type": "noul",
+                "noul": 0.0434,
+                "confidence": 0.9566,
+                "answer_confidence": 0.9566,
+                "action": {
+                  "act_probability": 1.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 78,
+              "output_tokens": 0,
+              "state_tokens": 22,
+              "state_tokens_dropped": 0,
+              "truncated": false,
+              "truncated_questions": []
+            }
+          }
+        ]
+      }
+    ],
+    "fixture_requests": [
+      {
+        "at": "2026-10-18T10:00:33.032412+00:00",
+        "path": "/sitemap.xml"
+      },
+      {
+        "at": "2026-10-18T10:00:33.663851+00:00",
+        "path": "/S06.html"
+      },
+      {
+        "at": "2026-10-18T10:00:34.571873+00:00",
+        "path": "/S07.html"
+      }
+    ],
+    "browser_requests": [
+      {
+        "url": "http://127.0.0.1:55911/S06.html",
+        "resource_type": "document"
+      },
+      {
+        "url": "http://127.0.0.1:55911/S06.html",
+        "resource_type": "document"
+      },
+      {
+        "url": "http://127.0.0.1:55911/S07.html",
+        "resource_type": "document"
+      },
+      {
+        "url": "http://127.0.0.1:55911/S07.html",
+        "resource_type": "document"
+      }
+    ],
+    "max_observed_servers": 1,
+    "server_processes_absent": true,
+    "laya_objects_alive_after": 0,
+    "remaining_children": []
+  },
+  "launcher": {
+    "started_at": "2026-10-18T10:00:31.026925+00:00",
+    "finished_at": "2026-10-18T10:01:06.674180+00:00",
+    "worker_exit_code": 0,
+    "watchdog_timeout": false,
+    "forced_child_cleanup": [],
+    "worker_absent": true,
+    "tracked_children_absent": true
+  }
+}

@@ -1,0 +1,2881 @@
+{
+  "summary": {
+    "status": "observer_induced_import_failure",
+    "visited_pages": 2,
+    "targets": [
+      {
+        "id": "S06",
+        "gold": "clean",
+        "initial_score": 2,
+        "observed_context_signal": [
+          [
+            "page-context",
+            -4
+          ]
+        ],
+        "laya_bypassed": true,
+        "verdict": "clean",
+        "decided_by": "gemma",
+        "source_html_matches_frozen": true,
+        "source_context_matches_frozen": false,
+        "source_sha256": "c95424929ad94beeccc00312dc7fdd28326b9dd5d5e5d8873ce5b6895b4dfcbd",
+        "binding_verified": true,
+        "evidence": "도박 예방교육 자료의 용어 목록입니다.",
+        "evidence_id": "c0004",
+        "source_field": "context",
+        "start_char": 50,
+        "end_char": 71
+      },
+      {
+        "id": "S07",
+        "gold": "clean",
+        "initial_score": 2,
+        "observed_context_signal": [
+          [
+            "page-context",
+            -4
+          ]
+        ],
+        "laya_bypassed": true,
+        "verdict": "clean",
+        "decided_by": "gemma",
+        "source_html_matches_frozen": true,
+        "source_context_matches_frozen": false,
+        "source_sha256": "6b97cfb4674c3e416ce67e3a1c61a3b65e44b529afb1bb3a1bb07c1df5ef3458",
+        "binding_verified": true,
+        "evidence": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+        "evidence_id": "c0003",
+        "source_field": "context",
+        "start_char": 27,
+        "end_char": 71
+      }
+    ],
+    "laya_inputs": 0,
+    "observed_laya_batches": 0,
+    "residual_screened_clean": 0,
+    "gemma_target_verify": 2,
+    "gemma_residual_extract": 12,
+    "gemma_actual_inference_requests": 14,
+    "gemma_prompt_tokens": 18391,
+    "gemma_completion_tokens": 434,
+    "ai_failure_records": 12,
+    "needs_review": false,
+    "result_findings": 0,
+    "elapsed_seconds": 57.51,
+    "max_observed_gemma_servers": 1,
+    "gemma_entry_laya_objects_alive": [
+      0
+    ],
+    "no_remaining_processes": true,
+    "production_source_changed_during_run": [],
+    "shared_laya_bundle_unchanged": true,
+    "all_browser_requests_loopback": true
+  },
+  "metadata": {
+    "started_at": "2026-10-18T09:57:58.691557+00:00",
+    "git_head": "e6cd33168c7544019c603af05c789c6d4bed2183",
+    "source_identity": "working tree source hashes; production additions are not all committed",
+    "source_hashes": {
+      "detector/ai.py": "776f39c1b049a3afc6b00a7aa734f02d1b1f00e3716ca3a65d2507bbd7dde15b",
+      "detector/adscore.py": "dceafe9eba53d3b6a40629ac3c0f750ee4e9ffd37368e83801b0a79a34d6d038",
+      "detector/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "detector/textnorm.py": "640631eb84dd6976d7e8725dd9a1a46645c7079e08d3960fa500ab740d0a52dd",
+      "detector/main.py": "495ba47e1c2616673a1d9db459ad7d36f9cf466fe3bc3a5ddf0feb27722346c3",
+      "detector/frontier.py": "ecca83add6ac14f4a6d2a141480b92d9f295d7656bab99fc8e5c2f64475e5e46",
+      "local_llm/client.py": "f33731ed5ac0e134a4715b5992e5857a8f45288372cd7f6622dbbf279a6b71b0",
+      "local_llm/__init__.py": "81b7619d7c0af2d514a40f48bcc0cc216f720a609b4c3caacee51bdfb29d9738",
+      "local_llm/prompts.py": "4bcc06f6edcc2c9ff0c141e580b942a4f0f5e0e48bfeec1987ade49d17400016",
+      "local_llm/engine.py": "f6752b85e84036a76aff6e25908d939dac450d55369cb89ffb9fceb731817779",
+      "local_llm/prototype.py": "9ca4ed3e7d69a5c202b8143e6d73cf021a1af8447d2f175850dc276c963817b9",
+      "detector/extract.js": "742097e1f31510900d278015cf4428e334610ddf55d32de313c07b521a6bc67f",
+      "app_paths.py": "614f6290c844826b1fa44ef062e160462cd59b3710508c16d1285e0deda95c2d",
+      "training/make_dataset.py": "1a5ef091654dcb356a0f05a58ccc3af5ab16e99ac8a097c86316d2eda9b6edbb"
+    },
+    "laya_model_hashes": {
+      "model.safetensors": "391f38be190d50faf86efb62f6ba026697a1166a5af490bb7c72fc5aa626e14b",
+      "questions.json": "c524e1f65e82e77404f6ec567d2ad6ae92925f95ee020cb3718c7c219234932a",
+      "train_report.json": "45d38e007fcb75d665883cda0dbc11aff82b988708efc08b086928dae3b79807",
+      "rl_agent_config.json": "715cf2aa4fc32bf2ac83968cb7d96af25c2642676e5db8cc59fa5069f9371d3e",
+      "encoder/config.json": "3ceae14d210557b47abcde2768b27afbb2131974f9c4dd714f2236fd9ee54981",
+      "tokenizer/tokenizer_config.json": "5f36fa307ecb9e70c9b058ca0621530f6bd3e89b371c4d6c0279c48d9dbd2629",
+      "tokenizer/tokenizer.json": "dbba919c6e5e492bc22beb80abb64e6fcc7e8744dc696e8388b8c977767afa4b"
+    },
+    "gemma_model_sha256": "fa401b55b07ee70a54c6dae3903c783a6e65064312529ea57175cb5f8dec6634",
+    "llama_server_sha256": "1bf5602a2be50097c44282a6ecc63234d94ee8f96d39fd45fed6eff4e74b6b41",
+    "versions": {
+      "laya": "0.4.2",
+      "torch": "2.5.1",
+      "transformers": "4.57.6",
+      "playwright": "1.64.0"
+    },
+    "module_import": "from detector.main import run",
+    "torch_threads": 2,
+    "torch_interop_threads": 1,
+    "configuration": {
+      "time_budget": 120,
+      "llm_reserve": 30,
+      "concurrency": 1,
+      "max_pages": 0,
+      "timeout": 15000,
+      "use_ml": true,
+      "laya_confidence_threshold": 0.8
+    },
+    "profile_observation": "sys.setprofile call/return observation only; no model or production function replaced",
+    "original_cases_sha256": "e80027c1a3d61c0444addfca81ba70b3c023d970040f66cc0ea8f55079c209d0",
+    "replay_cases_sha256": "515532f25ee2682d147d6c8fa49417069e392507d5ffd516030b6155473f86a7",
+    "entry_url": "http://127.0.0.1:55774/S06.html",
+    "finished_at": "2026-10-18T09:58:58.306319+00:00",
+    "status": "ok",
+    "source_hashes_after": {
+      "detector/ai.py": "776f39c1b049a3afc6b00a7aa734f02d1b1f00e3716ca3a65d2507bbd7dde15b",
+      "detector/adscore.py": "dceafe9eba53d3b6a40629ac3c0f750ee4e9ffd37368e83801b0a79a34d6d038",
+      "detector/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "detector/textnorm.py": "640631eb84dd6976d7e8725dd9a1a46645c7079e08d3960fa500ab740d0a52dd",
+      "detector/main.py": "495ba47e1c2616673a1d9db459ad7d36f9cf466fe3bc3a5ddf0feb27722346c3",
+      "detector/frontier.py": "ecca83add6ac14f4a6d2a141480b92d9f295d7656bab99fc8e5c2f64475e5e46",
+      "local_llm/client.py": "f33731ed5ac0e134a4715b5992e5857a8f45288372cd7f6622dbbf279a6b71b0",
+      "local_llm/__init__.py": "81b7619d7c0af2d514a40f48bcc0cc216f720a609b4c3caacee51bdfb29d9738",
+      "local_llm/prompts.py": "4bcc06f6edcc2c9ff0c141e580b942a4f0f5e0e48bfeec1987ade49d17400016",
+      "local_llm/engine.py": "f6752b85e84036a76aff6e25908d939dac450d55369cb89ffb9fceb731817779",
+      "local_llm/prototype.py": "9ca4ed3e7d69a5c202b8143e6d73cf021a1af8447d2f175850dc276c963817b9",
+      "detector/extract.js": "742097e1f31510900d278015cf4428e334610ddf55d32de313c07b521a6bc67f",
+      "app_paths.py": "614f6290c844826b1fa44ef062e160462cd59b3710508c16d1285e0deda95c2d",
+      "training/make_dataset.py": "1a5ef091654dcb356a0f05a58ccc3af5ab16e99ac8a097c86316d2eda9b6edbb"
+    },
+    "laya_model_hashes_after": {
+      "model.safetensors": "391f38be190d50faf86efb62f6ba026697a1166a5af490bb7c72fc5aa626e14b",
+      "questions.json": "c524e1f65e82e77404f6ec567d2ad6ae92925f95ee020cb3718c7c219234932a",
+      "train_report.json": "45d38e007fcb75d665883cda0dbc11aff82b988708efc08b086928dae3b79807",
+      "rl_agent_config.json": "715cf2aa4fc32bf2ac83968cb7d96af25c2642676e5db8cc59fa5069f9371d3e",
+      "encoder/config.json": "3ceae14d210557b47abcde2768b27afbb2131974f9c4dd714f2236fd9ee54981",
+      "tokenizer/tokenizer_config.json": "5f36fa307ecb9e70c9b058ca0621530f6bd3e89b371c4d6c0279c48d9dbd2629",
+      "tokenizer/tokenizer.json": "dbba919c6e5e492bc22beb80abb64e6fcc7e8744dc696e8388b8c977767afa4b"
+    }
+  },
+  "initial_rule_candidates": [
+    {
+      "url": "http://127.0.0.1:55774/S06.html",
+      "location": "p",
+      "technique": "POSTED",
+      "evidence_text": "카지노 바카라",
+      "signals": [
+        "keyword:카지노,바카라",
+        "page-context"
+      ],
+      "source_id": "be98eee507490c720c615d28:be98eee507490c720c615d28:dom-1",
+      "source_html": "<p id=\"target\">카지노 바카라</p>",
+      "source_context": "<p id=\"target\">카지노 바카라</p>\n<aside class=\"related\">도박 예방교육 자료의 용어 목록입니다.</aside>",
+      "source_near_text": "카지노 바카라\n도박 예방교육 자료의 용어 목록입니다.",
+      "raw": "카지노 바카라",
+      "href": null,
+      "tag": "p",
+      "cls": "",
+      "source_sha256": "c95424929ad94beeccc00312dc7fdd28326b9dd5d5e5d8873ce5b6895b4dfcbd",
+      "context": [
+        [
+          "page-context",
+          -4
+        ]
+      ],
+      "normalized": "카지노 바카라",
+      "score_detail": [
+        [
+          "카지노",
+          3
+        ],
+        [
+          "바카라",
+          3
+        ],
+        [
+          "page-context",
+          -4
+        ]
+      ],
+      "score": 2,
+      "hits": [
+        "카지노",
+        "바카라",
+        "-page-context"
+      ],
+      "verdict": "borderline",
+      "decided_by": "rules"
+    },
+    {
+      "url": "http://127.0.0.1:55774/S07.html",
+      "location": "p:nth-of-type(1)",
+      "technique": "POSTED",
+      "evidence_text": "카지노 바카라",
+      "signals": [
+        "keyword:카지노,바카라",
+        "page-context"
+      ],
+      "source_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-1",
+      "source_html": "<p id=\"target\">카지노 바카라</p>",
+      "source_context": "<p id=\"target\">카지노 바카라</p>\n<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+      "source_near_text": "카지노 바카라\n제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+      "raw": "카지노 바카라",
+      "href": null,
+      "tag": "p",
+      "cls": "",
+      "source_sha256": "6b97cfb4674c3e416ce67e3a1c61a3b65e44b529afb1bb3a1bb07c1df5ef3458",
+      "context": [
+        [
+          "page-context",
+          -4
+        ]
+      ],
+      "normalized": "카지노 바카라",
+      "score_detail": [
+        [
+          "카지노",
+          3
+        ],
+        [
+          "바카라",
+          3
+        ],
+        [
+          "page-context",
+          -4
+        ]
+      ],
+      "score": 2,
+      "hits": [
+        "카지노",
+        "바카라",
+        "-page-context"
+      ],
+      "verdict": "borderline",
+      "decided_by": "rules"
+    }
+  ],
+  "report": {
+    "needs_review": false,
+    "crawl_incomplete": false,
+    "coverage": {
+      "visited_pages": 2,
+      "failed_frames": 0,
+      "pending_pages": 0,
+      "failed_pages": 0,
+      "http_error_pages": 0,
+      "stopped_by_time": false,
+      "discovered_pages": 2
+    },
+    "failed_frames": [],
+    "unresolved_count": 0,
+    "ai": {
+      "mode": "policy",
+      "laya_confidence_threshold": 0.8,
+      "laya_inputs": 0,
+      "gemma_verify": 2,
+      "gemma_extract": 12,
+      "residual_screened_clean": 0,
+      "unresolved_sources": [],
+      "failures": [
+        {
+          "source_id": "be98eee507490c720c615d28:be98eee507490c720c615d28:dom-2",
+          "stage": "laya",
+          "reason": "cannot access free variable 'w' where it is not associated with a value in enclosing scope"
+        },
+        {
+          "source_id": "be98eee507490c720c615d28:be98eee507490c720c615d28:dom-3",
+          "stage": "laya",
+          "reason": "cannot access free variable 'w' where it is not associated with a value in enclosing scope"
+        },
+        {
+          "source_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-2",
+          "stage": "laya",
+          "reason": "cannot access free variable 'w' where it is not associated with a value in enclosing scope"
+        },
+        {
+          "source_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-3",
+          "stage": "laya",
+          "reason": "cannot access free variable 'w' where it is not associated with a value in enclosing scope"
+        },
+        {
+          "source_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-4",
+          "stage": "laya",
+          "reason": "cannot access free variable 'w' where it is not associated with a value in enclosing scope"
+        },
+        {
+          "source_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-5",
+          "stage": "laya",
+          "reason": "cannot access free variable 'w' where it is not associated with a value in enclosing scope"
+        },
+        {
+          "source_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-6",
+          "stage": "laya",
+          "reason": "cannot access free variable 'w' where it is not associated with a value in enclosing scope"
+        },
+        {
+          "source_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-7",
+          "stage": "laya",
+          "reason": "cannot access free variable 'w' where it is not associated with a value in enclosing scope"
+        },
+        {
+          "source_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-8",
+          "stage": "laya",
+          "reason": "cannot access free variable 'w' where it is not associated with a value in enclosing scope"
+        },
+        {
+          "source_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-9",
+          "stage": "laya",
+          "reason": "cannot access free variable 'w' where it is not associated with a value in enclosing scope"
+        },
+        {
+          "source_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-10",
+          "stage": "laya",
+          "reason": "cannot access free variable 'w' where it is not associated with a value in enclosing scope"
+        },
+        {
+          "source_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-11",
+          "stage": "laya",
+          "reason": "cannot access free variable 'w' where it is not associated with a value in enclosing scope"
+        }
+      ],
+      "source_results": [
+        {
+          "source_id": "be98eee507490c720c615d28:be98eee507490c720c615d28:dom-2",
+          "verdict": "clean",
+          "decided_by": "gemma",
+          "binding": {
+            "verdict": "clean",
+            "model_verdict": "clean",
+            "evidence": "도박 예방교육 자료의 용어 목록입니다.",
+            "evidence_id": "h0002",
+            "source_field": "html",
+            "start_char": 23,
+            "end_char": 44,
+            "source_sha256": "047494ae09d529eac4656ff4e860714d0106d2f24ac19bf2f49b5686a556c134",
+            "owner_id": "be98eee507490c720c615d28:be98eee507490c720c615d28:dom-2",
+            "evidence_scope": "source_unit_selection"
+          }
+        },
+        {
+          "source_id": "be98eee507490c720c615d28:be98eee507490c720c615d28:dom-3",
+          "verdict": "clean",
+          "decided_by": "gemma",
+          "binding": {
+            "verdict": "clean",
+            "model_verdict": "clean",
+            "evidence": "<title>도박 예방교육</title>",
+            "evidence_id": "h0001",
+            "source_field": "html",
+            "start_char": 0,
+            "end_char": 22,
+            "source_sha256": "11c5f4e1e0371517f9cae0b3871480f2e468fd20b30e133a2ff0ac8886784dbe",
+            "owner_id": "be98eee507490c720c615d28:be98eee507490c720c615d28:dom-3",
+            "evidence_scope": "source_unit_selection"
+          }
+        },
+        {
+          "source_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-2",
+          "verdict": "clean",
+          "decided_by": "gemma",
+          "binding": {
+            "verdict": "clean",
+            "model_verdict": "clean",
+            "evidence": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+            "evidence_id": "h0001",
+            "source_field": "html",
+            "start_char": 0,
+            "end_char": 44,
+            "source_sha256": "64d9cebbaae74e3fc168d657e60e8bb05fb6f73de9952f8cfbde17376f4ebd45",
+            "owner_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-2",
+            "evidence_scope": "source_unit_selection"
+          }
+        },
+        {
+          "source_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-3",
+          "verdict": "clean",
+          "decided_by": "gemma",
+          "binding": {
+            "verdict": "clean",
+            "model_verdict": "clean",
+            "evidence": "<p>제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+            "evidence_id": "h0001",
+            "source_field": "html",
+            "start_char": 0,
+            "end_char": 44,
+            "source_sha256": "54fcbc6afe096e3d67c049dcdf657c5f8f4ebdb595e4a27dfc6abe6e68fed667",
+            "owner_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-3",
+            "evidence_scope": "source_unit_selection"
+          }
+        },
+        {
+          "source_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-4",
+          "verdict": "clean",
+          "decided_by": "gemma",
+          "binding": {
+            "verdict": "clean",
+            "model_verdict": "clean",
+            "evidence": "<p>제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+            "evidence_id": "h0001",
+            "source_field": "html",
+            "start_char": 0,
+            "end_char": 44,
+            "source_sha256": "9468973c23feefb4c3722d7d805641721b48e0b5537714e672e23a17f0102d69",
+            "owner_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-4",
+            "evidence_scope": "source_unit_selection"
+          }
+        },
+        {
+          "source_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-5",
+          "verdict": "clean",
+          "decided_by": "gemma",
+          "binding": {
+            "verdict": "clean",
+            "model_verdict": "clean",
+            "evidence": "<p>제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+            "evidence_id": "h0001",
+            "source_field": "html",
+            "start_char": 0,
+            "end_char": 44,
+            "source_sha256": "d9d0ad0533d88f6cd8955215342b08177b7d3b70057e340e719141c0ed52eef0",
+            "owner_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-5",
+            "evidence_scope": "source_unit_selection"
+          }
+        },
+        {
+          "source_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-6",
+          "verdict": "clean",
+          "decided_by": "gemma",
+          "binding": {
+            "verdict": "clean",
+            "model_verdict": "clean",
+            "evidence": "<p>제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+            "evidence_id": "h0001",
+            "source_field": "html",
+            "start_char": 0,
+            "end_char": 44,
+            "source_sha256": "75ea237f170af25bdecd84e02278e8d2a8d7d5b71b2b5d837d4e15aa1f76313c",
+            "owner_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-6",
+            "evidence_scope": "source_unit_selection"
+          }
+        },
+        {
+          "source_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-7",
+          "verdict": "clean",
+          "decided_by": "gemma",
+          "binding": {
+            "verdict": "clean",
+            "model_verdict": "clean",
+            "evidence": "<p>제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+            "evidence_id": "h0001",
+            "source_field": "html",
+            "start_char": 0,
+            "end_char": 44,
+            "source_sha256": "95e52fa51a5512c33a6787d21aa2ffc22e5cd2cf73bbaa6d3277dc4b36b4ffe9",
+            "owner_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-7",
+            "evidence_scope": "source_unit_selection"
+          }
+        },
+        {
+          "source_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-8",
+          "verdict": "clean",
+          "decided_by": "gemma",
+          "binding": {
+            "verdict": "clean",
+            "model_verdict": "clean",
+            "evidence": "<p>제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+            "evidence_id": "h0001",
+            "source_field": "html",
+            "start_char": 0,
+            "end_char": 44,
+            "source_sha256": "f0b21bdedd76b9fcb4e1bcf67da0249ea04796df06f1495bc717dcf0046de9a1",
+            "owner_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-8",
+            "evidence_scope": "source_unit_selection"
+          }
+        },
+        {
+          "source_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-9",
+          "verdict": "clean",
+          "decided_by": "gemma",
+          "binding": {
+            "verdict": "clean",
+            "model_verdict": "clean",
+            "evidence": "<p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+            "evidence_id": "h0001",
+            "source_field": "html",
+            "start_char": 0,
+            "end_char": 44,
+            "source_sha256": "6deeb0635912c00077b3bee06bc81308049509abb94977445eeefec1ffb227d5",
+            "owner_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-9",
+            "evidence_scope": "source_unit_selection"
+          }
+        },
+        {
+          "source_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-10",
+          "verdict": "clean",
+          "decided_by": "gemma",
+          "binding": {
+            "verdict": "clean",
+            "model_verdict": "clean",
+            "evidence": "<p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+            "evidence_id": "c0001",
+            "source_field": "context",
+            "start_char": 0,
+            "end_char": 44,
+            "source_sha256": "e563ea07378409af1fc8bd34d50fac914d9cd63b120be68d7aec098c79602f22",
+            "owner_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-10",
+            "evidence_scope": "source_unit_selection"
+          }
+        },
+        {
+          "source_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-11",
+          "verdict": "clean",
+          "decided_by": "gemma",
+          "binding": {
+            "verdict": "clean",
+            "model_verdict": "clean",
+            "evidence": "<title>자료</title>",
+            "evidence_id": "h0001",
+            "source_field": "html",
+            "start_char": 0,
+            "end_char": 17,
+            "source_sha256": "f13ece5a960c6ae3fca2653eb816583e4be8bbed7676a154cb7f877dc65052dd",
+            "owner_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-11",
+            "evidence_scope": "source_unit_selection"
+          }
+        }
+      ],
+      "scope": "수집된 DOM 텍스트 소유 단위; 전체 HTTP 원문 및 이미지 검사는 포함하지 않음",
+      "extraction": {
+        "task": "extract",
+        "version": "v15",
+        "status": "ok",
+        "input_block_count": 12,
+        "candidates": [],
+        "failures": [],
+        "calls": [
+          {
+            "task": "extract",
+            "version": "v15",
+            "input": {
+              "blocks": [
+                {
+                  "block_id": "be98eee507490c720c615d28:be98eee507490c720c615d28:dom-2",
+                  "html": "<aside class=\"related\">도박 예방교육 자료의 용어 목록입니다.</aside>",
+                  "context": "<p id=\"target\">카지노 바카라</p>\n<aside class=\"related\">도박 예방교육 자료의 용어 목록입니다.</aside>"
+                }
+              ]
+            },
+            "prompt_sha256": "077819aa77a74c2b0523ece92b7afcfb0919fe354a95e99d7aebebdba1bacd37",
+            "temperature": 0,
+            "seed": 42,
+            "thinking": false,
+            "cache_prompt": true,
+            "status": "ok",
+            "parsed": {
+              "candidates": []
+            },
+            "validation": {
+              "errors": [],
+              "accepted": [],
+              "rejected_count": 0
+            },
+            "unresolved_block_ids": [],
+            "failed_block_ids": [],
+            "block_calls": [
+              {
+                "task": "verify",
+                "version": "v15",
+                "input": {
+                  "candidate_id": "be98eee507490c720c615d28:be98eee507490c720c615d28:dom-2",
+                  "html": "<aside class=\"related\">도박 예방교육 자료의 용어 목록입니다.</aside>",
+                  "context": "<p id=\"target\">카지노 바카라</p>\n<aside class=\"related\">도박 예방교육 자료의 용어 목록입니다.</aside>"
+                },
+                "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+                "max_tokens": 192,
+                "temperature": 0,
+                "seed": 42,
+                "thinking": false,
+                "cache_prompt": true,
+                "request_count": 1,
+                "model_input": {
+                  "candidate_id": "be98eee507490c720c615d28:be98eee507490c720c615d28:dom-2",
+                  "source_units": [
+                    {
+                      "id": "h0001",
+                      "source_field": "html",
+                      "text": "<aside class=\"related\">",
+                      "selectable": true
+                    },
+                    {
+                      "id": "h0002",
+                      "source_field": "html",
+                      "text": "도박 예방교육 자료의 용어 목록입니다.",
+                      "selectable": true
+                    },
+                    {
+                      "id": "h0003",
+                      "source_field": "html",
+                      "text": "</aside>",
+                      "selectable": false
+                    },
+                    {
+                      "id": "c0001",
+                      "source_field": "context",
+                      "text": "<p id=\"target\">카지노 바카라</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0002",
+                      "source_field": "context",
+                      "text": "\n",
+                      "selectable": false
+                    },
+                    {
+                      "id": "c0003",
+                      "source_field": "context",
+                      "text": "<aside class=\"related\">",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0004",
+                      "source_field": "context",
+                      "text": "도박 예방교육 자료의 용어 목록입니다.",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0005",
+                      "source_field": "context",
+                      "text": "</aside>",
+                      "selectable": false
+                    }
+                  ]
+                },
+                "preflight_prompt_tokens": 1350,
+                "inference_seconds": 10.808567832995323,
+                "raw_response": {
+                  "choices": [
+                    {
+                      "finish_reason": "stop",
+                      "index": 0,
+                      "message": {
+                        "role": "assistant",
+                        "content": "{\n  \"verdict\": \"clean\",\n  \"evidence_id\": \"h0002\"\n}"
+                      }
+                    }
+                  ],
+                  "created": 1792317494,
+                  "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+                  "system_fingerprint": "b11429-d81235049",
+                  "object": "chat.completion",
+                  "usage": {
+                    "completion_tokens": 32,
+                    "prompt_tokens": 1351,
+                    "total_tokens": 1383,
+                    "prompt_tokens_details": {
+                      "cached_tokens": 0
+                    }
+                  },
+                  "id": "chatcmpl-65mrAlJwZoxpfVfatksnVLF7oZFsKbmV",
+                  "timings": {
+                    "cache_n": 0,
+                    "prompt_n": 1351,
+                    "prompt_ms": 9934.525,
+                    "prompt_per_token_ms": 7.3534603997039225,
+                    "prompt_per_second": 135.9903971251771,
+                    "predicted_n": 32,
+                    "predicted_ms": 860.078,
+                    "predicted_per_token_ms": 27.744451612903227,
+                    "predicted_per_second": 36.04324258962559
+                  }
+                },
+                "model_output": {
+                  "verdict": "clean",
+                  "evidence_id": "h0002"
+                },
+                "parsed": {
+                  "verdict": "clean",
+                  "model_verdict": "clean",
+                  "evidence": "도박 예방교육 자료의 용어 목록입니다.",
+                  "evidence_id": "h0002",
+                  "source_field": "html",
+                  "start_char": 23,
+                  "end_char": 44,
+                  "source_sha256": "047494ae09d529eac4656ff4e860714d0106d2f24ac19bf2f49b5686a556c134",
+                  "owner_id": "be98eee507490c720c615d28:be98eee507490c720c615d28:dom-2",
+                  "evidence_scope": "source_unit_selection"
+                },
+                "validation": {
+                  "errors": [],
+                  "accepted": [],
+                  "rejected_count": 0
+                },
+                "status": "ok",
+                "wall_seconds": 10.836672625009669
+              }
+            ],
+            "request_count": 1,
+            "source_bindings": {},
+            "inference_seconds": 10.808567832995323,
+            "wall_seconds": 10.83680670800095
+          },
+          {
+            "task": "extract",
+            "version": "v15",
+            "input": {
+              "blocks": [
+                {
+                  "block_id": "be98eee507490c720c615d28:be98eee507490c720c615d28:dom-3",
+                  "html": "<title>도박 예방교육</title>",
+                  "context": "<title>도박 예방교육</title>"
+                }
+              ]
+            },
+            "prompt_sha256": "077819aa77a74c2b0523ece92b7afcfb0919fe354a95e99d7aebebdba1bacd37",
+            "temperature": 0,
+            "seed": 42,
+            "thinking": false,
+            "cache_prompt": true,
+            "status": "ok",
+            "parsed": {
+              "candidates": []
+            },
+            "validation": {
+              "errors": [],
+              "accepted": [],
+              "rejected_count": 0
+            },
+            "unresolved_block_ids": [],
+            "failed_block_ids": [],
+            "block_calls": [
+              {
+                "task": "verify",
+                "version": "v15",
+                "input": {
+                  "candidate_id": "be98eee507490c720c615d28:be98eee507490c720c615d28:dom-3",
+                  "html": "<title>도박 예방교육</title>",
+                  "context": "<title>도박 예방교육</title>"
+                },
+                "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+                "max_tokens": 192,
+                "temperature": 0,
+                "seed": 42,
+                "thinking": false,
+                "cache_prompt": true,
+                "request_count": 1,
+                "model_input": {
+                  "candidate_id": "be98eee507490c720c615d28:be98eee507490c720c615d28:dom-3",
+                  "source_units": [
+                    {
+                      "id": "h0001",
+                      "source_field": "html",
+                      "text": "<title>도박 예방교육</title>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0001",
+                      "source_field": "context",
+                      "text": "<title>도박 예방교육</title>",
+                      "selectable": true
+                    }
+                  ]
+                },
+                "preflight_prompt_tokens": 1152,
+                "inference_seconds": 1.8545716670050751,
+                "raw_response": {
+                  "choices": [
+                    {
+                      "finish_reason": "stop",
+                      "index": 0,
+                      "message": {
+                        "role": "assistant",
+                        "content": "{\"verdict\": \"clean\", \"evidence_id\": \"h0001\"}"
+                      }
+                    }
+                  ],
+                  "created": 1792317496,
+                  "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+                  "system_fingerprint": "b11429-d81235049",
+                  "object": "chat.completion",
+                  "usage": {
+                    "completion_tokens": 25,
+                    "prompt_tokens": 1153,
+                    "total_tokens": 1178,
+                    "prompt_tokens_details": {
+                      "cached_tokens": 1011
+                    }
+                  },
+                  "id": "chatcmpl-55ITDv3GVUaMeMVccgOAVMomnrlbjSq2",
+                  "timings": {
+                    "cache_n": 1011,
+                    "prompt_n": 142,
+                    "prompt_ms": 1187.587,
+                    "prompt_per_token_ms": 8.363288732394366,
+                    "prompt_per_second": 119.57018727891094,
+                    "predicted_n": 25,
+                    "predicted_ms": 654.766,
+                    "predicted_per_token_ms": 27.281916666666664,
+                    "predicted_per_second": 36.65431619845869
+                  }
+                },
+                "model_output": {
+                  "verdict": "clean",
+                  "evidence_id": "h0001"
+                },
+                "parsed": {
+                  "verdict": "clean",
+                  "model_verdict": "clean",
+                  "evidence": "<title>도박 예방교육</title>",
+                  "evidence_id": "h0001",
+                  "source_field": "html",
+                  "start_char": 0,
+                  "end_char": 22,
+                  "source_sha256": "11c5f4e1e0371517f9cae0b3871480f2e468fd20b30e133a2ff0ac8886784dbe",
+                  "owner_id": "be98eee507490c720c615d28:be98eee507490c720c615d28:dom-3",
+                  "evidence_scope": "source_unit_selection"
+                },
+                "validation": {
+                  "errors": [],
+                  "accepted": [],
+                  "rejected_count": 0
+                },
+                "status": "ok",
+                "wall_seconds": 1.8769054590084124
+              }
+            ],
+            "request_count": 1,
+            "source_bindings": {},
+            "inference_seconds": 1.8545716670050751,
+            "wall_seconds": 1.8770281670003897
+          },
+          {
+            "task": "extract",
+            "version": "v15",
+            "input": {
+              "blocks": [
+                {
+                  "block_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-2",
+                  "html": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "context": "<p id=\"target\">카지노 바카라</p>\n<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>"
+                }
+              ]
+            },
+            "prompt_sha256": "077819aa77a74c2b0523ece92b7afcfb0919fe354a95e99d7aebebdba1bacd37",
+            "temperature": 0,
+            "seed": 42,
+            "thinking": false,
+            "cache_prompt": true,
+            "status": "ok",
+            "parsed": {
+              "candidates": []
+            },
+            "validation": {
+              "errors": [],
+              "accepted": [],
+              "rejected_count": 0
+            },
+            "unresolved_block_ids": [],
+            "failed_block_ids": [],
+            "block_calls": [
+              {
+                "task": "verify",
+                "version": "v15",
+                "input": {
+                  "candidate_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-2",
+                  "html": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "context": "<p id=\"target\">카지노 바카라</p>\n<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>"
+                },
+                "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+                "max_tokens": 192,
+                "temperature": 0,
+                "seed": 42,
+                "thinking": false,
+                "cache_prompt": true,
+                "request_count": 1,
+                "model_input": {
+                  "candidate_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-2",
+                  "source_units": [
+                    {
+                      "id": "h0001",
+                      "source_field": "html",
+                      "text": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0001",
+                      "source_field": "context",
+                      "text": "<p id=\"target\">카지노 바카라</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0002",
+                      "source_field": "context",
+                      "text": "\n",
+                      "selectable": false
+                    },
+                    {
+                      "id": "c0003",
+                      "source_field": "context",
+                      "text": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0004",
+                      "source_field": "context",
+                      "text": "\n",
+                      "selectable": false
+                    },
+                    {
+                      "id": "c0005",
+                      "source_field": "context",
+                      "text": "<p>제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    }
+                  ]
+                },
+                "preflight_prompt_tokens": 1337,
+                "inference_seconds": 3.5550288750091568,
+                "raw_response": {
+                  "choices": [
+                    {
+                      "finish_reason": "stop",
+                      "index": 0,
+                      "message": {
+                        "role": "assistant",
+                        "content": "{\n  \"verdict\": \"clean\",\n  \"evidence_id\": \"h0001\"\n}"
+                      }
+                    }
+                  ],
+                  "created": 1792317500,
+                  "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+                  "system_fingerprint": "b11429-d81235049",
+                  "object": "chat.completion",
+                  "usage": {
+                    "completion_tokens": 32,
+                    "prompt_tokens": 1338,
+                    "total_tokens": 1370,
+                    "prompt_tokens_details": {
+                      "cached_tokens": 1021
+                    }
+                  },
+                  "id": "chatcmpl-hLyPY2aHQnb0QtDLQIb28A5KR6BOWyiN",
+                  "timings": {
+                    "cache_n": 1021,
+                    "prompt_n": 317,
+                    "prompt_ms": 2691.818,
+                    "prompt_per_token_ms": 8.491539432176657,
+                    "prompt_per_second": 117.76427678245705,
+                    "predicted_n": 32,
+                    "predicted_ms": 845.782,
+                    "predicted_per_token_ms": 27.283290322580648,
+                    "predicted_per_second": 36.65247073122861
+                  }
+                },
+                "model_output": {
+                  "verdict": "clean",
+                  "evidence_id": "h0001"
+                },
+                "parsed": {
+                  "verdict": "clean",
+                  "model_verdict": "clean",
+                  "evidence": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "evidence_id": "h0001",
+                  "source_field": "html",
+                  "start_char": 0,
+                  "end_char": 44,
+                  "source_sha256": "64d9cebbaae74e3fc168d657e60e8bb05fb6f73de9952f8cfbde17376f4ebd45",
+                  "owner_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-2",
+                  "evidence_scope": "source_unit_selection"
+                },
+                "validation": {
+                  "errors": [],
+                  "accepted": [],
+                  "rejected_count": 0
+                },
+                "status": "ok",
+                "wall_seconds": 3.580000542002381
+              }
+            ],
+            "request_count": 1,
+            "source_bindings": {},
+            "inference_seconds": 3.5550288750091568,
+            "wall_seconds": 3.5801242500019725
+          },
+          {
+            "task": "extract",
+            "version": "v15",
+            "input": {
+              "blocks": [
+                {
+                  "block_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-3",
+                  "html": "<p>제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "context": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>"
+                }
+              ]
+            },
+            "prompt_sha256": "077819aa77a74c2b0523ece92b7afcfb0919fe354a95e99d7aebebdba1bacd37",
+            "temperature": 0,
+            "seed": 42,
+            "thinking": false,
+            "cache_prompt": true,
+            "status": "ok",
+            "parsed": {
+              "candidates": []
+            },
+            "validation": {
+              "errors": [],
+              "accepted": [],
+              "rejected_count": 0
+            },
+            "unresolved_block_ids": [],
+            "failed_block_ids": [],
+            "block_calls": [
+              {
+                "task": "verify",
+                "version": "v15",
+                "input": {
+                  "candidate_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-3",
+                  "html": "<p>제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "context": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>"
+                },
+                "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+                "max_tokens": 192,
+                "temperature": 0,
+                "seed": 42,
+                "thinking": false,
+                "cache_prompt": true,
+                "request_count": 1,
+                "model_input": {
+                  "candidate_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-3",
+                  "source_units": [
+                    {
+                      "id": "h0001",
+                      "source_field": "html",
+                      "text": "<p>제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0001",
+                      "source_field": "context",
+                      "text": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0002",
+                      "source_field": "context",
+                      "text": "\n",
+                      "selectable": false
+                    },
+                    {
+                      "id": "c0003",
+                      "source_field": "context",
+                      "text": "<p>제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0004",
+                      "source_field": "context",
+                      "text": "\n",
+                      "selectable": false
+                    },
+                    {
+                      "id": "c0005",
+                      "source_field": "context",
+                      "text": "<p>제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    }
+                  ]
+                },
+                "preflight_prompt_tokens": 1348,
+                "inference_seconds": 3.5837541249929927,
+                "raw_response": {
+                  "choices": [
+                    {
+                      "finish_reason": "stop",
+                      "index": 0,
+                      "message": {
+                        "role": "assistant",
+                        "content": "{\n  \"verdict\": \"clean\",\n  \"evidence_id\": \"h0001\"\n}"
+                      }
+                    }
+                  ],
+                  "created": 1792317503,
+                  "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+                  "system_fingerprint": "b11429-d81235049",
+                  "object": "chat.completion",
+                  "usage": {
+                    "completion_tokens": 32,
+                    "prompt_tokens": 1349,
+                    "total_tokens": 1381,
+                    "prompt_tokens_details": {
+                      "cached_tokens": 1020
+                    }
+                  },
+                  "id": "chatcmpl-OZEz0Q6WCEFhaaaeAWbiwgZAQdTeUIB4",
+                  "timings": {
+                    "cache_n": 1020,
+                    "prompt_n": 329,
+                    "prompt_ms": 2700.662,
+                    "prompt_per_token_ms": 8.208699088145895,
+                    "prompt_per_second": 121.82198290641333,
+                    "predicted_n": 32,
+                    "predicted_ms": 865.74,
+                    "predicted_per_token_ms": 27.927096774193547,
+                    "predicted_per_second": 35.807517268463975
+                  }
+                },
+                "model_output": {
+                  "verdict": "clean",
+                  "evidence_id": "h0001"
+                },
+                "parsed": {
+                  "verdict": "clean",
+                  "model_verdict": "clean",
+                  "evidence": "<p>제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "evidence_id": "h0001",
+                  "source_field": "html",
+                  "start_char": 0,
+                  "end_char": 44,
+                  "source_sha256": "54fcbc6afe096e3d67c049dcdf657c5f8f4ebdb595e4a27dfc6abe6e68fed667",
+                  "owner_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-3",
+                  "evidence_scope": "source_unit_selection"
+                },
+                "validation": {
+                  "errors": [],
+                  "accepted": [],
+                  "rejected_count": 0
+                },
+                "status": "ok",
+                "wall_seconds": 3.614847541000927
+              }
+            ],
+            "request_count": 1,
+            "source_bindings": {},
+            "inference_seconds": 3.5837541249929927,
+            "wall_seconds": 3.6149727500014706
+          },
+          {
+            "task": "extract",
+            "version": "v15",
+            "input": {
+              "blocks": [
+                {
+                  "block_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-4",
+                  "html": "<p>제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "context": "<p>제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>"
+                }
+              ]
+            },
+            "prompt_sha256": "077819aa77a74c2b0523ece92b7afcfb0919fe354a95e99d7aebebdba1bacd37",
+            "temperature": 0,
+            "seed": 42,
+            "thinking": false,
+            "cache_prompt": true,
+            "status": "ok",
+            "parsed": {
+              "candidates": []
+            },
+            "validation": {
+              "errors": [],
+              "accepted": [],
+              "rejected_count": 0
+            },
+            "unresolved_block_ids": [],
+            "failed_block_ids": [],
+            "block_calls": [
+              {
+                "task": "verify",
+                "version": "v15",
+                "input": {
+                  "candidate_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-4",
+                  "html": "<p>제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "context": "<p>제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>"
+                },
+                "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+                "max_tokens": 192,
+                "temperature": 0,
+                "seed": 42,
+                "thinking": false,
+                "cache_prompt": true,
+                "request_count": 1,
+                "model_input": {
+                  "candidate_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-4",
+                  "source_units": [
+                    {
+                      "id": "h0001",
+                      "source_field": "html",
+                      "text": "<p>제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0001",
+                      "source_field": "context",
+                      "text": "<p>제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0002",
+                      "source_field": "context",
+                      "text": "\n",
+                      "selectable": false
+                    },
+                    {
+                      "id": "c0003",
+                      "source_field": "context",
+                      "text": "<p>제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0004",
+                      "source_field": "context",
+                      "text": "\n",
+                      "selectable": false
+                    },
+                    {
+                      "id": "c0005",
+                      "source_field": "context",
+                      "text": "<p>제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    }
+                  ]
+                },
+                "preflight_prompt_tokens": 1348,
+                "inference_seconds": 3.598013417009497,
+                "raw_response": {
+                  "choices": [
+                    {
+                      "finish_reason": "stop",
+                      "index": 0,
+                      "message": {
+                        "role": "assistant",
+                        "content": "{\n  \"verdict\": \"clean\",\n  \"evidence_id\": \"h0001\"\n}"
+                      }
+                    }
+                  ],
+                  "created": 1792317507,
+                  "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+                  "system_fingerprint": "b11429-d81235049",
+                  "object": "chat.completion",
+                  "usage": {
+                    "completion_tokens": 32,
+                    "prompt_tokens": 1349,
+                    "total_tokens": 1381,
+                    "prompt_tokens_details": {
+                      "cached_tokens": 1020
+                    }
+                  },
+                  "id": "chatcmpl-ogwAyrTg1POxO9jhNqaosskxnDqZDQhC",
+                  "timings": {
+                    "cache_n": 1020,
+                    "prompt_n": 329,
+                    "prompt_ms": 2696.629,
+                    "prompt_per_token_ms": 8.196440729483282,
+                    "prompt_per_second": 122.00417632533063,
+                    "predicted_n": 32,
+                    "predicted_ms": 885.488,
+                    "predicted_per_token_ms": 28.564129032258066,
+                    "predicted_per_second": 35.00894422058797
+                  }
+                },
+                "model_output": {
+                  "verdict": "clean",
+                  "evidence_id": "h0001"
+                },
+                "parsed": {
+                  "verdict": "clean",
+                  "model_verdict": "clean",
+                  "evidence": "<p>제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "evidence_id": "h0001",
+                  "source_field": "html",
+                  "start_char": 0,
+                  "end_char": 44,
+                  "source_sha256": "9468973c23feefb4c3722d7d805641721b48e0b5537714e672e23a17f0102d69",
+                  "owner_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-4",
+                  "evidence_scope": "source_unit_selection"
+                },
+                "validation": {
+                  "errors": [],
+                  "accepted": [],
+                  "rejected_count": 0
+                },
+                "status": "ok",
+                "wall_seconds": 3.622572708001826
+              }
+            ],
+            "request_count": 1,
+            "source_bindings": {},
+            "inference_seconds": 3.598013417009497,
+            "wall_seconds": 3.6227018750068964
+          },
+          {
+            "task": "extract",
+            "version": "v15",
+            "input": {
+              "blocks": [
+                {
+                  "block_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-5",
+                  "html": "<p>제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "context": "<p>제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>"
+                }
+              ]
+            },
+            "prompt_sha256": "077819aa77a74c2b0523ece92b7afcfb0919fe354a95e99d7aebebdba1bacd37",
+            "temperature": 0,
+            "seed": 42,
+            "thinking": false,
+            "cache_prompt": true,
+            "status": "ok",
+            "parsed": {
+              "candidates": []
+            },
+            "validation": {
+              "errors": [],
+              "accepted": [],
+              "rejected_count": 0
+            },
+            "unresolved_block_ids": [],
+            "failed_block_ids": [],
+            "block_calls": [
+              {
+                "task": "verify",
+                "version": "v15",
+                "input": {
+                  "candidate_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-5",
+                  "html": "<p>제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "context": "<p>제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>"
+                },
+                "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+                "max_tokens": 192,
+                "temperature": 0,
+                "seed": 42,
+                "thinking": false,
+                "cache_prompt": true,
+                "request_count": 1,
+                "model_input": {
+                  "candidate_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-5",
+                  "source_units": [
+                    {
+                      "id": "h0001",
+                      "source_field": "html",
+                      "text": "<p>제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0001",
+                      "source_field": "context",
+                      "text": "<p>제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0002",
+                      "source_field": "context",
+                      "text": "\n",
+                      "selectable": false
+                    },
+                    {
+                      "id": "c0003",
+                      "source_field": "context",
+                      "text": "<p>제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0004",
+                      "source_field": "context",
+                      "text": "\n",
+                      "selectable": false
+                    },
+                    {
+                      "id": "c0005",
+                      "source_field": "context",
+                      "text": "<p>제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    }
+                  ]
+                },
+                "preflight_prompt_tokens": 1348,
+                "inference_seconds": 3.561230915991473,
+                "raw_response": {
+                  "choices": [
+                    {
+                      "finish_reason": "stop",
+                      "index": 0,
+                      "message": {
+                        "role": "assistant",
+                        "content": "{\n  \"verdict\": \"clean\",\n  \"evidence_id\": \"h0001\"\n}"
+                      }
+                    }
+                  ],
+                  "created": 1792317511,
+                  "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+                  "system_fingerprint": "b11429-d81235049",
+                  "object": "chat.completion",
+                  "usage": {
+                    "completion_tokens": 32,
+                    "prompt_tokens": 1349,
+                    "total_tokens": 1381,
+                    "prompt_tokens_details": {
+                      "cached_tokens": 1020
+                    }
+                  },
+                  "id": "chatcmpl-RTVpF2xZ2BtYHCKLVGOyxRY3lqVk2qAy",
+                  "timings": {
+                    "cache_n": 1020,
+                    "prompt_n": 329,
+                    "prompt_ms": 2691.88,
+                    "prompt_per_token_ms": 8.182006079027357,
+                    "prompt_per_second": 122.21941542713641,
+                    "predicted_n": 32,
+                    "predicted_ms": 853.981,
+                    "predicted_per_token_ms": 27.54777419354839,
+                    "predicted_per_second": 36.300573431961595
+                  }
+                },
+                "model_output": {
+                  "verdict": "clean",
+                  "evidence_id": "h0001"
+                },
+                "parsed": {
+                  "verdict": "clean",
+                  "model_verdict": "clean",
+                  "evidence": "<p>제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "evidence_id": "h0001",
+                  "source_field": "html",
+                  "start_char": 0,
+                  "end_char": 44,
+                  "source_sha256": "d9d0ad0533d88f6cd8955215342b08177b7d3b70057e340e719141c0ed52eef0",
+                  "owner_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-5",
+                  "evidence_scope": "source_unit_selection"
+                },
+                "validation": {
+                  "errors": [],
+                  "accepted": [],
+                  "rejected_count": 0
+                },
+                "status": "ok",
+                "wall_seconds": 3.586445624998305
+              }
+            ],
+            "request_count": 1,
+            "source_bindings": {},
+            "inference_seconds": 3.561230915991473,
+            "wall_seconds": 3.5865703750023386
+          },
+          {
+            "task": "extract",
+            "version": "v15",
+            "input": {
+              "blocks": [
+                {
+                  "block_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-6",
+                  "html": "<p>제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "context": "<p>제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>"
+                }
+              ]
+            },
+            "prompt_sha256": "077819aa77a74c2b0523ece92b7afcfb0919fe354a95e99d7aebebdba1bacd37",
+            "temperature": 0,
+            "seed": 42,
+            "thinking": false,
+            "cache_prompt": true,
+            "status": "ok",
+            "parsed": {
+              "candidates": []
+            },
+            "validation": {
+              "errors": [],
+              "accepted": [],
+              "rejected_count": 0
+            },
+            "unresolved_block_ids": [],
+            "failed_block_ids": [],
+            "block_calls": [
+              {
+                "task": "verify",
+                "version": "v15",
+                "input": {
+                  "candidate_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-6",
+                  "html": "<p>제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "context": "<p>제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>"
+                },
+                "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+                "max_tokens": 192,
+                "temperature": 0,
+                "seed": 42,
+                "thinking": false,
+                "cache_prompt": true,
+                "request_count": 1,
+                "model_input": {
+                  "candidate_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-6",
+                  "source_units": [
+                    {
+                      "id": "h0001",
+                      "source_field": "html",
+                      "text": "<p>제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0001",
+                      "source_field": "context",
+                      "text": "<p>제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0002",
+                      "source_field": "context",
+                      "text": "\n",
+                      "selectable": false
+                    },
+                    {
+                      "id": "c0003",
+                      "source_field": "context",
+                      "text": "<p>제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0004",
+                      "source_field": "context",
+                      "text": "\n",
+                      "selectable": false
+                    },
+                    {
+                      "id": "c0005",
+                      "source_field": "context",
+                      "text": "<p>제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    }
+                  ]
+                },
+                "preflight_prompt_tokens": 1348,
+                "inference_seconds": 3.56517995899776,
+                "raw_response": {
+                  "choices": [
+                    {
+                      "finish_reason": "stop",
+                      "index": 0,
+                      "message": {
+                        "role": "assistant",
+                        "content": "{\n  \"verdict\": \"clean\",\n  \"evidence_id\": \"h0001\"\n}"
+                      }
+                    }
+                  ],
+                  "created": 1792317514,
+                  "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+                  "system_fingerprint": "b11429-d81235049",
+                  "object": "chat.completion",
+                  "usage": {
+                    "completion_tokens": 32,
+                    "prompt_tokens": 1349,
+                    "total_tokens": 1381,
+                    "prompt_tokens_details": {
+                      "cached_tokens": 1020
+                    }
+                  },
+                  "id": "chatcmpl-eAq428NVOglSOzm3y5hOhIlsIHqHRqDh",
+                  "timings": {
+                    "cache_n": 1020,
+                    "prompt_n": 329,
+                    "prompt_ms": 2692.927,
+                    "prompt_per_token_ms": 8.185188449848024,
+                    "prompt_per_second": 122.17189697307056,
+                    "predicted_n": 32,
+                    "predicted_ms": 852.9,
+                    "predicted_per_token_ms": 27.51290322580645,
+                    "predicted_per_second": 36.34658224879822
+                  }
+                },
+                "model_output": {
+                  "verdict": "clean",
+                  "evidence_id": "h0001"
+                },
+                "parsed": {
+                  "verdict": "clean",
+                  "model_verdict": "clean",
+                  "evidence": "<p>제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "evidence_id": "h0001",
+                  "source_field": "html",
+                  "start_char": 0,
+                  "end_char": 44,
+                  "source_sha256": "75ea237f170af25bdecd84e02278e8d2a8d7d5b71b2b5d837d4e15aa1f76313c",
+                  "owner_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-6",
+                  "evidence_scope": "source_unit_selection"
+                },
+                "validation": {
+                  "errors": [],
+                  "accepted": [],
+                  "rejected_count": 0
+                },
+                "status": "ok",
+                "wall_seconds": 3.5886960000061663
+              }
+            ],
+            "request_count": 1,
+            "source_bindings": {},
+            "inference_seconds": 3.56517995899776,
+            "wall_seconds": 3.588819583004806
+          },
+          {
+            "task": "extract",
+            "version": "v15",
+            "input": {
+              "blocks": [
+                {
+                  "block_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-7",
+                  "html": "<p>제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "context": "<p>제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>"
+                }
+              ]
+            },
+            "prompt_sha256": "077819aa77a74c2b0523ece92b7afcfb0919fe354a95e99d7aebebdba1bacd37",
+            "temperature": 0,
+            "seed": 42,
+            "thinking": false,
+            "cache_prompt": true,
+            "status": "ok",
+            "parsed": {
+              "candidates": []
+            },
+            "validation": {
+              "errors": [],
+              "accepted": [],
+              "rejected_count": 0
+            },
+            "unresolved_block_ids": [],
+            "failed_block_ids": [],
+            "block_calls": [
+              {
+                "task": "verify",
+                "version": "v15",
+                "input": {
+                  "candidate_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-7",
+                  "html": "<p>제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "context": "<p>제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>"
+                },
+                "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+                "max_tokens": 192,
+                "temperature": 0,
+                "seed": 42,
+                "thinking": false,
+                "cache_prompt": true,
+                "request_count": 1,
+                "model_input": {
+                  "candidate_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-7",
+                  "source_units": [
+                    {
+                      "id": "h0001",
+                      "source_field": "html",
+                      "text": "<p>제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0001",
+                      "source_field": "context",
+                      "text": "<p>제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0002",
+                      "source_field": "context",
+                      "text": "\n",
+                      "selectable": false
+                    },
+                    {
+                      "id": "c0003",
+                      "source_field": "context",
+                      "text": "<p>제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0004",
+                      "source_field": "context",
+                      "text": "\n",
+                      "selectable": false
+                    },
+                    {
+                      "id": "c0005",
+                      "source_field": "context",
+                      "text": "<p>제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    }
+                  ]
+                },
+                "preflight_prompt_tokens": 1348,
+                "inference_seconds": 3.5844357919995673,
+                "raw_response": {
+                  "choices": [
+                    {
+                      "finish_reason": "stop",
+                      "index": 0,
+                      "message": {
+                        "role": "assistant",
+                        "content": "{\n  \"verdict\": \"clean\",\n  \"evidence_id\": \"h0001\"\n}"
+                      }
+                    }
+                  ],
+                  "created": 1792317518,
+                  "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+                  "system_fingerprint": "b11429-d81235049",
+                  "object": "chat.completion",
+                  "usage": {
+                    "completion_tokens": 32,
+                    "prompt_tokens": 1349,
+                    "total_tokens": 1381,
+                    "prompt_tokens_details": {
+                      "cached_tokens": 1020
+                    }
+                  },
+                  "id": "chatcmpl-Iapdrl22N09lzrkwgvepa7PEvsBE9GNq",
+                  "timings": {
+                    "cache_n": 1020,
+                    "prompt_n": 329,
+                    "prompt_ms": 2713.066,
+                    "prompt_per_token_ms": 8.24640121580547,
+                    "prompt_per_second": 121.26501898590008,
+                    "predicted_n": 32,
+                    "predicted_ms": 853.726,
+                    "predicted_per_token_ms": 27.539548387096776,
+                    "predicted_per_second": 36.31141607494676
+                  }
+                },
+                "model_output": {
+                  "verdict": "clean",
+                  "evidence_id": "h0001"
+                },
+                "parsed": {
+                  "verdict": "clean",
+                  "model_verdict": "clean",
+                  "evidence": "<p>제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "evidence_id": "h0001",
+                  "source_field": "html",
+                  "start_char": 0,
+                  "end_char": 44,
+                  "source_sha256": "95e52fa51a5512c33a6787d21aa2ffc22e5cd2cf73bbaa6d3277dc4b36b4ffe9",
+                  "owner_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-7",
+                  "evidence_scope": "source_unit_selection"
+                },
+                "validation": {
+                  "errors": [],
+                  "accepted": [],
+                  "rejected_count": 0
+                },
+                "status": "ok",
+                "wall_seconds": 3.609205792003195
+              }
+            ],
+            "request_count": 1,
+            "source_bindings": {},
+            "inference_seconds": 3.5844357919995673,
+            "wall_seconds": 3.6093301249929937
+          },
+          {
+            "task": "extract",
+            "version": "v15",
+            "input": {
+              "blocks": [
+                {
+                  "block_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-8",
+                  "html": "<p>제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "context": "<p>제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>"
+                }
+              ]
+            },
+            "prompt_sha256": "077819aa77a74c2b0523ece92b7afcfb0919fe354a95e99d7aebebdba1bacd37",
+            "temperature": 0,
+            "seed": 42,
+            "thinking": false,
+            "cache_prompt": true,
+            "status": "ok",
+            "parsed": {
+              "candidates": []
+            },
+            "validation": {
+              "errors": [],
+              "accepted": [],
+              "rejected_count": 0
+            },
+            "unresolved_block_ids": [],
+            "failed_block_ids": [],
+            "block_calls": [
+              {
+                "task": "verify",
+                "version": "v15",
+                "input": {
+                  "candidate_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-8",
+                  "html": "<p>제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "context": "<p>제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>"
+                },
+                "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+                "max_tokens": 192,
+                "temperature": 0,
+                "seed": 42,
+                "thinking": false,
+                "cache_prompt": true,
+                "request_count": 1,
+                "model_input": {
+                  "candidate_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-8",
+                  "source_units": [
+                    {
+                      "id": "h0001",
+                      "source_field": "html",
+                      "text": "<p>제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0001",
+                      "source_field": "context",
+                      "text": "<p>제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0002",
+                      "source_field": "context",
+                      "text": "\n",
+                      "selectable": false
+                    },
+                    {
+                      "id": "c0003",
+                      "source_field": "context",
+                      "text": "<p>제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0004",
+                      "source_field": "context",
+                      "text": "\n",
+                      "selectable": false
+                    },
+                    {
+                      "id": "c0005",
+                      "source_field": "context",
+                      "text": "<p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    }
+                  ]
+                },
+                "preflight_prompt_tokens": 1348,
+                "inference_seconds": 3.6104778749868274,
+                "raw_response": {
+                  "choices": [
+                    {
+                      "finish_reason": "stop",
+                      "index": 0,
+                      "message": {
+                        "role": "assistant",
+                        "content": "{\n  \"verdict\": \"clean\",\n  \"evidence_id\": \"h0001\"\n}"
+                      }
+                    }
+                  ],
+                  "created": 1792317521,
+                  "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+                  "system_fingerprint": "b11429-d81235049",
+                  "object": "chat.completion",
+                  "usage": {
+                    "completion_tokens": 32,
+                    "prompt_tokens": 1349,
+                    "total_tokens": 1381,
+                    "prompt_tokens_details": {
+                      "cached_tokens": 1020
+                    }
+                  },
+                  "id": "chatcmpl-6Mm12IKACIsYG5o14qP7pneT4wGlmGBy",
+                  "timings": {
+                    "cache_n": 1020,
+                    "prompt_n": 329,
+                    "prompt_ms": 2739.363,
+                    "prompt_per_token_ms": 8.32633130699088,
+                    "prompt_per_second": 120.10091397160582,
+                    "predicted_n": 32,
+                    "predicted_ms": 857.673,
+                    "predicted_per_token_ms": 27.666870967741936,
+                    "predicted_per_second": 36.144311410059544
+                  }
+                },
+                "model_output": {
+                  "verdict": "clean",
+                  "evidence_id": "h0001"
+                },
+                "parsed": {
+                  "verdict": "clean",
+                  "model_verdict": "clean",
+                  "evidence": "<p>제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "evidence_id": "h0001",
+                  "source_field": "html",
+                  "start_char": 0,
+                  "end_char": 44,
+                  "source_sha256": "f0b21bdedd76b9fcb4e1bcf67da0249ea04796df06f1495bc717dcf0046de9a1",
+                  "owner_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-8",
+                  "evidence_scope": "source_unit_selection"
+                },
+                "validation": {
+                  "errors": [],
+                  "accepted": [],
+                  "rejected_count": 0
+                },
+                "status": "ok",
+                "wall_seconds": 3.6388170829886803
+              }
+            ],
+            "request_count": 1,
+            "source_bindings": {},
+            "inference_seconds": 3.6104778749868274,
+            "wall_seconds": 3.638949832995422
+          },
+          {
+            "task": "extract",
+            "version": "v15",
+            "input": {
+              "blocks": [
+                {
+                  "block_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-9",
+                  "html": "<p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "context": "<p>제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<aside class=\"related\">예방 교육 본문의 인용 용어입니다.</aside>"
+                }
+              ]
+            },
+            "prompt_sha256": "077819aa77a74c2b0523ece92b7afcfb0919fe354a95e99d7aebebdba1bacd37",
+            "temperature": 0,
+            "seed": 42,
+            "thinking": false,
+            "cache_prompt": true,
+            "status": "ok",
+            "parsed": {
+              "candidates": []
+            },
+            "validation": {
+              "errors": [],
+              "accepted": [],
+              "rejected_count": 0
+            },
+            "unresolved_block_ids": [],
+            "failed_block_ids": [],
+            "block_calls": [
+              {
+                "task": "verify",
+                "version": "v15",
+                "input": {
+                  "candidate_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-9",
+                  "html": "<p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "context": "<p>제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<aside class=\"related\">예방 교육 본문의 인용 용어입니다.</aside>"
+                },
+                "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+                "max_tokens": 192,
+                "temperature": 0,
+                "seed": 42,
+                "thinking": false,
+                "cache_prompt": true,
+                "request_count": 1,
+                "model_input": {
+                  "candidate_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-9",
+                  "source_units": [
+                    {
+                      "id": "h0001",
+                      "source_field": "html",
+                      "text": "<p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0001",
+                      "source_field": "context",
+                      "text": "<p>제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0002",
+                      "source_field": "context",
+                      "text": "\n",
+                      "selectable": false
+                    },
+                    {
+                      "id": "c0003",
+                      "source_field": "context",
+                      "text": "<p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0004",
+                      "source_field": "context",
+                      "text": "\n",
+                      "selectable": false
+                    },
+                    {
+                      "id": "c0005",
+                      "source_field": "context",
+                      "text": "<aside class=\"related\">",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0006",
+                      "source_field": "context",
+                      "text": "예방 교육 본문의 인용 용어입니다.",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0007",
+                      "source_field": "context",
+                      "text": "</aside>",
+                      "selectable": false
+                    }
+                  ]
+                },
+                "preflight_prompt_tokens": 1396,
+                "inference_seconds": 3.9282751669961726,
+                "raw_response": {
+                  "choices": [
+                    {
+                      "finish_reason": "stop",
+                      "index": 0,
+                      "message": {
+                        "role": "assistant",
+                        "content": "{\n  \"verdict\": \"clean\",\n  \"evidence_id\": \"h0001\"\n}"
+                      }
+                    }
+                  ],
+                  "created": 1792317525,
+                  "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+                  "system_fingerprint": "b11429-d81235049",
+                  "object": "chat.completion",
+                  "usage": {
+                    "completion_tokens": 32,
+                    "prompt_tokens": 1397,
+                    "total_tokens": 1429,
+                    "prompt_tokens_details": {
+                      "cached_tokens": 1020
+                    }
+                  },
+                  "id": "chatcmpl-dCtX4j9tQdlyWkTYAzZRHYwnOy6jVSgF",
+                  "timings": {
+                    "cache_n": 1020,
+                    "prompt_n": 377,
+                    "prompt_ms": 3058.993,
+                    "prompt_per_token_ms": 8.114039787798408,
+                    "prompt_per_second": 123.24317185426708,
+                    "predicted_n": 32,
+                    "predicted_ms": 856.325,
+                    "predicted_per_token_ms": 27.623387096774195,
+                    "predicted_per_second": 36.20120865325664
+                  }
+                },
+                "model_output": {
+                  "verdict": "clean",
+                  "evidence_id": "h0001"
+                },
+                "parsed": {
+                  "verdict": "clean",
+                  "model_verdict": "clean",
+                  "evidence": "<p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "evidence_id": "h0001",
+                  "source_field": "html",
+                  "start_char": 0,
+                  "end_char": 44,
+                  "source_sha256": "6deeb0635912c00077b3bee06bc81308049509abb94977445eeefec1ffb227d5",
+                  "owner_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-9",
+                  "evidence_scope": "source_unit_selection"
+                },
+                "validation": {
+                  "errors": [],
+                  "accepted": [],
+                  "rejected_count": 0
+                },
+                "status": "ok",
+                "wall_seconds": 3.952726707997499
+              }
+            ],
+            "request_count": 1,
+            "source_bindings": {},
+            "inference_seconds": 3.9282751669961726,
+            "wall_seconds": 3.9528527920047054
+          },
+          {
+            "task": "extract",
+            "version": "v15",
+            "input": {
+              "blocks": [
+                {
+                  "block_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-10",
+                  "html": "<aside class=\"related\">예방 교육 본문의 인용 용어입니다.</aside>",
+                  "context": "<p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<aside class=\"related\">예방 교육 본문의 인용 용어입니다.</aside>"
+                }
+              ]
+            },
+            "prompt_sha256": "077819aa77a74c2b0523ece92b7afcfb0919fe354a95e99d7aebebdba1bacd37",
+            "temperature": 0,
+            "seed": 42,
+            "thinking": false,
+            "cache_prompt": true,
+            "status": "ok",
+            "parsed": {
+              "candidates": []
+            },
+            "validation": {
+              "errors": [],
+              "accepted": [],
+              "rejected_count": 0
+            },
+            "unresolved_block_ids": [],
+            "failed_block_ids": [],
+            "block_calls": [
+              {
+                "task": "verify",
+                "version": "v15",
+                "input": {
+                  "candidate_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-10",
+                  "html": "<aside class=\"related\">예방 교육 본문의 인용 용어입니다.</aside>",
+                  "context": "<p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<aside class=\"related\">예방 교육 본문의 인용 용어입니다.</aside>"
+                },
+                "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+                "max_tokens": 192,
+                "temperature": 0,
+                "seed": 42,
+                "thinking": false,
+                "cache_prompt": true,
+                "request_count": 1,
+                "model_input": {
+                  "candidate_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-10",
+                  "source_units": [
+                    {
+                      "id": "h0001",
+                      "source_field": "html",
+                      "text": "<aside class=\"related\">",
+                      "selectable": true
+                    },
+                    {
+                      "id": "h0002",
+                      "source_field": "html",
+                      "text": "예방 교육 본문의 인용 용어입니다.",
+                      "selectable": true
+                    },
+                    {
+                      "id": "h0003",
+                      "source_field": "html",
+                      "text": "</aside>",
+                      "selectable": false
+                    },
+                    {
+                      "id": "c0001",
+                      "source_field": "context",
+                      "text": "<p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0002",
+                      "source_field": "context",
+                      "text": "\n",
+                      "selectable": false
+                    },
+                    {
+                      "id": "c0003",
+                      "source_field": "context",
+                      "text": "<aside class=\"related\">",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0004",
+                      "source_field": "context",
+                      "text": "예방 교육 본문의 인용 용어입니다.",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0005",
+                      "source_field": "context",
+                      "text": "</aside>",
+                      "selectable": false
+                    }
+                  ]
+                },
+                "preflight_prompt_tokens": 1364,
+                "inference_seconds": 3.7041196660138667,
+                "raw_response": {
+                  "choices": [
+                    {
+                      "finish_reason": "stop",
+                      "index": 0,
+                      "message": {
+                        "role": "assistant",
+                        "content": "{\n  \"verdict\": \"clean\",\n  \"evidence_id\": \"c0001\"\n}"
+                      }
+                    }
+                  ],
+                  "created": 1792317529,
+                  "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+                  "system_fingerprint": "b11429-d81235049",
+                  "object": "chat.completion",
+                  "usage": {
+                    "completion_tokens": 32,
+                    "prompt_tokens": 1365,
+                    "total_tokens": 1397,
+                    "prompt_tokens_details": {
+                      "cached_tokens": 1020
+                    }
+                  },
+                  "id": "chatcmpl-ShSDvj8wuz6gvrEbyhlVghKfas5Qu57q",
+                  "timings": {
+                    "cache_n": 1020,
+                    "prompt_n": 345,
+                    "prompt_ms": 2827.525,
+                    "prompt_per_token_ms": 8.19572463768116,
+                    "prompt_per_second": 122.0148362967613,
+                    "predicted_n": 32,
+                    "predicted_ms": 864.097,
+                    "predicted_per_token_ms": 27.874096774193546,
+                    "predicted_per_second": 35.875601928950104
+                  }
+                },
+                "model_output": {
+                  "verdict": "clean",
+                  "evidence_id": "c0001"
+                },
+                "parsed": {
+                  "verdict": "clean",
+                  "model_verdict": "clean",
+                  "evidence": "<p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "evidence_id": "c0001",
+                  "source_field": "context",
+                  "start_char": 0,
+                  "end_char": 44,
+                  "source_sha256": "e563ea07378409af1fc8bd34d50fac914d9cd63b120be68d7aec098c79602f22",
+                  "owner_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-10",
+                  "evidence_scope": "source_unit_selection"
+                },
+                "validation": {
+                  "errors": [],
+                  "accepted": [],
+                  "rejected_count": 0
+                },
+                "status": "ok",
+                "wall_seconds": 3.730703083012486
+              }
+            ],
+            "request_count": 1,
+            "source_bindings": {},
+            "inference_seconds": 3.7041196660138667,
+            "wall_seconds": 3.730828958010534
+          },
+          {
+            "task": "extract",
+            "version": "v15",
+            "input": {
+              "blocks": [
+                {
+                  "block_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-11",
+                  "html": "<title>자료</title>",
+                  "context": "<title>자료</title>"
+                }
+              ]
+            },
+            "prompt_sha256": "077819aa77a74c2b0523ece92b7afcfb0919fe354a95e99d7aebebdba1bacd37",
+            "temperature": 0,
+            "seed": 42,
+            "thinking": false,
+            "cache_prompt": true,
+            "status": "ok",
+            "parsed": {
+              "candidates": []
+            },
+            "validation": {
+              "errors": [],
+              "accepted": [],
+              "rejected_count": 0
+            },
+            "unresolved_block_ids": [],
+            "failed_block_ids": [],
+            "block_calls": [
+              {
+                "task": "verify",
+                "version": "v15",
+                "input": {
+                  "candidate_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-11",
+                  "html": "<title>자료</title>",
+                  "context": "<title>자료</title>"
+                },
+                "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+                "max_tokens": 192,
+                "temperature": 0,
+                "seed": 42,
+                "thinking": false,
+                "cache_prompt": true,
+                "request_count": 1,
+                "model_input": {
+                  "candidate_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-11",
+                  "source_units": [
+                    {
+                      "id": "h0001",
+                      "source_field": "html",
+                      "text": "<title>자료</title>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0001",
+                      "source_field": "context",
+                      "text": "<title>자료</title>",
+                      "selectable": true
+                    }
+                  ]
+                },
+                "preflight_prompt_tokens": 1151,
+                "inference_seconds": 1.7534654999908525,
+                "raw_response": {
+                  "choices": [
+                    {
+                      "finish_reason": "stop",
+                      "index": 0,
+                      "message": {
+                        "role": "assistant",
+                        "content": "{\"verdict\": \"clean\", \"evidence_id\": \"h0001\"}"
+                      }
+                    }
+                  ],
+                  "created": 1792317531,
+                  "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+                  "system_fingerprint": "b11429-d81235049",
+                  "object": "chat.completion",
+                  "usage": {
+                    "completion_tokens": 25,
+                    "prompt_tokens": 1152,
+                    "total_tokens": 1177,
+                    "prompt_tokens_details": {
+                      "cached_tokens": 1020
+                    }
+                  },
+                  "id": "chatcmpl-VY7mn83YOnjTCn9tJIyz3Vw2mIHdDWJs",
+                  "timings": {
+                    "cache_n": 1020,
+                    "prompt_n": 132,
+                    "prompt_ms": 1079.384,
+                    "prompt_per_token_ms": 8.177151515151515,
+                    "prompt_per_second": 122.29197394069209,
+                    "predicted_n": 25,
+                    "predicted_ms": 655.337,
+                    "predicted_per_token_ms": 27.30570833333333,
+                    "predicted_per_second": 36.62237902025981
+                  }
+                },
+                "model_output": {
+                  "verdict": "clean",
+                  "evidence_id": "h0001"
+                },
+                "parsed": {
+                  "verdict": "clean",
+                  "model_verdict": "clean",
+                  "evidence": "<title>자료</title>",
+                  "evidence_id": "h0001",
+                  "source_field": "html",
+                  "start_char": 0,
+                  "end_char": 17,
+                  "source_sha256": "f13ece5a960c6ae3fca2653eb816583e4be8bbed7676a154cb7f877dc65052dd",
+                  "owner_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-11",
+                  "evidence_scope": "source_unit_selection"
+                },
+                "validation": {
+                  "errors": [],
+                  "accepted": [],
+                  "rejected_count": 0
+                },
+                "status": "ok",
+                "wall_seconds": 1.7762524580030004
+              }
+            ],
+            "request_count": 1,
+            "source_bindings": {},
+            "inference_seconds": 1.7534654999908525,
+            "wall_seconds": 1.7763673329900485
+          }
+        ],
+        "next_step": "후보 원문과 참조를 Laya 판정 흐름으로 전달"
+      }
+    },
+    "meta": {
+      "topic": "불법광고",
+      "entry_url": "http://127.0.0.1:55774/S06.html",
+      "started_at": "2026-10-18T18:58:00+09:00",
+      "finished_at": "2026-10-18T18:58:57+09:00",
+      "elapsed_sec": 57.51,
+      "tool_version": "0.1.0-proto"
+    },
+    "pages": 2,
+    "crawl_sec": 2.5,
+    "entry_failed": false,
+    "failed_pages": [],
+    "http_errors": [],
+    "stopped_by_time": false,
+    "left_in_queue": 0,
+    "dropped_endless": 0,
+    "skipped_utility": 0,
+    "time_budget": 120,
+    "llm_reserve": 30,
+    "visit_log": [
+      [
+        1.6,
+        "http://127.0.0.1:55774/S06.html",
+        "http://127.0.0.1:55774/S06.html"
+      ],
+      [
+        2.5,
+        "http://127.0.0.1:55774/S07.html",
+        "http://127.0.0.1:55774/S07.html"
+      ]
+    ],
+    "external_skipped": [],
+    "slow_mode": false,
+    "retried": 0,
+    "extra_count": 0,
+    "candidates": [
+      {
+        "url": "http://127.0.0.1:55774/S06.html",
+        "location": "p",
+        "technique": "POSTED",
+        "evidence_text": "카지노 바카라",
+        "signals": [
+          "keyword:카지노,바카라",
+          "page-context"
+        ],
+        "source_id": "be98eee507490c720c615d28:be98eee507490c720c615d28:dom-1",
+        "source_html": "<p id=\"target\">카지노 바카라</p>",
+        "source_context": "<p id=\"target\">카지노 바카라</p>\n<aside class=\"related\">도박 예방교육 자료의 용어 목록입니다.</aside>",
+        "source_near_text": "카지노 바카라\n도박 예방교육 자료의 용어 목록입니다.",
+        "raw": "카지노 바카라",
+        "href": null,
+        "tag": "p",
+        "cls": "",
+        "source_sha256": "c95424929ad94beeccc00312dc7fdd28326b9dd5d5e5d8873ce5b6895b4dfcbd",
+        "context": [
+          [
+            "page-context",
+            -4
+          ]
+        ],
+        "normalized": "카지노 바카라",
+        "score_detail": [
+          [
+            "카지노",
+            3
+          ],
+          [
+            "바카라",
+            3
+          ],
+          [
+            "page-context",
+            -4
+          ]
+        ],
+        "score": 2,
+        "hits": [
+          "카지노",
+          "바카라",
+          "-page-context"
+        ],
+        "verdict": "clean",
+        "decided_by": "gemma",
+        "processing_status": "completed",
+        "reason": "Gemma v15 원문 결합 검증 완료",
+        "gemma": {
+          "task": "verify",
+          "version": "v15",
+          "status": "ok",
+          "results": [
+            {
+              "candidate_id": "be98eee507490c720c615d28:be98eee507490c720c615d28:dom-1:0",
+              "status": "ok",
+              "verdict": "clean",
+              "evidence": "도박 예방교육 자료의 용어 목록입니다.",
+              "needs_review": false,
+              "call": {
+                "task": "verify",
+                "version": "v15",
+                "input": {
+                  "candidate_id": "be98eee507490c720c615d28:be98eee507490c720c615d28:dom-1:0",
+                  "html": "<p id=\"target\">카지노 바카라</p>",
+                  "context": "<p id=\"target\">카지노 바카라</p>\n<aside class=\"related\">도박 예방교육 자료의 용어 목록입니다.</aside>"
+                },
+                "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+                "max_tokens": 192,
+                "temperature": 0,
+                "seed": 42,
+                "thinking": false,
+                "cache_prompt": true,
+                "request_count": 1,
+                "model_input": {
+                  "candidate_id": "be98eee507490c720c615d28:be98eee507490c720c615d28:dom-1:0",
+                  "source_units": [
+                    {
+                      "id": "h0001",
+                      "source_field": "html",
+                      "text": "<p id=\"target\">카지노 바카라</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0001",
+                      "source_field": "context",
+                      "text": "<p id=\"target\">카지노 바카라</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0002",
+                      "source_field": "context",
+                      "text": "\n",
+                      "selectable": false
+                    },
+                    {
+                      "id": "c0003",
+                      "source_field": "context",
+                      "text": "<aside class=\"related\">",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0004",
+                      "source_field": "context",
+                      "text": "도박 예방교육 자료의 용어 목록입니다.",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0005",
+                      "source_field": "context",
+                      "text": "</aside>",
+                      "selectable": false
+                    }
+                  ]
+                },
+                "preflight_prompt_tokens": 1292,
+                "inference_seconds": 3.171321625006385,
+                "raw_response": {
+                  "choices": [
+                    {
+                      "finish_reason": "stop",
+                      "index": 0,
+                      "message": {
+                        "role": "assistant",
+                        "content": "{\n  \"verdict\": \"clean\",\n  \"evidence_id\": \"c0004\"\n}"
+                      }
+                    }
+                  ],
+                  "created": 1792317534,
+                  "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+                  "system_fingerprint": "b11429-d81235049",
+                  "object": "chat.completion",
+                  "usage": {
+                    "completion_tokens": 32,
+                    "prompt_tokens": 1293,
+                    "total_tokens": 1325,
+                    "prompt_tokens_details": {
+                      "cached_tokens": 1020
+                    }
+                  },
+                  "id": "chatcmpl-ESNlveWaaWDwZ0yth7TWy9YBjAGDvoyK",
+                  "timings": {
+                    "cache_n": 1020,
+                    "prompt_n": 273,
+                    "prompt_ms": 2296.56,
+                    "prompt_per_token_ms": 8.412307692307692,
+                    "prompt_per_second": 118.8734455010973,
+                    "predicted_n": 32,
+                    "predicted_ms": 862.447,
+                    "predicted_per_token_ms": 27.820870967741936,
+                    "predicted_per_second": 35.94423773286938
+                  }
+                },
+                "model_output": {
+                  "verdict": "clean",
+                  "evidence_id": "c0004"
+                },
+                "parsed": {
+                  "verdict": "clean",
+                  "model_verdict": "clean",
+                  "evidence": "도박 예방교육 자료의 용어 목록입니다.",
+                  "evidence_id": "c0004",
+                  "source_field": "context",
+                  "start_char": 50,
+                  "end_char": 71,
+                  "source_sha256": "c95424929ad94beeccc00312dc7fdd28326b9dd5d5e5d8873ce5b6895b4dfcbd",
+                  "owner_id": "be98eee507490c720c615d28:be98eee507490c720c615d28:dom-1:0",
+                  "evidence_scope": "source_unit_selection"
+                },
+                "validation": {
+                  "errors": [],
+                  "accepted": [],
+                  "rejected_count": 0
+                },
+                "status": "ok",
+                "wall_seconds": 3.1947757080051815
+              },
+              "evidence_id": "c0004",
+              "source_field": "context",
+              "start_char": 50,
+              "end_char": 71,
+              "source_sha256": "c95424929ad94beeccc00312dc7fdd28326b9dd5d5e5d8873ce5b6895b4dfcbd",
+              "evidence_scope": "source_unit_selection",
+              "owner_id": "be98eee507490c720c615d28:be98eee507490c720c615d28:dom-1:0"
+            }
+          ]
+        }
+      },
+      {
+        "url": "http://127.0.0.1:55774/S07.html",
+        "location": "p:nth-of-type(1)",
+        "technique": "POSTED",
+        "evidence_text": "카지노 바카라",
+        "signals": [
+          "keyword:카지노,바카라",
+          "page-context"
+        ],
+        "source_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-1",
+        "source_html": "<p id=\"target\">카지노 바카라</p>",
+        "source_context": "<p id=\"target\">카지노 바카라</p>\n<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+        "source_near_text": "카지노 바카라\n제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+        "raw": "카지노 바카라",
+        "href": null,
+        "tag": "p",
+        "cls": "",
+        "source_sha256": "6b97cfb4674c3e416ce67e3a1c61a3b65e44b529afb1bb3a1bb07c1df5ef3458",
+        "context": [
+          [
+            "page-context",
+            -4
+          ]
+        ],
+        "normalized": "카지노 바카라",
+        "score_detail": [
+          [
+            "카지노",
+            3
+          ],
+          [
+            "바카라",
+            3
+          ],
+          [
+            "page-context",
+            -4
+          ]
+        ],
+        "score": 2,
+        "hits": [
+          "카지노",
+          "바카라",
+          "-page-context"
+        ],
+        "verdict": "clean",
+        "decided_by": "gemma",
+        "processing_status": "completed",
+        "reason": "Gemma v15 원문 결합 검증 완료",
+        "gemma": {
+          "task": "verify",
+          "version": "v15",
+          "status": "ok",
+          "results": [
+            {
+              "candidate_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-1:1",
+              "status": "ok",
+              "verdict": "clean",
+              "evidence": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "needs_review": false,
+              "call": {
+                "task": "verify",
+                "version": "v15",
+                "input": {
+                  "candidate_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-1:1",
+                  "html": "<p id=\"target\">카지노 바카라</p>",
+                  "context": "<p id=\"target\">카지노 바카라</p>\n<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>"
+                },
+                "prompt_sha256": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+                "max_tokens": 192,
+                "temperature": 0,
+                "seed": 42,
+                "thinking": false,
+                "cache_prompt": true,
+                "request_count": 1,
+                "model_input": {
+                  "candidate_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-1:1",
+                  "source_units": [
+                    {
+                      "id": "h0001",
+                      "source_field": "html",
+                      "text": "<p id=\"target\">카지노 바카라</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0001",
+                      "source_field": "context",
+                      "text": "<p id=\"target\">카지노 바카라</p>",
+                      "selectable": true
+                    },
+                    {
+                      "id": "c0002",
+                      "source_field": "context",
+                      "text": "\n",
+                      "selectable": false
+                    },
+                    {
+                      "id": "c0003",
+                      "source_field": "context",
+                      "text": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                      "selectable": true
+                    }
+                  ]
+                },
+                "preflight_prompt_tokens": 1247,
+                "inference_seconds": 2.762334708007984,
+                "raw_response": {
+                  "choices": [
+                    {
+                      "finish_reason": "stop",
+                      "index": 0,
+                      "message": {
+                        "role": "assistant",
+                        "content": "{\n  \"verdict\": \"clean\",\n  \"evidence_id\": \"c0003\"\n}"
+                      }
+                    }
+                  ],
+                  "created": 1792317537,
+                  "model": "<WORKSPACE>/gemma_benchmark/.runtime/models/gemma-4-E2B_q4_0-it.gguf",
+                  "system_fingerprint": "b11429-d81235049",
+                  "object": "chat.completion",
+                  "usage": {
+                    "completion_tokens": 32,
+                    "prompt_tokens": 1248,
+                    "total_tokens": 1280,
+                    "prompt_tokens_details": {
+                      "cached_tokens": 1020
+                    }
+                  },
+                  "id": "chatcmpl-iJ4J9IAsBuEmSKzBPkoy10PqLO6WRAJ7",
+                  "timings": {
+                    "cache_n": 1020,
+                    "prompt_n": 228,
+                    "prompt_ms": 1901.85,
+                    "prompt_per_token_ms": 8.341447368421052,
+                    "prompt_per_second": 119.8832715513842,
+                    "predicted_n": 32,
+                    "predicted_ms": 846.042,
+                    "predicted_per_token_ms": 27.29167741935484,
+                    "predicted_per_second": 36.64120693771704
+                  }
+                },
+                "model_output": {
+                  "verdict": "clean",
+                  "evidence_id": "c0003"
+                },
+                "parsed": {
+                  "verdict": "clean",
+                  "model_verdict": "clean",
+                  "evidence": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+                  "evidence_id": "c0003",
+                  "source_field": "context",
+                  "start_char": 27,
+                  "end_char": 71,
+                  "source_sha256": "6b97cfb4674c3e416ce67e3a1c61a3b65e44b529afb1bb3a1bb07c1df5ef3458",
+                  "owner_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-1:1",
+                  "evidence_scope": "source_unit_selection"
+                },
+                "validation": {
+                  "errors": [],
+                  "accepted": [],
+                  "rejected_count": 0
+                },
+                "status": "ok",
+                "wall_seconds": 2.7886373329965863
+              },
+              "evidence_id": "c0003",
+              "source_field": "context",
+              "start_char": 27,
+              "end_char": 71,
+              "source_sha256": "6b97cfb4674c3e416ce67e3a1c61a3b65e44b529afb1bb3a1bb07c1df5ef3458",
+              "evidence_scope": "source_unit_selection",
+              "owner_id": "69028942bd4307d36299e834:69028942bd4307d36299e834:dom-1:1"
+            }
+          ]
+        }
+      }
+    ],
+    "model": "laya-model-smoke",
+    "repeats_collapsed": 0,
+    "duplicates": []
+  },
+  "result": {
+    "meta": {
+      "topic": "불법광고",
+      "entry_url": "http://127.0.0.1:55774/S06.html",
+      "started_at": "2026-10-18T18:58:00+09:00",
+      "finished_at": "2026-10-18T18:58:57+09:00",
+      "elapsed_sec": 57.51,
+      "tool_version": "0.1.0-proto"
+    },
+    "findings": []
+  },
+  "observations": {
+    "events": [
+      {
+        "event": "phase",
+        "phase": "crawl",
+        "at": "2026-10-18T09:58:00.052719+00:00"
+      },
+      {
+        "event": "phase",
+        "phase": "judge",
+        "at": "2026-10-18T09:58:02.557677+00:00"
+      },
+      {
+        "event": "gemma_server_enter",
+        "at": "2026-10-18T09:58:02.752155+00:00",
+        "laya_objects_alive": 0,
+        "torch_threads": 2
+      },
+      {
+        "event": "gemma_server_ready",
+        "at": "2026-10-18T09:58:03.755804+00:00",
+        "threads": 2,
+        "startup_seconds": 1.0029711660026805
+      },
+      {
+        "event": "gemma_server_exit",
+        "at": "2026-10-18T09:58:57.530637+00:00",
+        "returncode": 0,
+        "key_removed": true
+      },
+      {
+        "event": "phase",
+        "phase": "save",
+        "at": "2026-10-18T09:58:57.530777+00:00"
+      }
+    ],
+    "laya_calls": [],
+    "fixture_requests": [
+      {
+        "at": "2026-10-18T09:58:00.064695+00:00",
+        "path": "/sitemap.xml"
+      },
+      {
+        "at": "2026-10-18T09:58:00.759790+00:00",
+        "path": "/S06.html"
+      },
+      {
+        "at": "2026-10-18T09:58:01.662287+00:00",
+        "path": "/S07.html"
+      }
+    ],
+    "browser_requests": [
+      {
+        "url": "http://127.0.0.1:55774/S06.html",
+        "resource_type": "document"
+      },
+      {
+        "url": "http://127.0.0.1:55774/S06.html",
+        "resource_type": "document"
+      },
+      {
+        "url": "http://127.0.0.1:55774/S07.html",
+        "resource_type": "document"
+      },
+      {
+        "url": "http://127.0.0.1:55774/S07.html",
+        "resource_type": "document"
+      }
+    ],
+    "max_observed_servers": 1,
+    "server_processes_absent": true,
+    "laya_objects_alive_after": 0,
+    "remaining_children": []
+  },
+  "launcher": {
+    "started_at": "2026-10-18T09:57:49.396460+00:00",
+    "finished_at": "2026-10-18T09:58:58.766055+00:00",
+    "worker_exit_code": 0,
+    "watchdog_timeout": false,
+    "forced_child_cleanup": [],
+    "worker_absent": true,
+    "tracked_children_absent": true
+  }
+}

@@ -1,0 +1,426 @@
+{
+  "started_at": "2026-10-18T10:32:12.217098+00:00",
+  "device": "cpu",
+  "threads": 2,
+  "question": {
+    "is_illegal_ad": {
+      "type": "noul",
+      "instructions": "이 텍스트는 도박·성인·불법대출·마약 등을 홍보하는 불법 광고인가?"
+    }
+  },
+  "question_sha256": "f7451e299b4fa7b4d118ec2a69f255faece7e590576a1e08fe042b05f0988fab",
+  "versions": {
+    "laya": "0.4.2",
+    "torch": "2.5.1",
+    "transformers": "4.57.6",
+    "playwright": "1.64.0"
+  },
+  "model_hashes": {
+    "model.safetensors": "391f38be190d50faf86efb62f6ba026697a1166a5af490bb7c72fc5aa626e14b",
+    "questions.json": "c524e1f65e82e77404f6ec567d2ad6ae92925f95ee020cb3718c7c219234932a",
+    "train_report.json": "45d38e007fcb75d665883cda0dbc11aff82b988708efc08b086928dae3b79807",
+    "rl_agent_config.json": "715cf2aa4fc32bf2ac83968cb7d96af25c2642676e5db8cc59fa5069f9371d3e",
+    "encoder/config.json": "3ceae14d210557b47abcde2768b27afbb2131974f9c4dd714f2236fd9ee54981",
+    "tokenizer/tokenizer_config.json": "5f36fa307ecb9e70c9b058ca0621530f6bd3e89b371c4d6c0279c48d9dbd2629",
+    "tokenizer/tokenizer.json": "dbba919c6e5e492bc22beb80abb64e6fcc7e8744dc696e8388b8c977767afa4b"
+  },
+  "batch_size": 16,
+  "states": [
+    "환전 가능한가요?",
+    "포커 모임 안내",
+    "홀덤 동호회 참가 문의",
+    "바카라 규칙을 배우는 모임",
+    "성인 화상채팅 안내",
+    "유흥 관련 문의",
+    "소액대출 조건이 궁금합니다.",
+    "무직자 상담 가능합니다.",
+    "카드 현금화 방법을 알아봅니다.",
+    "필로폰이라는 단어를 설명해주세요.",
+    "홈타이 예약 문의",
+    "오피 이용 안내",
+    "구글 검색으로 확인하세요.",
+    "새주소를 알려주세요.",
+    "롤링 조건을 알려주세요.",
+    "비아그라 관련 문의"
+  ],
+  "outputs": [
+    {
+      "model": "laya-rl-agent",
+      "answers": {
+        "is_illegal_ad": {
+          "type": "noul",
+          "noul": 0.0568,
+          "confidence": 0.9432,
+          "answer_confidence": 0.9432,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      },
+      "usage": {
+        "input_tokens": 63,
+        "output_tokens": 0,
+        "state_tokens": 7,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      }
+    },
+    {
+      "model": "laya-rl-agent",
+      "answers": {
+        "is_illegal_ad": {
+          "type": "noul",
+          "noul": 0.1183,
+          "confidence": 0.8817,
+          "answer_confidence": 0.8817,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      },
+      "usage": {
+        "input_tokens": 62,
+        "output_tokens": 0,
+        "state_tokens": 6,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      }
+    },
+    {
+      "model": "laya-rl-agent",
+      "answers": {
+        "is_illegal_ad": {
+          "type": "noul",
+          "noul": 0.4854,
+          "confidence": 0.5146,
+          "answer_confidence": 0.5146,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      },
+      "usage": {
+        "input_tokens": 66,
+        "output_tokens": 0,
+        "state_tokens": 10,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      }
+    },
+    {
+      "model": "laya-rl-agent",
+      "answers": {
+        "is_illegal_ad": {
+          "type": "noul",
+          "noul": 0.0956,
+          "confidence": 0.9044,
+          "answer_confidence": 0.9044,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      },
+      "usage": {
+        "input_tokens": 67,
+        "output_tokens": 0,
+        "state_tokens": 11,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      }
+    },
+    {
+      "model": "laya-rl-agent",
+      "answers": {
+        "is_illegal_ad": {
+          "type": "noul",
+          "noul": 0.9219,
+          "confidence": 0.9219,
+          "answer_confidence": 0.9219,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      },
+      "usage": {
+        "input_tokens": 64,
+        "output_tokens": 0,
+        "state_tokens": 8,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      }
+    },
+    {
+      "model": "laya-rl-agent",
+      "answers": {
+        "is_illegal_ad": {
+          "type": "noul",
+          "noul": 0.4368,
+          "confidence": 0.5632,
+          "answer_confidence": 0.5632,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      },
+      "usage": {
+        "input_tokens": 61,
+        "output_tokens": 0,
+        "state_tokens": 5,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      }
+    },
+    {
+      "model": "laya-rl-agent",
+      "answers": {
+        "is_illegal_ad": {
+          "type": "noul",
+          "noul": 0.1255,
+          "confidence": 0.8745,
+          "answer_confidence": 0.8745,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      },
+      "usage": {
+        "input_tokens": 68,
+        "output_tokens": 0,
+        "state_tokens": 12,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      }
+    },
+    {
+      "model": "laya-rl-agent",
+      "answers": {
+        "is_illegal_ad": {
+          "type": "noul",
+          "noul": 0.9442,
+          "confidence": 0.9442,
+          "answer_confidence": 0.9442,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      },
+      "usage": {
+        "input_tokens": 64,
+        "output_tokens": 0,
+        "state_tokens": 8,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      }
+    },
+    {
+      "model": "laya-rl-agent",
+      "answers": {
+        "is_illegal_ad": {
+          "type": "noul",
+          "noul": 0.1799,
+          "confidence": 0.8201,
+          "answer_confidence": 0.8201,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      },
+      "usage": {
+        "input_tokens": 67,
+        "output_tokens": 0,
+        "state_tokens": 11,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      }
+    },
+    {
+      "model": "laya-rl-agent",
+      "answers": {
+        "is_illegal_ad": {
+          "type": "noul",
+          "noul": 0.0586,
+          "confidence": 0.9414,
+          "answer_confidence": 0.9414,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      },
+      "usage": {
+        "input_tokens": 69,
+        "output_tokens": 0,
+        "state_tokens": 13,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      }
+    },
+    {
+      "model": "laya-rl-agent",
+      "answers": {
+        "is_illegal_ad": {
+          "type": "noul",
+          "noul": 0.4658,
+          "confidence": 0.5342,
+          "answer_confidence": 0.5342,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      },
+      "usage": {
+        "input_tokens": 63,
+        "output_tokens": 0,
+        "state_tokens": 7,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      }
+    },
+    {
+      "model": "laya-rl-agent",
+      "answers": {
+        "is_illegal_ad": {
+          "type": "noul",
+          "noul": 0.9335,
+          "confidence": 0.9335,
+          "answer_confidence": 0.9335,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      },
+      "usage": {
+        "input_tokens": 61,
+        "output_tokens": 0,
+        "state_tokens": 5,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      }
+    },
+    {
+      "model": "laya-rl-agent",
+      "answers": {
+        "is_illegal_ad": {
+          "type": "noul",
+          "noul": 0.0555,
+          "confidence": 0.9445,
+          "answer_confidence": 0.9445,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      },
+      "usage": {
+        "input_tokens": 63,
+        "output_tokens": 0,
+        "state_tokens": 7,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      }
+    },
+    {
+      "model": "laya-rl-agent",
+      "answers": {
+        "is_illegal_ad": {
+          "type": "noul",
+          "noul": 0.062,
+          "confidence": 0.938,
+          "answer_confidence": 0.938,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      },
+      "usage": {
+        "input_tokens": 65,
+        "output_tokens": 0,
+        "state_tokens": 9,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      }
+    },
+    {
+      "model": "laya-rl-agent",
+      "answers": {
+        "is_illegal_ad": {
+          "type": "noul",
+          "noul": 0.0726,
+          "confidence": 0.9274,
+          "answer_confidence": 0.9274,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      },
+      "usage": {
+        "input_tokens": 67,
+        "output_tokens": 0,
+        "state_tokens": 11,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      }
+    },
+    {
+      "model": "laya-rl-agent",
+      "answers": {
+        "is_illegal_ad": {
+          "type": "noul",
+          "noul": 0.0791,
+          "confidence": 0.9209,
+          "answer_confidence": 0.9209,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      },
+      "usage": {
+        "input_tokens": 63,
+        "output_tokens": 0,
+        "state_tokens": 7,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      }
+    }
+  ],
+  "status": "ok",
+  "load_seconds": 2.298052208003355,
+  "inference_started_at": "2026-10-18T10:32:14.797794+00:00",
+  "inference_seconds": 0.39674058300442994,
+  "inference_finished_at": "2026-10-18T10:32:15.194548+00:00",
+  "agent_object_released": true,
+  "finished_at": "2026-10-18T10:32:15.276569+00:00",
+  "source_hashes_after": {
+    "detector/ai.py": "776f39c1b049a3afc6b00a7aa734f02d1b1f00e3716ca3a65d2507bbd7dde15b",
+    "detector/adscore.py": "dceafe9eba53d3b6a40629ac3c0f750ee4e9ffd37368e83801b0a79a34d6d038",
+    "detector/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "detector/textnorm.py": "640631eb84dd6976d7e8725dd9a1a46645c7079e08d3960fa500ab740d0a52dd",
+    "detector/main.py": "4e1d1135afbfff7cecc501935e24e017d2e7e7969ff700adebb7ba43bb9591af",
+    "detector/frontier.py": "ecca83add6ac14f4a6d2a141480b92d9f295d7656bab99fc8e5c2f64475e5e46",
+    "detector/extract.js": "742097e1f31510900d278015cf4428e334610ddf55d32de313c07b521a6bc67f",
+    "training/make_dataset.py": "1a5ef091654dcb356a0f05a58ccc3af5ab16e99ac8a097c86316d2eda9b6edbb"
+  },
+  "model_hashes_after": {
+    "model.safetensors": "391f38be190d50faf86efb62f6ba026697a1166a5af490bb7c72fc5aa626e14b",
+    "questions.json": "c524e1f65e82e77404f6ec567d2ad6ae92925f95ee020cb3718c7c219234932a",
+    "train_report.json": "45d38e007fcb75d665883cda0dbc11aff82b988708efc08b086928dae3b79807",
+    "rl_agent_config.json": "715cf2aa4fc32bf2ac83968cb7d96af25c2642676e5db8cc59fa5069f9371d3e",
+    "encoder/config.json": "3ceae14d210557b47abcde2768b27afbb2131974f9c4dd714f2236fd9ee54981",
+    "tokenizer/tokenizer_config.json": "5f36fa307ecb9e70c9b058ca0621530f6bd3e89b371c4d6c0279c48d9dbd2629",
+    "tokenizer/tokenizer.json": "dbba919c6e5e492bc22beb80abb64e6fcc7e8744dc696e8388b8c977767afa4b"
+  }
+}

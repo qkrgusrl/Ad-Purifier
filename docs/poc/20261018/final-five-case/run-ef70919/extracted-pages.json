@@ -1,0 +1,617 @@
+[
+  [
+    "http://127.0.0.1:60111/P03.html",
+    [
+      [
+        "",
+        {
+          "hidden": [],
+          "texts": [
+            {
+              "source_id": "3490aa755cb1bf2f6839c8e6:3490aa755cb1bf2f6839c8e6:dom-1",
+              "source_html": "<p id=\"target\">홀덤 동호회 참가 문의</p>",
+              "source_context": "<p id=\"target\">홀덤 동호회 참가 문의</p>",
+              "source_near_text": "홀덤 동호회 참가 문의",
+              "signals": [],
+              "selector": "p",
+              "tag": "p",
+              "cls": "",
+              "text": "홀덤 동호회 참가 문의",
+              "raw": "홀덤 동호회 참가 문의",
+              "href": null
+            }
+          ],
+          "links": [],
+          "head": [
+            {
+              "source_id": "3490aa755cb1bf2f6839c8e6:3490aa755cb1bf2f6839c8e6:dom-2",
+              "source_html": "<title>자료</title>",
+              "source_context": "<meta charset=\"utf-8\">\n<title>자료</title>",
+              "source_near_text": "\n자료",
+              "selector": "head > title",
+              "tag": "title",
+              "cls": "",
+              "href": null,
+              "signals": [],
+              "text": "자료",
+              "raw": "자료"
+            }
+          ],
+          "source_blocks": [
+            {
+              "source_id": "3490aa755cb1bf2f6839c8e6:3490aa755cb1bf2f6839c8e6:dom-1",
+              "source_html": "<p id=\"target\">홀덤 동호회 참가 문의</p>",
+              "source_context": "<p id=\"target\">홀덤 동호회 참가 문의</p>",
+              "source_near_text": "홀덤 동호회 참가 문의",
+              "signals": [],
+              "selector": "p",
+              "tag": "p",
+              "cls": "",
+              "text": "홀덤 동호회 참가 문의",
+              "raw": "홀덤 동호회 참가 문의",
+              "href": null
+            },
+            {
+              "source_id": "3490aa755cb1bf2f6839c8e6:3490aa755cb1bf2f6839c8e6:dom-2",
+              "source_html": "<title>자료</title>",
+              "source_context": "<meta charset=\"utf-8\">\n<title>자료</title>",
+              "source_near_text": "\n자료",
+              "selector": "head > title",
+              "tag": "title",
+              "cls": "",
+              "href": null,
+              "signals": [],
+              "text": "자료",
+              "raw": "자료"
+            }
+          ],
+          "frame_url": "http://127.0.0.1:60111/P03.html"
+        }
+      ]
+    ]
+  ],
+  [
+    "http://127.0.0.1:60111/P11.html",
+    [
+      [
+        "",
+        {
+          "hidden": [],
+          "texts": [
+            {
+              "source_id": "183c6406e931bd52e59c60d3:183c6406e931bd52e59c60d3:dom-1",
+              "source_html": "<p id=\"target\">홈타이 예약 문의</p>",
+              "source_context": "<p id=\"target\">홈타이 예약 문의</p>",
+              "source_near_text": "홈타이 예약 문의",
+              "signals": [],
+              "selector": "p",
+              "tag": "p",
+              "cls": "",
+              "text": "홈타이 예약 문의",
+              "raw": "홈타이 예약 문의",
+              "href": null
+            }
+          ],
+          "links": [],
+          "head": [
+            {
+              "source_id": "183c6406e931bd52e59c60d3:183c6406e931bd52e59c60d3:dom-2",
+              "source_html": "<title>자료</title>",
+              "source_context": "<meta charset=\"utf-8\">\n<title>자료</title>",
+              "source_near_text": "\n자료",
+              "selector": "head > title",
+              "tag": "title",
+              "cls": "",
+              "href": null,
+              "signals": [],
+              "text": "자료",
+              "raw": "자료"
+            }
+          ],
+          "source_blocks": [
+            {
+              "source_id": "183c6406e931bd52e59c60d3:183c6406e931bd52e59c60d3:dom-1",
+              "source_html": "<p id=\"target\">홈타이 예약 문의</p>",
+              "source_context": "<p id=\"target\">홈타이 예약 문의</p>",
+              "source_near_text": "홈타이 예약 문의",
+              "signals": [],
+              "selector": "p",
+              "tag": "p",
+              "cls": "",
+              "text": "홈타이 예약 문의",
+              "raw": "홈타이 예약 문의",
+              "href": null
+            },
+            {
+              "source_id": "183c6406e931bd52e59c60d3:183c6406e931bd52e59c60d3:dom-2",
+              "source_html": "<title>자료</title>",
+              "source_context": "<meta charset=\"utf-8\">\n<title>자료</title>",
+              "source_near_text": "\n자료",
+              "selector": "head > title",
+              "tag": "title",
+              "cls": "",
+              "href": null,
+              "signals": [],
+              "text": "자료",
+              "raw": "자료"
+            }
+          ],
+          "frame_url": "http://127.0.0.1:60111/P11.html"
+        }
+      ]
+    ]
+  ],
+  [
+    "http://127.0.0.1:60111/S06.html",
+    [
+      [
+        "",
+        {
+          "hidden": [],
+          "texts": [
+            {
+              "source_id": "4270d7c9617e7c8bc766f460:4270d7c9617e7c8bc766f460:dom-1",
+              "source_html": "<p id=\"target\">카지노 바카라</p>",
+              "source_context": "<p id=\"target\">카지노 바카라</p>\n<aside class=\"related\">도박 예방교육 자료의 용어 목록입니다.</aside>",
+              "source_near_text": "카지노 바카라\n도박 예방교육 자료의 용어 목록입니다.",
+              "signals": [],
+              "selector": "p",
+              "tag": "p",
+              "cls": "",
+              "text": "카지노 바카라",
+              "raw": "카지노 바카라",
+              "href": null
+            },
+            {
+              "source_id": "4270d7c9617e7c8bc766f460:4270d7c9617e7c8bc766f460:dom-2",
+              "source_html": "<aside class=\"related\">도박 예방교육 자료의 용어 목록입니다.</aside>",
+              "source_context": "<p id=\"target\">카지노 바카라</p>\n<aside class=\"related\">도박 예방교육 자료의 용어 목록입니다.</aside>",
+              "source_near_text": "카지노 바카라\n도박 예방교육 자료의 용어 목록입니다.",
+              "signals": [],
+              "selector": "aside.related",
+              "tag": "aside",
+              "cls": "related",
+              "text": "도박 예방교육 자료의 용어 목록입니다.",
+              "raw": "도박 예방교육 자료의 용어 목록입니다.",
+              "href": null
+            }
+          ],
+          "links": [],
+          "head": [
+            {
+              "source_id": "4270d7c9617e7c8bc766f460:4270d7c9617e7c8bc766f460:dom-3",
+              "source_html": "<title>도박 예방교육</title>",
+              "source_context": "<title>도박 예방교육</title>",
+              "source_near_text": "도박 예방교육",
+              "selector": "head > title",
+              "tag": "title",
+              "cls": "",
+              "href": null,
+              "signals": [],
+              "text": "도박 예방교육",
+              "raw": "도박 예방교육"
+            }
+          ],
+          "source_blocks": [
+            {
+              "source_id": "4270d7c9617e7c8bc766f460:4270d7c9617e7c8bc766f460:dom-1",
+              "source_html": "<p id=\"target\">카지노 바카라</p>",
+              "source_context": "<p id=\"target\">카지노 바카라</p>\n<aside class=\"related\">도박 예방교육 자료의 용어 목록입니다.</aside>",
+              "source_near_text": "카지노 바카라\n도박 예방교육 자료의 용어 목록입니다.",
+              "signals": [],
+              "selector": "p",
+              "tag": "p",
+              "cls": "",
+              "text": "카지노 바카라",
+              "raw": "카지노 바카라",
+              "href": null
+            },
+            {
+              "source_id": "4270d7c9617e7c8bc766f460:4270d7c9617e7c8bc766f460:dom-2",
+              "source_html": "<aside class=\"related\">도박 예방교육 자료의 용어 목록입니다.</aside>",
+              "source_context": "<p id=\"target\">카지노 바카라</p>\n<aside class=\"related\">도박 예방교육 자료의 용어 목록입니다.</aside>",
+              "source_near_text": "카지노 바카라\n도박 예방교육 자료의 용어 목록입니다.",
+              "signals": [],
+              "selector": "aside.related",
+              "tag": "aside",
+              "cls": "related",
+              "text": "도박 예방교육 자료의 용어 목록입니다.",
+              "raw": "도박 예방교육 자료의 용어 목록입니다.",
+              "href": null
+            },
+            {
+              "source_id": "4270d7c9617e7c8bc766f460:4270d7c9617e7c8bc766f460:dom-3",
+              "source_html": "<title>도박 예방교육</title>",
+              "source_context": "<title>도박 예방교육</title>",
+              "source_near_text": "도박 예방교육",
+              "selector": "head > title",
+              "tag": "title",
+              "cls": "",
+              "href": null,
+              "signals": [],
+              "text": "도박 예방교육",
+              "raw": "도박 예방교육"
+            }
+          ],
+          "frame_url": "http://127.0.0.1:60111/S06.html"
+        }
+      ]
+    ]
+  ],
+  [
+    "http://127.0.0.1:60111/S07.html",
+    [
+      [
+        "",
+        {
+          "hidden": [],
+          "texts": [
+            {
+              "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-1",
+              "source_html": "<p id=\"target\">카지노 바카라</p>",
+              "source_context": "<p id=\"target\">카지노 바카라</p>\n<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_near_text": "카지노 바카라\n제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "signals": [],
+              "selector": "p:nth-of-type(1)",
+              "tag": "p",
+              "cls": "",
+              "text": "카지노 바카라",
+              "raw": "카지노 바카라",
+              "href": null
+            },
+            {
+              "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-2",
+              "source_html": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_context": "<p id=\"target\">카지노 바카라</p>\n<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_near_text": "카지노 바카라\n제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "signals": [],
+              "selector": "p:nth-of-type(2)",
+              "tag": "p",
+              "cls": "",
+              "text": "제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "raw": "제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "href": null
+            },
+            {
+              "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-3",
+              "source_html": "<p>제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_context": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_near_text": "제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "signals": [],
+              "selector": "p:nth-of-type(3)",
+              "tag": "p",
+              "cls": "",
+              "text": "제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "raw": "제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "href": null
+            },
+            {
+              "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-4",
+              "source_html": "<p>제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_context": "<p>제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_near_text": "제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "signals": [],
+              "selector": "p:nth-of-type(4)",
+              "tag": "p",
+              "cls": "",
+              "text": "제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "raw": "제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "href": null
+            },
+            {
+              "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-5",
+              "source_html": "<p>제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_context": "<p>제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_near_text": "제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "signals": [],
+              "selector": "p:nth-of-type(5)",
+              "tag": "p",
+              "cls": "",
+              "text": "제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "raw": "제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "href": null
+            },
+            {
+              "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-6",
+              "source_html": "<p>제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_context": "<p>제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_near_text": "제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "signals": [],
+              "selector": "p:nth-of-type(6)",
+              "tag": "p",
+              "cls": "",
+              "text": "제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "raw": "제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "href": null
+            },
+            {
+              "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-7",
+              "source_html": "<p>제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_context": "<p>제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_near_text": "제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "signals": [],
+              "selector": "p:nth-of-type(7)",
+              "tag": "p",
+              "cls": "",
+              "text": "제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "raw": "제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "href": null
+            },
+            {
+              "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-8",
+              "source_html": "<p>제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_context": "<p>제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_near_text": "제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "signals": [],
+              "selector": "p:nth-of-type(8)",
+              "tag": "p",
+              "cls": "",
+              "text": "제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "raw": "제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "href": null
+            },
+            {
+              "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-9",
+              "source_html": "<p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_context": "<p>제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<aside class=\"related\">예방 교육 본문의 인용 용어입니다.</aside>",
+              "source_near_text": "제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n예방 교육 본문의 인용 용어입니다.",
+              "signals": [],
+              "selector": "p:nth-of-type(9)",
+              "tag": "p",
+              "cls": "",
+              "text": "제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "raw": "제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "href": null
+            },
+            {
+              "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-10",
+              "source_html": "<aside class=\"related\">예방 교육 본문의 인용 용어입니다.</aside>",
+              "source_context": "<p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<aside class=\"related\">예방 교육 본문의 인용 용어입니다.</aside>",
+              "source_near_text": "제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n예방 교육 본문의 인용 용어입니다.",
+              "signals": [],
+              "selector": "aside.related",
+              "tag": "aside",
+              "cls": "related",
+              "text": "예방 교육 본문의 인용 용어입니다.",
+              "raw": "예방 교육 본문의 인용 용어입니다.",
+              "href": null
+            }
+          ],
+          "links": [],
+          "head": [
+            {
+              "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-11",
+              "source_html": "<title>자료</title>",
+              "source_context": "<title>자료</title>",
+              "source_near_text": "자료",
+              "selector": "head > title",
+              "tag": "title",
+              "cls": "",
+              "href": null,
+              "signals": [],
+              "text": "자료",
+              "raw": "자료"
+            }
+          ],
+          "source_blocks": [
+            {
+              "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-1",
+              "source_html": "<p id=\"target\">카지노 바카라</p>",
+              "source_context": "<p id=\"target\">카지노 바카라</p>\n<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_near_text": "카지노 바카라\n제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "signals": [],
+              "selector": "p:nth-of-type(1)",
+              "tag": "p",
+              "cls": "",
+              "text": "카지노 바카라",
+              "raw": "카지노 바카라",
+              "href": null
+            },
+            {
+              "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-2",
+              "source_html": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_context": "<p id=\"target\">카지노 바카라</p>\n<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_near_text": "카지노 바카라\n제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "signals": [],
+              "selector": "p:nth-of-type(2)",
+              "tag": "p",
+              "cls": "",
+              "text": "제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "raw": "제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "href": null
+            },
+            {
+              "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-3",
+              "source_html": "<p>제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_context": "<p>제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_near_text": "제1장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "signals": [],
+              "selector": "p:nth-of-type(3)",
+              "tag": "p",
+              "cls": "",
+              "text": "제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "raw": "제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "href": null
+            },
+            {
+              "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-4",
+              "source_html": "<p>제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_context": "<p>제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_near_text": "제2장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "signals": [],
+              "selector": "p:nth-of-type(4)",
+              "tag": "p",
+              "cls": "",
+              "text": "제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "raw": "제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "href": null
+            },
+            {
+              "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-5",
+              "source_html": "<p>제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_context": "<p>제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_near_text": "제3장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "signals": [],
+              "selector": "p:nth-of-type(5)",
+              "tag": "p",
+              "cls": "",
+              "text": "제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "raw": "제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "href": null
+            },
+            {
+              "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-6",
+              "source_html": "<p>제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_context": "<p>제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_near_text": "제4장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "signals": [],
+              "selector": "p:nth-of-type(6)",
+              "tag": "p",
+              "cls": "",
+              "text": "제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "raw": "제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "href": null
+            },
+            {
+              "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-7",
+              "source_html": "<p>제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_context": "<p>제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_near_text": "제5장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "signals": [],
+              "selector": "p:nth-of-type(7)",
+              "tag": "p",
+              "cls": "",
+              "text": "제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "raw": "제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "href": null
+            },
+            {
+              "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-8",
+              "source_html": "<p>제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_context": "<p>제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_near_text": "제6장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "signals": [],
+              "selector": "p:nth-of-type(8)",
+              "tag": "p",
+              "cls": "",
+              "text": "제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "raw": "제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "href": null
+            },
+            {
+              "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-9",
+              "source_html": "<p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>",
+              "source_context": "<p>제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<aside class=\"related\">예방 교육 본문의 인용 용어입니다.</aside>",
+              "source_near_text": "제7장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n예방 교육 본문의 인용 용어입니다.",
+              "signals": [],
+              "selector": "p:nth-of-type(9)",
+              "tag": "p",
+              "cls": "",
+              "text": "제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "raw": "제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.",
+              "href": null
+            },
+            {
+              "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-10",
+              "source_html": "<aside class=\"related\">예방 교육 본문의 인용 용어입니다.</aside>",
+              "source_context": "<p>제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.</p>\n<aside class=\"related\">예방 교육 본문의 인용 용어입니다.</aside>",
+              "source_near_text": "제8장에서는 도박 중독 예방과 피해 지원 절차를 상세히 설명합니다.\n예방 교육 본문의 인용 용어입니다.",
+              "signals": [],
+              "selector": "aside.related",
+              "tag": "aside",
+              "cls": "related",
+              "text": "예방 교육 본문의 인용 용어입니다.",
+              "raw": "예방 교육 본문의 인용 용어입니다.",
+              "href": null
+            },
+            {
+              "source_id": "88927d884b37672d202650e2:88927d884b37672d202650e2:dom-11",
+              "source_html": "<title>자료</title>",
+              "source_context": "<title>자료</title>",
+              "source_near_text": "자료",
+              "selector": "head > title",
+              "tag": "title",
+              "cls": "",
+              "href": null,
+              "signals": [],
+              "text": "자료",
+              "raw": "자료"
+            }
+          ],
+          "frame_url": "http://127.0.0.1:60111/S07.html"
+        }
+      ]
+    ]
+  ],
+  [
+    "http://127.0.0.1:60111/R01.html",
+    [
+      [
+        "",
+        {
+          "hidden": [],
+          "texts": [
+            {
+              "source_id": "2f2f9fc9af7f6c37c3763083:2f2f9fc9af7f6c37c3763083:dom-1",
+              "source_html": "<p id=\"target\">처방전 없이 수면제를 판매합니다</p>",
+              "source_context": "<p id=\"target\">처방전 없이 수면제를 판매합니다</p>",
+              "source_near_text": "처방전 없이 수면제를 판매합니다",
+              "signals": [],
+              "selector": "p",
+              "tag": "p",
+              "cls": "",
+              "text": "처방전 없이 수면제를 판매합니다",
+              "raw": "처방전 없이 수면제를 판매합니다",
+              "href": null
+            }
+          ],
+          "links": [],
+          "head": [
+            {
+              "source_id": "2f2f9fc9af7f6c37c3763083:2f2f9fc9af7f6c37c3763083:dom-2",
+              "source_html": "<title>자료</title>",
+              "source_context": "<meta charset=\"utf-8\">\n<title>자료</title>",
+              "source_near_text": "\n자료",
+              "selector": "head > title",
+              "tag": "title",
+              "cls": "",
+              "href": null,
+              "signals": [],
+              "text": "자료",
+              "raw": "자료"
+            }
+          ],
+          "source_blocks": [
+            {
+              "source_id": "2f2f9fc9af7f6c37c3763083:2f2f9fc9af7f6c37c3763083:dom-1",
+              "source_html": "<p id=\"target\">처방전 없이 수면제를 판매합니다</p>",
+              "source_context": "<p id=\"target\">처방전 없이 수면제를 판매합니다</p>",
+              "source_near_text": "처방전 없이 수면제를 판매합니다",
+              "signals": [],
+              "selector": "p",
+              "tag": "p",
+              "cls": "",
+              "text": "처방전 없이 수면제를 판매합니다",
+              "raw": "처방전 없이 수면제를 판매합니다",
+              "href": null
+            },
+            {
+              "source_id": "2f2f9fc9af7f6c37c3763083:2f2f9fc9af7f6c37c3763083:dom-2",
+              "source_html": "<title>자료</title>",
+              "source_context": "<meta charset=\"utf-8\">\n<title>자료</title>",
+              "source_near_text": "\n자료",
+              "selector": "head > title",
+              "tag": "title",
+              "cls": "",
+              "href": null,
+              "signals": [],
+              "text": "자료",
+              "raw": "자료"
+            }
+          ],
+          "frame_url": "http://127.0.0.1:60111/R01.html"
+        }
+      ]
+    ]
+  ]
+]

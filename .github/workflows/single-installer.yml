@@ -1,0 +1,127 @@
+name: Single offline Windows installer
+on:
+  push:
+    tags: ['build/single-windows-*']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: single-windows-installer-preview
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 120
+    outputs:
+      payload_source_commit: ${{ steps.validate.outputs.payload_source_commit }}
+      packaging_commit: ${{ steps.validate.outputs.packaging_commit }}
+      self_test: ${{ steps.validate.outputs.self_test }}
+      ui_smoke: ${{ steps.validate.outputs.ui_smoke }}
+    env:
+      PYTHONUTF8: '1'
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Repack baseline and run actual Windows installation, self-test and UI
+        shell: pwsh
+        run: ./scripts/build_windows.ps1 -SingleInstaller -Version 0.2.0-preview.2
+      - name: Validate payload provenance and single installer
+        id: validate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PayloadSource = 'dae7af58e636d3b0438910271de11081f9cbdd01'
+          $Manifest = Get-Content -Raw release/installer-manifest.json | ConvertFrom-Json
+          $Validation = Get-Content -Raw release/validation-status.json | ConvertFrom-Json
+          $Payload = Get-Content -Raw build-diagnostics/payload-source.json | ConvertFrom-Json
+          if ($env:GITHUB_SHA -cnotmatch '^[0-9a-f]{40}$' -or
+              $Manifest.source_commit -cne $env:GITHUB_SHA -or $Manifest.version -cne '0.2.0-preview.2' -or
+              $Manifest.payload_source_commit -cne $PayloadSource -or
+              $Payload.source_sha -cne $PayloadSource -or $Payload.payload_source_commit -cne $PayloadSource -or
+              $Payload.packaging_commit -cne $env:GITHUB_SHA -or $Payload.validation_status -cne 'passed' -or
+              $Payload.manifest_sha256 -cne 'b7e57e0203efba4b63c9a715cede874aa301e1fc17f1f1f2fa1c4da8db97db8e' -or
+              $Validation.source_commit -cne $env:GITHUB_SHA -or $Validation.validation_status -cne 'passed') {
+              throw 'payload/packaging 출처 또는 Windows 검증 상태 불일치'
+          }
+          $Files = @(Get-ChildItem release -File -Filter '*.exe')
+          if ($Files.Count -ne 1 -or $Files[0].Name -cne 'AdPurifier-0.2.0-preview.2-Setup.exe' -or @($Manifest.files).Count -ne 1 -or
+              $Manifest.files[0].path -cne $Files[0].Name -or $Files[0].Length -ge 4200000000 -or
+              @(Get-ChildItem release -File -Filter '*.bin').Count) { throw '단일 EXE 구성/크기 오류' }
+          python -m scripts.assets verify --root release --manifest release/installer-manifest.json
+          if ($LASTEXITCODE -ne 0) { throw '단일 EXE hash/size 검증 실패' }
+          $SelfTest = Get-Content -Raw release/self-test.json | ConvertFrom-Json
+          $UI = Get-Content -Raw build-diagnostics/ui-smoke.json | ConvertFrom-Json
+          $Shutdown = Get-Content -Raw build-diagnostics/ui-shutdown.json | ConvertFrom-Json
+          if ($SelfTest.status -cne 'ok' -or -not $SelfTest.frozen -or -not $UI.model_available -or
+              $Shutdown.status -cne 'ok' -or $Shutdown.exit_code -ne 0) { throw '실제 Windows self-test/UI 증거 불일치' }
+          "payload_source_commit=$PayloadSource" >> $env:GITHUB_OUTPUT
+          "packaging_commit=$env:GITHUB_SHA" >> $env:GITHUB_OUTPUT
+          'self_test=passed' >> $env:GITHUB_OUTPUT
+          'ui_smoke=passed' >> $env:GITHUB_OUTPUT
+      - name: Upload single raw EXE
+        id: installer
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: AdPurifier-0.2.0-preview.2-Setup.exe
+          path: release/*.exe
+          archive: false
+          if-no-files-found: error
+          retention-days: 14
+      - name: Preserve metadata in prepared draft release
+        shell: pwsh
+        env:
+          ARTIFACT_ID: ${{ steps.installer.outputs.artifact-id }}
+          ARTIFACT_URL: ${{ steps.installer.outputs.artifact-url }}
+          ARTIFACT_DIGEST: ${{ steps.installer.outputs.artifact-digest }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $Tag = 'v0.2.0-preview.2'
+          python -m scripts.release_manifest --verify-tag --repo $env:GITHUB_REPOSITORY --tag $Tag --expected-sha $env:GITHUB_SHA
+          if ($LASTEXITCODE -ne 0) { throw '실제 원격 태그 SHA 불일치' }
+          $Raw = gh release view $Tag --repo $env:GITHUB_REPOSITORY --json isDraft
+          if ($LASTEXITCODE -ne 0) { throw '준비된 릴리스 조회 실패' }
+          if (($Raw | ConvertFrom-Json).isDraft -ne $true) { throw 'draft 릴리스만 허용' }
+          if (-not $env:ARTIFACT_ID -or -not $env:ARTIFACT_URL -or -not $env:ARTIFACT_DIGEST) { throw 'artifact metadata 누락' }
+          $RawArtifact = gh api "repos/$env:GITHUB_REPOSITORY/actions/artifacts/$env:ARTIFACT_ID"
+          if ($LASTEXITCODE -ne 0) { throw 'artifact 만료 정보 조회 실패' }
+          $Artifact = $RawArtifact | ConvertFrom-Json
+          if ($Artifact.expired -or -not $Artifact.expires_at -or
+              [string]$Artifact.id -cne $env:ARTIFACT_ID) { throw 'artifact 식별자/만료 정보 오류' }
+          $Manifest = Get-Content -Raw release/installer-manifest.json | ConvertFrom-Json
+          $Expected = @($Manifest.files)
+          $OutputDigest = $env:ARTIFACT_DIGEST -creplace '^sha256:', ''
+          $ApiDigest = [string]$Artifact.digest -creplace '^sha256:', ''
+          if ($Expected.Count -ne 1 -or $Manifest.source_commit -cne $env:GITHUB_SHA -or
+              $OutputDigest -cnotmatch '^[0-9a-f]{64}$' -or $ApiDigest -cnotmatch '^[0-9a-f]{64}$' -or
+              $OutputDigest -cne $Expected[0].sha256 -or $ApiDigest -cne $Expected[0].sha256 -or
+              $Artifact.size_in_bytes -ne $Expected[0].size) { throw 'raw artifact digest/size와 설치 manifest 불일치' }
+          [ordered]@{
+              artifact_id = $env:ARTIFACT_ID; artifact_url = $env:ARTIFACT_URL
+              artifact_digest = $OutputDigest; size_in_bytes = $Artifact.size_in_bytes; expires_at = $Artifact.expires_at; retention_days = 14
+              source_commit = $env:GITHUB_SHA; payload_source_commit = '${{ steps.validate.outputs.payload_source_commit }}'
+              installation = 'artifact URL에서 Setup.exe 하나를 내려받아 실행. GitHub 로그인/저장소 접근 필요. 만료 후 재빌드 필요.'
+          } | ConvertTo-Json | Set-Content release/download-info.json -Encoding utf8
+          Copy-Item build-diagnostics/payload-source.json, build-diagnostics/ui-smoke.json, build-diagnostics/ui-shutdown.json release/
+          $Names = @('installer-manifest.json', 'SHA256SUMS.txt', 'validation-status.json', 'download-info.json',
+              'assets.lock.json', 'installed-assets.json', 'crt-manifest.json', 'THIRD_PARTY_NOTICES.txt',
+              'self-test.json', 'payload-source.json', 'ui-smoke.json', 'ui-shutdown.json')
+          $Metadata = @($Names | ForEach-Object {
+              $File = Get-Item (Join-Path release $_)
+              if ($File.PSIsContainer -or $File.Length -ge 2GB) { throw 'metadata 크기/유형 오류' }
+              $File.FullName
+          })
+          gh release upload $Tag @Metadata --repo $env:GITHUB_REPOSITORY --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'draft metadata upload 실패' }
+      - name: Preserve build diagnostics
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: single-windows-diagnostics-${{ github.sha }}
+          path: build-diagnostics/
+          if-no-files-found: warn
+          retention-days: 14

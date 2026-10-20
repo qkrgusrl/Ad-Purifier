@@ -5,12 +5,14 @@
 점검 이력은 history/<실행시각>/ 에 report.json, result.json, review.json(검토 상태·메모)으로 쌓는다.
 이력 삭제는 history/ 아래 실행 ID 형식 폴더만 지운다 (구동 폴더의 제출용 result.json은 그대로).
 
-사용: python -m ui.server [--port 8780] [--no-browser]
+사용: python -m ui.server [--port 8780] [--no-browser] [--no-time-limit]
+      --no-time-limit: 실험용. 시간 한도 없이 대기열이 빌 때까지 사이트 전체를 탐색한다(제출 시간 30분을 넘길 수 있음).
 """
 import argparse
 import csv
 import hashlib
 import io
+import importlib.util
 import json
 import re
 import shutil
@@ -22,25 +24,79 @@ import webbrowser
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
-from detector.main import DEFAULT_MODEL, JUDGE_RESERVE, KST, LLM_RESERVE, TIME_BUDGET, app_dir, run
+from app_paths import resource_root, gemma_model, llama_server
+
+from detector.main import DEFAULT_MODEL, JUDGE_RESERVE, KST, LLM_RESERVE, TIME_BUDGET, ScanCancelled, app_dir, run
 
 CRAWL_LIMIT = TIME_BUDGET - LLM_RESERVE - JUDGE_RESERVE  # 화면 진행률에 쓰는 크롤링 최대 시간(초)
+NO_LIMIT_BUDGET = 7 * 24 * 3600  # --no-time-limit: 사실상 무제한(대기열이 비면 끝난다)
+options = {"time_limit": True, "complete_validation": False}
 
-STATIC = Path(__file__).resolve().parent / "static"
+STATIC = resource_root() / "ui" / "static"
 HISTORY = app_dir() / "history"
 RUN_ID = re.compile(r"\d{8}-\d{6}")
 CAND_KEY = re.compile(r"[0-9a-f]{12}")
 REVIEW_STATES = {"new", "confirmed", "false_positive", "resolved"}
 
 state_lock = threading.Lock()
-state = {"running": False, "phase": "idle", "pages_done": 0, "pages_found": 0, "current_url": "",
-         "started": None, "run_id": None, "error": None}
+state = {"running": False, "phase": "idle", "entry_url": "", "pages_done": 0, "pages_found": 0, "current_url": "",
+         "started": None, "run_id": None, "error": None, "cancelling": False}
+cancel_event = threading.Event()  # 탐지 취소 신호 (진행 중인 점검 하나에만 쓰고, 새 점검을 시작할 때 비운다)
+
+
+def join_scan_worker(httpd):
+    """취소 후 scan context가 자식을 정리하고 반환할 때까지 기다린다."""
+    cancel_event.set()
+    worker = getattr(httpd, "scan_worker", None)
+    if worker is not None:
+        worker.join()
+
+
+def shutdown_server(httpd):
+    join_scan_worker(httpd)
+    httpd.shutdown()
+
+
+def model_readiness():
+    """파일 준비와 실제 실행 검증은 다르다. 상태 API에서 모델을 실행하지 않는다."""
+    files = {
+        "laya_weights": DEFAULT_MODEL / "model.safetensors",
+        "laya_config": DEFAULT_MODEL / "rl_agent_config.json",
+        "laya_questions": DEFAULT_MODEL / "questions.json",
+        "encoder": DEFAULT_MODEL / "encoder" / "config.json",
+        "tokenizer": DEFAULT_MODEL / "tokenizer" / "tokenizer.json",
+        "tokenizer_config": DEFAULT_MODEL / "tokenizer" / "tokenizer_config.json",
+        "gemma_weights": gemma_model(), "llama_server": llama_server(),
+    }
+    if sys.platform == "win32":
+        # b11429 공식 CPU 배포물의 기본 backend와 서버 실행 의존 파일.
+        for name in ("llama.dll", "ggml.dll", "ggml-base.dll", "ggml-cpu-x64.dll", "ggml-cpu-sse42.dll",
+                     "llama-common.dll", "mtmd.dll", "libomp.dll", "llama-server-impl.dll",
+                     "MSVCP140.dll", "VCRUNTIME140.dll", "VCRUNTIME140_1.dll"):
+            files[name] = llama_server().parent / name
+    available = {name: path.is_file() and path.stat().st_size > 0 for name, path in files.items()}
+    dependencies = {}
+    for name in ("laya", "torch", "transformers", "tokenizers", "safetensors", "playwright"):
+        try:
+            dependencies[name] = importlib.util.find_spec(name) is not None
+        except (ValueError, ImportError):
+            dependencies[name] = False
+    return {"files": available, "dependencies": dependencies,
+            "files_present": all(available.values()) and all(dependencies.values()),
+            "execution_status": "not_checked", "note": "파일 존재 확인만 수행; 모델 로딩·추론 성공을 뜻하지 않음"}
 
 
 def cand_key(c):
-    return hashlib.sha1(f"{c['url']}|{c['location']}|{c['technique']}".encode()).hexdigest()[:12]
+    if c.get("source_id"):
+        # 새 문구에 이전 위치 단위의 검토 상태를 일괄 적용하지 않는다.
+        identity = [c["url"], c["location"], c["technique"], c["source_id"],
+                    c.get("attr", ""), c["evidence_text"]]
+        payload = json.dumps(identity, ensure_ascii=False, separators=(",", ":"))
+    else:
+        payload = f"{c['url']}|{c['location']}|{c['technique']}"
+    return hashlib.sha1(payload.encode()).hexdigest()[:12]
 
 
 def scan_job(entry_url, use_ml, max_pages):
@@ -50,31 +106,64 @@ def scan_job(entry_url, use_ml, max_pages):
 
     def phase(name):
         with state_lock:
-            state["phase"] = name
+            if not state["cancelling"]:
+                state["phase"] = name
 
     run_id = datetime.now(KST).strftime("%Y%m%d-%H%M%S")
     try:
-        run(entry_url, app_dir(), max_pages=max_pages, use_ml=use_ml, progress=progress, phase=phase)
+        budget = {} if options["time_limit"] else {"time_budget": NO_LIMIT_BUDGET}
+        report = run(entry_url, app_dir(), max_pages=max_pages, use_ml=use_ml, progress=progress, phase=phase,
+            cancel=cancel_event, complete_validation=options["complete_validation"], **budget)
         dest = HISTORY / run_id
         dest.mkdir(parents=True, exist_ok=True)
         for name in ("result.json", "report.json"):
             shutil.copy2(app_dir() / name, dest / name)
         with state_lock:
-            state.update(phase="done", run_id=run_id)
+            state.update(phase="review" if report.get("needs_review") else "done", run_id=run_id)
+    except ScanCancelled:  # 결과 파일·이력은 만들지 않는다 (지난 점검의 result.json 그대로)
+        with state_lock:
+            state.update(phase="cancelled")
     except Exception as e:
         traceback.print_exc()
         with state_lock:
             state.update(phase="error", error=f"{type(e).__name__}: {e}")
     finally:
         with state_lock:
-            state["running"] = False
+            state.update(running=False, cancelling=False)
+
+
+def restore_review_state(rep):
+    """이전 보고서의 미판정 상태를 조회 메모리에서만 복원한다."""
+    for c in rep.get("candidates", []):
+        if c.get("verdict") not in ("ad", "clean") or c.get("processing_status") in ("review", "error", "timeout", "cancelled"):
+            c["verdict"] = "uncertain"
+            if c.get("processing_status") in (None, "completed"):
+                c["processing_status"] = "review"
+            c.setdefault("reason", "이전 보고서의 미판정 항목: 재검토 필요")
+    pending = sum(c.get("verdict") == "uncertain" for c in rep.get("candidates", []))
+    pending += len(rep.get("ai", {}).get("unresolved_sources", []))
+    rep["unresolved_count"] = max(rep.get("unresolved_count", 0), pending)
+    failures = rep.get("failed_pages", [])
+    frames = rep.get("failed_frames", [])
+    queued = rep.get("left_in_queue", 0)
+    incomplete = bool(rep.get("crawl_incomplete") or rep.get("entry_failed") or failures or frames
+                      or queued or rep.get("stopped_by_time") or rep.get("http_errors"))
+    rep["crawl_incomplete"] = incomplete
+    rep["needs_review"] = bool(rep.get("needs_review") or rep["unresolved_count"] or incomplete
+                               or rep.get("ai", {}).get("mode") == "diagnostic")
+    if "coverage" not in rep:
+        rep["coverage"] = {"visited_pages": rep.get("pages", 0), "pending_pages": queued,
+                           "failed_pages": len(failures), "failed_frames": len(frames),
+                           "stopped_by_time": rep.get("stopped_by_time", False),
+                           "discovered_pages": rep.get("pages", 0) + queued + len(failures)}
+    return rep
 
 
 def list_runs():
     runs = []
     for d in sorted(HISTORY.glob("*/report.json"), reverse=True):
         try:
-            rep = json.loads(d.read_text(encoding="utf-8"))
+            rep = restore_review_state(json.loads(d.read_text(encoding="utf-8")))
         except (OSError, json.JSONDecodeError):
             continue
         review_path = d.parent / "review.json"
@@ -92,7 +181,8 @@ def list_runs():
                      "dirty_pages": len({u for c in pending_ads for u in [c["url"]] + [x["url"] for x in c.get("also_on", [])]}),
                      "pending_hidden": sum(c["technique"] != "POSTED" for c in pending_ads),
                      "pending_unique": len({" ".join(c["evidence_text"].split()) for c in pending_ads}),
-                     "entry_failed": rep.get("entry_failed", False)})
+                     "entry_failed": rep.get("entry_failed", False), "needs_review": rep.get("needs_review", False),
+                     "unresolved_count": rep.get("unresolved_count", 0), "coverage": rep.get("coverage", {})})
     return runs
 
 
@@ -107,7 +197,7 @@ def load_run(run_id):
     d = run_dir(run_id)
     if not d:
         return None
-    rep = json.loads((d / "report.json").read_text(encoding="utf-8"))
+    rep = restore_review_state(json.loads((d / "report.json").read_text(encoding="utf-8")))
     review_path = d / "review.json"
     review = json.loads(review_path.read_text(encoding="utf-8")) if review_path.is_file() else {}
     for c in rep["candidates"]:
@@ -117,6 +207,37 @@ def load_run(run_id):
         c["memo"] = r.get("memo", "")
     rep["id"] = run_id
     return rep
+
+
+def ui_report(rep):
+    """UI 조회 전용 projection. 원문을 복제하거나 저장 객체를 변경하지 않는다."""
+    heavy = {"source_html", "source_context", "source_near_text", "context", "raw",
+             "gemma", "extraction", "visit_log", "external_skipped", "duplicates"}
+    value = {key: item for key, item in rep.items() if key not in heavy}
+    value["candidates"] = [
+        {key: item for key, item in candidate.items() if key not in heavy}
+        for candidate in rep.get("candidates", [])
+    ]
+    warning_fields = {"source_id", "reason", "processing_status", "url", "location",
+                      "status", "error", "message", "stage", "technique", "selector",
+                      "frame_url", "attr"}
+
+    def warnings(items):
+        return [{key: item for key, item in row.items()
+                 if key in warning_fields and not isinstance(item, (dict, list))}
+                for row in items]
+
+    for key in ("failed_pages", "failed_frames", "http_errors"):
+        if key in rep:
+            value[key] = warnings(rep[key])
+    ai = rep.get("ai")
+    if isinstance(ai, dict):
+        value["ai"] = {key: item for key, item in ai.items()
+                       if key not in heavy and not isinstance(item, (dict, list))}
+        if "unresolved_sources" in ai:
+            value["ai"]["unresolved_sources"] = warnings(ai["unresolved_sources"][:5])
+            value["ai"]["unresolved_sources_count"] = len(ai["unresolved_sources"])
+    return value
 
 
 def delete_runs(run_ids):
@@ -158,7 +279,7 @@ def export_csv(rep, result_doc):
         w.writerow([csv_cell(v) for v in (
             ids.get((c["url"], c["location"], c["technique"]), ""), c["url"], "true", c["location"], c["evidence_text"],
             c["technique"], TECH_KO.get(c["technique"], c["technique"]), c["normalized"], evidence_of(c), c["score"],
-            "AI 보조 판정" if c["decided_by"] == "laya" else "규칙", REVIEW_KO.get(c["review"], c["review"]), c["memo"], len(c.get("also_on", [])))])
+            {"laya": "Laya 판정", "gemma": "젬마 검증"}.get(c["decided_by"], "규칙"), REVIEW_KO.get(c["review"], c["review"]), c["memo"], len(c.get("also_on", [])))])
     # 엑셀에서 한글이 깨지지 않도록 BOM 추가 (검토용 파일 — 제출용 result.json은 BOM 없음)
     return "\ufeff" + buf.getvalue()
 
@@ -220,8 +341,10 @@ class Handler(BaseHTTPRequestHandler):
             with state_lock:
                 s = dict(state)
             s["elapsed"] = round(time.time() - s["started"], 1) if s["started"] else 0
-            s["model_available"] = DEFAULT_MODEL.is_dir()
-            s["crawl_limit"] = CRAWL_LIMIT
+            s["model_readiness"] = model_readiness()
+            s["model_available"] = s["model_readiness"]["files_present"]
+            s["crawl_limit"] = CRAWL_LIMIT if options["time_limit"] else 0  # 0 = 시간 제한 없음(실험)
+            s["validation_mode"] = "complete" if options["complete_validation"] else "bounded"
             s["out_dir"] = str(app_dir())
             return self.send(200, s)
         if path == "/api/runs":
@@ -232,7 +355,8 @@ class Handler(BaseHTTPRequestHandler):
             if rep is None:
                 return self.send(404, {"error": "점검 이력을 찾을 수 없습니다."})
             if len(parts) == 3:
-                return self.send(200, rep)
+                view = parse_qs(urlparse(self.path).query).get("view", [])
+                return self.send(200, ui_report(rep) if view == ["ui"] else rep)
             result_path = HISTORY / parts[2] / "result.json"
             if parts[3:] == ["export.csv"]:
                 result_doc = json.loads(result_path.read_text(encoding="utf-8")) if result_path.is_file() else {}
@@ -250,22 +374,47 @@ class Handler(BaseHTTPRequestHandler):
         if not self.trusted():
             return self.send(403, {"error": "forbidden"})
         path = urlparse(self.path).path
+        if path == "/api/shutdown":
+            with state_lock:
+                if not getattr(self.server, "closing", False):
+                    self.server.closing = True
+                    state.update(cancelling=True, phase="closing")
+                    cancel_event.set()
+                    self.server.shutdown_worker = threading.Thread(target=shutdown_server, args=(self.server,),
+                                                                   name="app-shutdown")
+                    self.server.shutdown_worker.start()
+            return self.send(202, {"ok": True, "status": "closing"})
         if path == "/api/scan":
             req = self.body()
             url = (req.get("url") or "").strip()
             if urlparse(url).scheme not in ("http", "https") or not urlparse(url).netloc:
                 return self.send(400, {"error": "http:// 또는 https:// 로 시작하는 URL을 입력하세요."})
-            use_ml = bool(req.get("use_ml", True)) and DEFAULT_MODEL.is_dir()
+            use_ml = bool(req.get("use_ml", True))
+            if use_ml and not model_readiness()["files_present"]:
+                return self.send(409, {"error": "AI 자산 또는 의존 파일이 없습니다. 설치 상태를 확인하거나 AI 체크를 직접 해제해 진단 모드를 선택하세요."})
             try:
                 max_pages = max(0, min(int(req.get("max_pages") or 0), 20000))  # 0 = 제한 없음(시간 예산까지 전부)
             except (TypeError, ValueError):
                 return self.send(400, {"error": "최대 페이지는 숫자로 입력하세요."})
             with state_lock:
-                if state["running"]:
+                if getattr(self.server, "closing", False):
+                    return self.send(409, {"error": "프로그램 종료 중입니다."})
+                previous_worker = getattr(self.server, "scan_worker", None)
+                if state["running"] or (previous_worker is not None and previous_worker.is_alive()):
                     return self.send(409, {"error": "이미 탐지가 진행 중입니다."})
-                state.update(running=True, phase="start", pages_done=0, pages_found=1, current_url=url,
-                             started=time.time(), run_id=None, error=None)
-            threading.Thread(target=scan_job, args=(url, use_ml, max_pages), daemon=True).start()
+                state.update(running=True, phase="start", entry_url=url, pages_done=0, pages_found=1, current_url=url,
+                             started=time.time(), run_id=None, error=None, cancelling=False)
+                cancel_event.clear()
+                self.server.scan_worker = threading.Thread(target=scan_job, args=(url, use_ml, max_pages),
+                                                           name="scan-worker")
+                self.server.scan_worker.start()
+            return self.send(202, {"ok": True})
+        if path == "/api/scan/cancel":
+            with state_lock:
+                if not state["running"]:
+                    return self.send(409, {"error": "진행 중인 탐지가 없습니다."})
+                state.update(cancelling=True, phase="cancelling")
+                cancel_event.set()
             return self.send(202, {"ok": True})
         if path == "/api/history/clear":
             with state_lock:
@@ -303,7 +452,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8780)
     ap.add_argument("--no-browser", action="store_true")
+    ap.add_argument("--no-time-limit", action="store_true", help="실험용: 시간 한도 없이 사이트 전체 탐색")
+    ap.add_argument("--complete-validation", action="store_true",
+                    help="수집 시간 상한 유지; 수집된 항목의 AI 판정은 시간 상한 없이 완료")
     args = ap.parse_args()
+    options["time_limit"] = not args.no_time_limit
+    options["complete_validation"] = args.complete_validation
     try:
         httpd = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     except OSError:  # 포트가 사용 중이면 빈 포트로
@@ -311,12 +465,26 @@ def main():
     url = f"http://127.0.0.1:{httpd.server_address[1]}/"
     print(f"광고청정기 실행 중: {url}  (종료: Ctrl+C)")
     print(f"결과 파일 위치: {app_dir()}")
+    if args.no_time_limit:
+        print("[실험] 시간 한도 없이 탐색합니다 — 제출 시간(30분)을 넘길 수 있습니다.")
+    if args.complete_validation:
+        print("[완료 우선] 수집된 항목의 AI 판정에는 시간 제한이 없습니다.")
     if not args.no_browser:
         threading.Timer(0.5, webbrowser.open, args=(url,)).start()
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
         pass
+    finally:
+        with state_lock:
+            httpd.closing = True
+            cancel_event.set()
+            closer = getattr(httpd, "shutdown_worker", None)
+        if closer is not None:
+            closer.join()
+        else:
+            join_scan_worker(httpd)
+        httpd.server_close()
 
 
 if __name__ == "__main__":

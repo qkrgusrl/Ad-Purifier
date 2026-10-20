@@ -74,7 +74,34 @@
     return t;
   }
 
-  const hidden = [], texts = [];
+  const hidden = [], texts = [], source_blocks = [];
+  const owners = new WeakMap();
+  const collected = new Set();
+  let nextOwner = 0;
+  function source(el, suffix = '') {
+    if (!owners.has(el)) owners.set(el, 'dom-' + (++nextOwner));
+    // 본문 전체나 다른 기사의 교육 문맥을 넘기지 않는다.
+    const container = el.closest('p,li,td,th,figcaption,blockquote,div,article,section') || el;
+    const local = container === document.body ? el : container;
+    const article = el.closest('article,section,[role="article"],.article,.post,.entry');
+    const title = article ? article.querySelector('h1,h2,h3,header') : null;
+    const nearby = [local.previousElementSibling, local, local.nextElementSibling]
+      .filter(n => n && (n === local || (!n.matches('article,section,[role="article"]') &&
+        (!article || article.contains(n)))));
+    const contextHtml = nearby.map(n => n.outerHTML).join('\n');
+    const titleHtml = title && !nearby.some(n => n.contains(title)) ? title.outerHTML + '\n' : '';
+    return { source_id: owners.get(el) + suffix,
+             source_html: el.outerHTML,
+             source_context: titleHtml + contextHtml,
+             source_near_text: (title ? title.textContent + '\n' : '') + nearby.map(textOf).join('\n') };
+  }
+  function collect(row) {
+    if (!collected.has(row.source_id)) {
+      source_blocks.push(row);
+      collected.add(row.source_id);
+    }
+    return row;
+  }
 
   // ---- 메인 DOM 순회 (Shadow DOM 포함) ----
   function* walkDOM(root) {
@@ -169,15 +196,15 @@
     const link = el.closest('a[href]');
     if (signals.length && full) {
       const sel = inShadow(el) ? shadowSelector(el) : selector(el);
-      hidden.push({ selector: sel, tag: el.tagName.toLowerCase(), cls: el.className || '',
-                    text: full, raw: rawFull, signals, href: link ? link.href : null });
+      hidden.push(collect({ ...source(el), selector: sel, tag: el.tagName.toLowerCase(), cls: el.className || '',
+                    text: full, raw: rawFull, signals, href: link ? link.href : null }));
     }
     if (own) {
       const sel = inShadow(el) ? shadowSelector(el) : selector(el);
       // href: 링크 글자면 링크 주소 — 본문에 같은 외부 사이트 링크를 여러 개 끼워 넣은 '삽입형' 판정에 쓴다
-      texts.push({ selector: sel, tag: el.tagName.toLowerCase(), cls: el.className || '', text: own,
+      texts.push(collect({ ...source(el), signals, selector: sel, tag: el.tagName.toLowerCase(), cls: el.className || '', text: own,
                    raw: [...el.childNodes].filter(n => n.nodeType === 3).map(n => n.nodeValue).join(''),
-                   href: link ? link.href : null });
+                   href: link ? link.href : null }));
     }
   }
 
@@ -186,7 +213,7 @@
     if (SKIP.has(el.tagName.toUpperCase())) continue;
     for (const a of ['alt', 'title', 'aria-label']) {
       const v = norm(el.getAttribute(a));
-      if (v) texts.push({ selector: selector(el), tag: el.tagName.toLowerCase(), cls: el.className || '', text: v, raw: el.getAttribute(a), attr: a });
+      if (v) texts.push(collect({ ...source(el, '@' + a), signals: [], href: el.closest('a[href]')?.href || null, selector: selector(el), tag: el.tagName.toLowerCase(), cls: el.className || '', text: v, raw: el.getAttribute(a), attr: a }));
     }
   }
 
@@ -213,10 +240,10 @@
         if (ratio < 1.15) pSignals.push(['TRANSPARENT', 'pseudo:same-color(' + ratio.toFixed(2) + ')']);
       }
       if (pSignals.length)
-        hidden.push({ selector: pSel, tag: el.tagName.toLowerCase(), cls: el.className || '',
-                      text, raw: raw_c, signals: pSignals, href: null });
-      texts.push({ selector: pSel, tag: el.tagName.toLowerCase(), cls: el.className || '',
-                   text, raw: raw_c, attr: pseudo });
+        hidden.push(collect({ ...source(el, pseudo), selector: pSel, tag: el.tagName.toLowerCase(), cls: el.className || '',
+                      text, raw: raw_c, signals: pSignals, href: null }));
+      texts.push(collect({ ...source(el, pseudo), signals: pSignals, href: null, selector: pSel, tag: el.tagName.toLowerCase(), cls: el.className || '',
+                   text, raw: raw_c, attr: pseudo }));
     }
   }
 
@@ -276,14 +303,14 @@
   const head = [];
   const titleEl = document.querySelector('head > title');
   if (titleEl && norm(titleEl.textContent))
-    head.push({ selector: 'head > title', text: norm(titleEl.textContent), raw: titleEl.textContent });
+    head.push(collect({ ...source(titleEl), selector: 'head > title', tag: 'title', cls: '', href: null, signals: [], text: norm(titleEl.textContent), raw: titleEl.textContent }));
   for (const m of document.querySelectorAll('meta[name="description"], meta[name="keywords"], meta[property="og:title"], meta[property="og:description"]')) {
     const v = norm(m.getAttribute('content'));
     const key = m.hasAttribute('name') ? 'name' : 'property';
-    if (v) head.push({ selector: `meta[${key}="${m.getAttribute(key)}"]`, text: v, raw: m.getAttribute('content') });
+    if (v) head.push(collect({ ...source(m), selector: `meta[${key}="${m.getAttribute(key)}"]`, tag: 'meta', cls: '', href: null, signals: [], text: v, raw: m.getAttribute('content') }));
   }
 
   // Array.from 대신 전개 구문: Prototype.js 등 옛 라이브러리가 Array.from을 덮어써 Set을 빈 배열로 만든다
   const links = [...linkMap];
-  return { hidden, texts, links, head };
+  return { hidden, texts, links, head, source_blocks };
 }

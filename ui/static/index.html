@@ -146,12 +146,15 @@ label.inline { display: inline-flex; align-items: center; gap: 6px; color: var(-
 .url-box svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--teal); }
 .url-box input { width: 100%; padding: 13px 14px 13px 42px; border-radius: 999px; font-size: 15px; }
 input[type=number] { width: 84px; }
-#maxPages { width: 104px; }  /* "제한 없음" 안내 글자가 잘리지 않게 */
 #startBtn { display: inline-flex; flex-direction: column; align-items: center; line-height: 1.2; padding: 10px 30px;
   border: 0; border-radius: 999px; color: #fff; font-size: 16px; font-weight: 800;
   background: linear-gradient(90deg, #0f9e8e, #22b47d); box-shadow: 0 8px 20px rgba(15, 158, 142, .35); }
 #startBtn::after { content: "Purify Now"; font-size: 11px; font-weight: 600; opacity: .85; letter-spacing: .04em; }
 #startBtn:hover:not(:disabled) { background: linear-gradient(90deg, #0b8a7c, #1ea06f); box-shadow: 0 10px 24px rgba(15, 158, 142, .45); }
+/* 탐지 중에는 같은 자리의 버튼이 '탐지 중지'로 바뀐다 */
+#startBtn.stop { background: linear-gradient(90deg, #e2484d, #f0795c); box-shadow: 0 8px 20px rgba(226, 72, 77, .3); }
+#startBtn.stop::after { content: "Stop"; }
+#startBtn.stop:hover:not(:disabled) { background: linear-gradient(90deg, #c93a3f, #e2674b); box-shadow: 0 10px 24px rgba(226, 72, 77, .4); }
 .hint { margin-top: 10px; color: var(--dim); font-size: 12px; overflow-wrap: anywhere; }
 .error { margin-top: 12px; padding: 10px 14px; border-radius: 12px; background: var(--coral-weak); color: #a3262a; }
 .error:empty { display: none; }
@@ -185,6 +188,7 @@ input[type=number] { width: 84px; }
 .progress .line { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; font-size: 12px; color: var(--muted); }
 .progress .line span:first-child { white-space: nowrap; color: var(--teal-dark); font-weight: 700; }
 .progress .line span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#stopConfirm { margin: 14px 0 0; }
 
 /* ---------- 접속 실패 경고 ---------- */
 .warn-banner { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 22px; padding: 14px 18px; border-radius: 16px;
@@ -445,7 +449,7 @@ tr.row.in-page td:first-child { padding-left: 28px; }
     <section class="card history-card">
       <div class="history-head">
         <h2><svg class="i"><use href="#ic-clock"/></svg>점검 이력</h2>
-        <button type="button" class="link" id="clearAll" hidden>전체 삭제</button>
+        <span><button type="button" class="link" id="deselect" hidden title="결과를 닫고 처음 화면으로">선택 해제</button><button type="button" class="link" id="clearAll" hidden>전체 삭제</button></span>
       </div>
       <div class="clear-confirm" id="clearConfirm" hidden>
         <div class="confirm-row"><span id="clearText">점검 이력을 모두 삭제할까요?</span>
@@ -459,16 +463,20 @@ tr.row.in-page td:first-child { padding-left: 28px; }
     <div class="topbar">
       <div><h2>Dashboard</h2><p>공공 웹사이트에 숨어 있는 불법광고를 찾아 깨끗하게 정화합니다.</p></div>
       <span class="status-pill"><i></i><span id="sysText">대기 중</span></span>
+      <button type="button" class="small" id="exitBtn">프로그램 종료</button>
     </div>
 
     <section class="card">
       <form class="scan-form" id="scanForm">
         <div class="url-box"><svg class="i"><use href="#ic-search"/></svg>
           <input type="url" id="url" placeholder="점검할 웹사이트 주소 (https://...)" required aria-label="점검할 웹사이트 주소"></div>
-        <label class="inline">최대 페이지 <input type="number" id="maxPages" value="" placeholder="제한 없음" min="1" max="20000" title="비워 두면 시간 한도 안에서 사이트 전체를 탐색합니다"></label>
         <label class="inline" id="mlLabel"><input type="checkbox" id="useMl" checked> AI 보조 판정</label>
         <button id="startBtn" type="submit">탐지 시작</button>
       </form>
+      <div class="clear-confirm" id="stopConfirm" hidden>
+        <div class="confirm-row"><span>탐지를 중지할까요? 지금까지 점검한 내용은 저장되지 않습니다.</span>
+          <button type="button" class="danger" id="stopYes">중지</button><button type="button" id="stopNo">계속 진행</button></div>
+      </div>
       <div class="hint" id="outHint"></div>
       <div class="error" id="scanError" role="alert"></div>
       <div class="progress" id="progress" aria-live="polite">
@@ -477,7 +485,7 @@ tr.row.in-page td:first-child { padding-left: 28px; }
           <span class="p"></span><span class="p"></span><span class="p"></span><span class="p"></span><span class="p"></span><span class="p"></span>
         </div>
         <div class="bar" id="bar"><div></div></div>
-        <div class="line"><span id="progText"></span><span id="progUrl"></span></div>
+        <div class="line"><span><span id="progText"></span><span id="progTime"></span></span><span id="progUrl"></span></div>
       </div>
     </section>
 
@@ -488,7 +496,7 @@ tr.row.in-page td:first-child { padding-left: 28px; }
         <li>점검할 웹사이트의 <b>시작 주소</b>를 넣고 <b>탐지 시작</b>을 누릅니다.</li>
         <li>불법광고가 <b>탐지 유형</b>(닮은꼴 글자, 자모 분해, 투명 텍스트, 화면 밖 은닉, 숨기지 않고 게시된 광고)별로 걸러집니다.</li>
         <li>항목을 누르면 <b>판정 근거</b>를 확인하고 <b>검토 상태</b>와 <b>메모</b>를 남길 수 있습니다.</li>
-        <li><b>조치 완료</b>할수록 <b>청정도</b>가 올라갑니다. 결과는 <b>엑셀(CSV)</b>로 전달하세요.</li>
+        <li>광고를 <b>조치 완료</b>로 처리할수록 <b>청정도</b>가 올라갑니다. 결과는 <b>엑셀(CSV)</b>로도 확인할 수 있습니다.</li>
       </ol>
     </section>
 
@@ -576,7 +584,7 @@ const TECH = { HOMOGLYPH: "닮은꼴 글자", JAMO: "자모 분해", TRANSPARENT
 const TECH_EN = { HOMOGLYPH: "Homoglyph", JAMO: "Jamo", TRANSPARENT: "Transparent", OFFSCREEN: "Offscreen", POSTED: "Posted" };
 const TECH_MARK = { HOMOGLYPH: "Aа", JAMO: "ㄱㅏ", TRANSPARENT: "◌", OFFSCREEN: "⇤", POSTED: "✎" };
 const REVIEW = { new: "미검토", confirmed: "불법광고 확인", false_positive: "오탐", resolved: "조치 완료" };
-const PHASE = { start: "준비 중", crawl: "페이지 수집 중", judge: "불법광고 판정 중", save: "결과 저장 중" };
+const PHASE = { start: "준비 중", crawl: "페이지 수집 중", judge: "불법광고 판정 중", save: "결과 저장 중", cancelling: "중지하는 중" };
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const JSON_HEADERS = { "Content-Type": "application/json" };
@@ -655,8 +663,10 @@ let modelAvailable = true;
 
 async function api(path, opts) {
   const res = await fetch(path, opts);
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || res.statusText);
+  let data;
+  try { data = await res.json(); }
+  catch { throw new Error("서버 응답이 올바른 JSON이 아닙니다."); }
+  if (!res.ok) throw new Error(data?.error || res.statusText);
   return data;
 }
 
@@ -674,20 +684,18 @@ function toast(msg, isError = false) {
 async function loadHistory(selectId) {
   const runs = await api("/api/runs");
   const ul = $("history");
-  $("guidePanel").hidden = runs.length > 0;
   $("clearAll").hidden = !runs.length;
   if (!runs.length) $("clearConfirm").hidden = true;
   if (!runs.length) {
     ul.innerHTML = '<li class="empty">아직 점검 이력이 없습니다.<br>첫 점검을 시작해 보세요.</li>';
-    current = null; openKey = null; techFilter.clear();
-    $("dashboard").hidden = true; $("resultPanel").hidden = true;
+    showHome();
     return;
   }
   ul.innerHTML = runs.map(r => {
     const pending = r.pending ?? r.findings;
-    const lv = r.entry_failed ? LEVEL_NA : levelOf(cleanPct(pollution({ pages: r.pages, dirtyPages: r.dirty_pages ?? pending,
+    const lv = (r.entry_failed || r.needs_review) ? LEVEL_NA : levelOf(cleanPct(pollution({ pages: r.pages, dirtyPages: r.dirty_pages ?? pending,
                                                                        pending: r.pending_unique ?? pending, hidden: r.pending_hidden ?? 0 })));
-    return `<li data-id="${esc(r.id)}" tabindex="0" class="lv-${lv.key} ${current && current.id === r.id ? "active" : ""}" style="--c:${lv.color}">
+    return `<li data-id="${esc(r.id)}" tabindex="0" title="누르면 결과를 열고, 한 번 더 누르면 닫습니다" class="lv-${lv.key} ${current && current.id === r.id ? "active" : ""}" style="--c:${lv.color}">
       <b title="${esc(r.entry_url)}">${esc(r.entry_url)}</b>
       <span>${esc(r.started_at.replace("T", " ").slice(0, 16))}, ${r.pages}페이지</span>
       <span>탐지 ${r.findings}건, <em>${lv.word}</em></span>
@@ -695,21 +703,53 @@ async function loadHistory(selectId) {
     </li>`;
   }).join("");
   ul.querySelectorAll("li[data-id]").forEach(li => {
-    li.onclick = e => { if (!e.target.closest(".del, .confirm-row")) openRun(li.dataset.id); };
-    li.onkeydown = e => { if (e.target === li && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openRun(li.dataset.id); } };
+    li.onclick = e => { if (!e.target.closest(".del, .confirm-row")) toggleRun(li.dataset.id); };
+    li.onkeydown = e => { if (e.target === li && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toggleRun(li.dataset.id); } };
   });
   ul.querySelectorAll("button[data-del]").forEach(b => b.onclick = e => { e.stopPropagation(); askDelete(b.closest("li")); });
   if (selectId) await openRun(selectId);
-  else if (!current) await openRun(runs[0].id);
+  else if (!current) showHome();
 }
+
+/* 처음 화면(사용 안내): 결과를 고르지 않았을 때, 탐지를 시작했을 때. 지난 결과를 진행 중인 탐지 결과로 착각하지 않게 */
+function showHome() {
+  current = null; openKey = null; techFilter.clear();
+  $("dashboard").hidden = true; $("resultPanel").hidden = true;
+  $("guidePanel").hidden = false;
+  $("deselect").hidden = true;
+  document.querySelectorAll("#history li").forEach(li => li.classList.remove("active"));
+}
+/* 이력 카드: 누르면 열고, 이미 열린 카드를 다시 누르면 닫고 처음 화면으로 */
+const toggleRun = id => (current && current.id === id ? showHome() : openRun(id));
+$("deselect").onclick = () => showHome();
 
 async function openRun(id) {
   try {
-    const rep = await api(`/api/runs/${encodeURIComponent(id)}`);
+    const rep = await api(`/api/runs/${encodeURIComponent(id)}?view=ui`);
+    const object = value => value !== null && typeof value === "object" && !Array.isArray(value);
+    const optionalRows = value => value == null || (Array.isArray(value) && value.every(object));
+    const candidate = c => object(c)
+      && ["key", "url", "location", "technique", "evidence_text"].every(key => typeof c[key] === "string")
+      && typeof c.score === "number" && Number.isFinite(c.score)
+      && ["normalized", "verdict", "review", "memo"].every(key => c[key] == null || typeof c[key] === "string")
+      && optionalRows(c.also_on)
+      && (c.also_on == null || c.also_on.every(row => typeof row.url === "string"))
+      && ["signals", "hits"].every(key => c[key] == null || (Array.isArray(c[key]) && c[key].every(item => typeof item === "string")))
+      && (c.score_detail == null || (Array.isArray(c.score_detail) && c.score_detail.every(Array.isArray)));
+    if (!object(rep) || !object(rep.meta)
+        || typeof rep.meta.entry_url !== "string" || !rep.meta.entry_url.trim()
+        || typeof rep.meta.started_at !== "string" || !rep.meta.started_at.trim()
+        || !Array.isArray(rep.candidates) || !rep.candidates.every(candidate)
+        || !["http_errors", "failed_pages", "failed_frames"].every(key => optionalRows(rep[key]))
+        || (rep.ai != null && (!object(rep.ai) || !optionalRows(rep.ai.unresolved_sources)))) {
+      throw new Error("점검 결과의 필수 항목이 올바르지 않습니다.");
+    }
     if (!current || current.id !== rep.id) { techFilter.clear(); openKey = null; }
     current = rep;
   } catch (e) { toast(`이력을 열 수 없습니다: ${e.message}`, true); return; }
   document.querySelectorAll("#history li").forEach(li => li.classList.toggle("active", li.dataset.id === id));
+  $("guidePanel").hidden = true;
+  $("deselect").hidden = false;
   render();
 }
 
@@ -766,7 +806,7 @@ function pollutionOf(r) {
 function refreshHistoryLevel() {
   const li = document.querySelector(`#history li[data-id="${current.id}"]`);
   if (!li) return;
-  const lv = current.entry_failed ? LEVEL_NA : levelOf(cleanPct(pollutionOf(current)));
+  const lv = (current.entry_failed || current.needs_review) ? LEVEL_NA : levelOf(cleanPct(pollutionOf(current)));
   li.classList.toggle("lv-na", lv === LEVEL_NA);
   li.style.setProperty("--c", lv.color);
   const em = li.querySelector("em");
@@ -786,19 +826,20 @@ function render() {
   const dirtyPages = new Set(pendingList.flatMap(pagesOf)).size;
   const pol = pollutionOf(r);
   const clean = cleanPct(pol);
-  const lv = r.entry_failed ? LEVEL_NA : levelOf(clean);
+  const lv = (r.entry_failed || r.needs_review) ? LEVEL_NA : levelOf(clean);
   renderWarnings(r);
 
   // 청정도 게이지
   const g = $("gauge");
   g.style.setProperty("--c", lv.color);
   g.style.setProperty("--cw", lv.weak);
-  $("gaugeVal").style.strokeDashoffset = r.entry_failed ? "339.29" : (339.29 * (1 - clean / 100)).toFixed(2);
-  $("gaugeVal").style.opacity = r.entry_failed ? 0 : 1;  // 둥근 선 끝이 점으로 남지 않게
-  $("gaugeLvl").textContent = lv.word;
+  $("gaugeVal").style.strokeDashoffset = (r.entry_failed || r.needs_review) ? "339.29" : (339.29 * (1 - clean / 100)).toFixed(2);
+  $("gaugeVal").style.opacity = (r.entry_failed || r.needs_review) ? 0 : 1;  // 둥근 선 끝이 점으로 남지 않게
+  $("gaugeLvl").textContent = r.needs_review ? "검토 필요" : lv.word;
   $("gaugeLvl").classList.toggle("na", !!r.entry_failed);
-  $("gaugePct").textContent = r.entry_failed ? "청정도 -" : `청정도 ${pctText(clean)}%`;
+  $("gaugePct").textContent = (r.entry_failed || r.needs_review) ? "청정도 -" : `청정도 ${pctText(clean)}%`;
   $("gaugeCap").textContent = r.entry_failed ? "사이트에 접속하지 못했습니다"
+    : r.needs_review ? `AI 보류 ${r.unresolved_count || 0}개 · 수집 범위 확인 필요`
     : pending ? `오염 페이지 ${dirtyPages} / ${r.pages}` : (ads.length ? "모든 불법광고 처리 완료" : "숨겨진 불법광고 없음");
   // 세부 지표: 네 기준의 세부 지수(0~100, 높을수록 나쁨)를 막대로. 가장 크게 끌어내린 기준을 강조
   $("gaugeWhy").innerHTML = !r.entry_failed && pending ? pol.parts.map(x => `
@@ -841,7 +882,7 @@ function renderWarnings(r) {
   const box = $("runWarn");
   const failed = r.failed_pages || [], httpErr = r.http_errors || [];
   const entryHttp = httpErr.find(e => e.url === r.meta.entry_url);
-  const list = (items, fmt) => `<ul>${items.slice(0, 5).map(x => `<li>${fmt(x)}</li>`).join("")}${items.length > 5 ? `<li>외 ${items.length - 5}건 (report.json 참고)</li>` : ""}</ul>`;
+  const list = (items, fmt, total = items.length) => `<ul>${items.slice(0, 5).map(x => `<li>${fmt(x)}</li>`).join("")}${total > 5 ? `<li>외 ${total - 5}건 (report.json 참고)</li>` : ""}</ul>`;
   let html = "", critical = false;
   if (r.entry_failed) {
     critical = true;
@@ -854,6 +895,12 @@ function renderWarnings(r) {
   }
   if (!r.entry_failed && r.stopped_by_time) {
     html += `${html ? "<br>" : ""}<b>시간 한도에 도달해 탐색을 멈췄습니다.</b>게시판과 수상한 글을 먼저 살펴봤고, 아직 보지 못한 주소 ${r.left_in_queue}개가 남았습니다.`;
+  }
+  if (r.needs_review) {
+    const cov = r.coverage || {};
+    html += `${html ? "<br>" : ""}<b>검토 필요: 미처리 범위 또는 진단 모드 결과입니다.</b> AI 보류 ${r.unresolved_count || 0}개. 방문 ${cov.visited_pages ?? r.pages}페이지 / 발견 ${cov.discovered_pages ?? r.pages}페이지, 대기 ${cov.pending_pages || 0}, 접속 실패 ${cov.failed_pages || 0}, 프레임 수집 실패 ${cov.failed_frames || 0}. 전체 사이트 크기는 확인되지 않았습니다.`;
+    const unresolved = (r.ai || {}).unresolved_sources || [];
+    if (unresolved.length) html += list(unresolved, x => `${esc(x.source_id || "원문")} — ${esc(x.reason)}`, r.ai.unresolved_sources_count ?? unresolved.length);
   }
   box.hidden = !html;
   box.className = `warn-banner ${critical ? "critical" : ""}`;
@@ -868,7 +915,8 @@ function renderLog(ads) {
   if (!items.length) {
     $("logList").innerHTML = current.entry_failed
       ? `<li class="log-empty" style="display:block;cursor:default"><b style="color:var(--dim)">점검하지 못했습니다</b>사이트 접속에 실패해 결과가 없습니다.</li>`
-      : `<li class="log-empty" style="display:block;cursor:default"><b>깨끗합니다</b>숨겨진 불법광고가 발견되지 않았습니다.</li>`;
+      : current.needs_review ? `<li class="log-empty" style="display:block;cursor:default"><b>검토 필요</b>미판정 또는 미방문 범위가 남아 있습니다.</li>`
+      : `<li class="log-empty" style="display:block;cursor:default"><b>수집 범위에서 광고 미검출</b>숨겨진 불법광고가 발견되지 않았습니다.</li>`;
     return;
   }
   $("logList").innerHTML = items.map(c => `
@@ -896,9 +944,9 @@ function focusRow(key) {
 
 /* ---------- 결과 표 ---------- */
 function judgeLabel(c) {
-  const by = c.decided_by === "laya" ? "AI" : "규칙";
+  const by = c.decided_by === "gemma" ? "젬마 검증" : c.decided_by === "laya" ? "Laya" : "규칙";
   if (c.verdict === "ad") return `<span class="verdict-ad">불법광고</span> <small>(${by})</small>`;
-  if (c.verdict === "borderline") return `<span class="verdict-clean">정상</span> <small>(경계)</small>`;  // AI 판정 없이 경계 구간 → 정상 처리
+  if (c.verdict === "uncertain" || c.verdict === "borderline") return `<span class="verdict-ad">검토 필요</span>`;
   return `<span class="verdict-clean">정상</span> <small>(${by})</small>`;
 }
 
@@ -908,7 +956,7 @@ function renderRows() {
   const showEx = $("showExcluded").checked;
   const order = { new: 0, confirmed: 0, false_positive: 1, resolved: 2 };
   const list = current.candidates
-    .filter(c => showEx || c.verdict === "ad")
+    .filter(c => showEx || c.verdict !== "clean")
     .filter(c => !techFilter.size || techFilter.has(c.technique))
     .filter(c => !rf || (c.verdict === "ad" && c.review === rf))
     .filter(c => !q || [c.evidence_text, c.normalized, c.url, c.location].join(" ").toLowerCase().includes(q))
@@ -924,7 +972,7 @@ function renderRows() {
   $("colPage").textContent = viewMode === "page" ? "위치" : "페이지";
   const rowHtml = (c, inPage) => {
     const isAd = c.verdict === "ad";
-    const state = !isAd ? "excluded" : c.review === "resolved" ? "purified" : c.review === "false_positive" ? "dismissed" : "";
+    const state = c.verdict === "clean" ? "excluded" : c.review === "resolved" ? "purified" : c.review === "false_positive" ? "dismissed" : "";
     const row = `<tr class="row ${state} ${openKey === c.key ? "open" : ""} ${inPage ? "in-page" : ""}" data-key="${c.key}"
         tabindex="0" aria-expanded="${openKey === c.key}">
       <td><span class="badge t-${esc(c.technique)}">${TECH[c.technique] || esc(c.technique)}</span></td>
@@ -1027,8 +1075,8 @@ function repeatBadge(c) {
 }
 
 function detailRow(c) {
-  const ml = c.ml_prob != null ? `, AI 불법광고 확률 <b>${(c.ml_prob * 100).toFixed(1)}%</b>` : "";
-  const by = c.decided_by === "laya" ? "AI 보조 판정" : c.verdict === "borderline" ? "규칙(경계 구간, AI 판정 없음 → 정상 처리)" : "규칙";
+  const ml = c.ml_prob != null ? `, Laya 출력 점수 <b>${(c.ml_prob * 100).toFixed(1)}%</b>` : "";
+  const by = c.decided_by === "gemma" ? "젬마 검증" : c.decided_by === "laya" ? "Laya 판정" : "규칙";
   const restored = c.normalized && c.normalized !== c.evidence_text
     ? `<div class="restore"><span class="from">${esc(c.evidence_text)}</span><span aria-hidden="true">→</span><span class="to">${esc(c.normalized)}</span></div>`
     : esc(c.evidence_text);
@@ -1043,6 +1091,7 @@ function detailRow(c) {
         sameOthers(c).slice(0, 20).map(x => `<li><a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.url)}</a></li>`).join("")}${
         sameOthers(c).length > 20 ? `<li>… 외 ${sameOthers(c).length - 20}곳</li>` : ""}</ul></dd>` : ""}
       <dt>숨긴 방식</dt><dd>${(c.signals || []).map(s => `<code>${esc(s)}</code>`).join(" ") || "-"}</dd>
+      <dt>처리 상태</dt><dd>${esc(c.processing_status || "기존 이력")} · ${esc(c.reason || "")}</dd>
       <dt>원문 → 복원</dt><dd>${restored}</dd>
       <dt>판정 근거</dt><dd>${(c.score_detail
         ? c.score_detail.map(([n, w]) => `<code>${esc(n)} ${w > 0 ? "+" : "−"}${Math.abs(w)}</code>`)
@@ -1067,30 +1116,92 @@ async function saveReview(c, status, memo, okMsg) {
 }
 
 /* ---------- 탐지 실행 ---------- */
+// 탐지 중지: 탐지 중에는 시작 버튼이 '탐지 중지'로 바뀐다 → 한 번 더 확인 → 중지 요청.
+// 서버가 브라우저를 닫고 멈출 때까지 '중지하는 중…'
+let exiting = false;
+let stopMode = "idle";  // idle | confirm | stopping
+
+// 경과 시간: 서버 값으로만 바꾸면 응답이 늦을 때 몇 초씩 건너뛰므로, 시작 시각만 맞추고 화면 시계는 1초씩 흘려 보낸다
+let clock = { base: 0, shown: 0, limit: "", timer: null };
+function tickClock() {
+  clock.shown = Math.max(clock.shown, Math.floor(performance.now() / 1000 - clock.base));  // 뒤로 가지 않게
+  $("progTime").textContent = `, ${mmss(clock.shown)}${clock.limit}`;
+}
+function syncClock(elapsed, limit) {
+  const base = performance.now() / 1000 - elapsed;
+  if (!clock.timer || Math.abs(base - clock.base) > 2) clock.base = base;  // 2초 넘게 어긋날 때만 다시 맞춘다
+  clock.limit = limit;
+  if (!clock.timer) clock.timer = setInterval(tickClock, 250);
+  tickClock();
+}
+function stopClock() {
+  clearInterval(clock.timer);
+  clock = { base: 0, shown: 0, limit: "", timer: null };
+  $("progTime").textContent = "";
+}
+
 function setRunning(running) {
+  if (exiting) return;
+  if (!running) { stopMode = "idle"; stopClock(); }
   document.body.classList.toggle("running", running);
   $("sysText").textContent = running ? "정화 중…" : "대기 중";
-  $("startBtn").disabled = running;
-  $("startBtn").textContent = running ? "탐지 중…" : "탐지 시작";
-  ["url", "maxPages"].forEach(id => $(id).disabled = running);
-  $("useMl").disabled = running || !modelAvailable;
+  const b = $("startBtn");
+  b.classList.toggle("stop", running);
+  b.disabled = running && stopMode === "stopping";
+  b.textContent = !running ? "탐지 시작" : stopMode === "stopping" ? "중지하는 중…" : "탐지 중지";
+  $("stopConfirm").hidden = !(running && stopMode === "confirm");
+  $("stopYes").disabled = false;
+  $("url").disabled = running;
+  $("useMl").disabled = running;
   $("progress").style.display = running ? "block" : "none";
 }
+$("exitBtn").onclick = async () => {
+  if (exiting) return;
+  exiting = true;
+  clearInterval(polling);
+  $("exitBtn").disabled = true;
+  $("startBtn").disabled = true;
+  $("sysText").textContent = "종료 요청 중…";
+  try {
+    await api("/api/shutdown", { method: "POST", headers: JSON_HEADERS, body: "{}" });
+    $("sysText").textContent = "종료 요청됨";
+    $("scanError").textContent = "진행 중인 점검과 모델을 정리한 뒤 프로그램이 종료됩니다. 이 탭은 닫아도 됩니다.";
+  } catch (err) {
+    exiting = false;
+    $("exitBtn").disabled = false;
+    $("scanError").textContent = `종료 요청 실패: ${err.message}`;
+    startPolling();
+  }
+};
+$("stopNo").onclick = () => { stopMode = "idle"; setRunning(true); $("startBtn").focus(); };
+$("stopYes").onclick = async () => {
+  $("stopYes").disabled = true;
+  try {
+    await api("/api/scan/cancel", { method: "POST", headers: JSON_HEADERS, body: "{}" });
+    stopMode = "stopping";
+    setRunning(true);
+    $("progText").textContent = PHASE.cancelling;
+  } catch (e) { stopMode = "idle"; setRunning(true); toast(`중지하지 못했습니다: ${e.message}`, true); }
+};
 
 async function pollStatus() {
   const s = await api("/api/status");
   setRunning(s.running);
   if (s.running) {
+    if (s.entry_url && !$("url").value) $("url").value = s.entry_url;  // 탐지 중에 새로고침해도 점검 중인 주소가 보이게
     const crawl = s.phase === "crawl" || s.phase === "start";
     $("bar").classList.toggle("indeterminate", !crawl);
     // 페이지 수 제한이 없으면 발견 페이지가 계속 늘어나므로, 시간 한도 대비 경과도 함께 본다
     const ratio = Math.max(s.pages_done / Math.max(1, s.pages_found), s.crawl_limit ? s.elapsed / s.crawl_limit : 0);
     $("bar").firstElementChild.style.width = crawl ? `${Math.min(100, ratio * 100)}%` : "";
-    const limit = crawl && s.crawl_limit ? ` / 최대 ${Math.round(s.crawl_limit / 60)}분` : "";  // 크롤링 시간 한도
+    const limit = !crawl ? "" : s.crawl_limit ? ` / 최대 ${Math.round(s.crawl_limit / 60)}분` : ", 시간 제한 없음(실험)";  // 크롤링 시간 한도
     // 페이지 수 제한이 없으므로 '전체 중 몇 쪽'이 아니라 '본 페이지 · 아직 볼 주소'로 보여 준다
     const waiting = Math.max(0, s.pages_found - s.pages_done);
-    $("progText").textContent = `${PHASE[s.phase] || s.phase}, ${s.pages_done}페이지 점검${crawl && waiting ? `, 대기 ${waiting}개` : ""}, ${mmss(s.elapsed)}${limit}`;
+    const validation = s.validation_mode === "complete" ? ", 완료 우선 · AI 시간 제한 없음" : "";
+    $("progText").textContent = `${PHASE[s.phase] || s.phase}${validation}, ${s.pages_done}페이지 점검${crawl && waiting ? `, 대기 ${waiting}개` : ""}`;
+    syncClock(s.elapsed, limit);
     $("progUrl").textContent = s.current_url;
+    if (s.phase === "cancelling" && stopMode !== "stopping") { stopMode = "stopping"; setRunning(true); }
     return null;
   }
   return s;
@@ -1114,9 +1225,11 @@ function startPolling() {
     if (!s) return;
     clearInterval(polling);
     if (s.phase === "error") $("scanError").textContent = `탐지 중 오류가 발생했습니다: ${s.error}`;
-    if (s.phase === "done") {
+    if (s.phase === "cancelled") toast("탐지를 중지했습니다. 이전 결과는 그대로 남아 있습니다.");
+    if (s.phase === "done" || s.phase === "review") {
       await loadHistory(s.run_id);
       if (current && current.entry_failed) toast("사이트에 접속하지 못했습니다. 주소를 확인하세요.", true);
+      else if (current && current.needs_review) toast("검토 필요: 미판정 또는 미방문 범위가 남았습니다.", true);
       else toast("탐지가 끝났습니다.");
     }
   }, 700);
@@ -1124,12 +1237,19 @@ function startPolling() {
 
 $("scanForm").onsubmit = async e => {
   e.preventDefault();
+  if (document.body.classList.contains("running")) {  // 탐지 중에는 같은 버튼이 '탐지 중지'
+    stopMode = "confirm";
+    setRunning(true);
+    $("stopNo").focus();
+    return;
+  }
   $("scanError").textContent = "";
   try {
     await api("/api/scan", {
       method: "POST", headers: JSON_HEADERS,
-      body: JSON.stringify({ url: $("url").value.trim(), use_ml: $("useMl").checked, max_pages: +$("maxPages").value || 0 }),
+      body: JSON.stringify({ url: $("url").value.trim(), use_ml: $("useMl").checked }),
     });
+    showHome();
     setRunning(true);
     $("progText").textContent = PHASE.start;
     $("progUrl").textContent = "";
@@ -1146,14 +1266,16 @@ document.querySelectorAll(".seg button[data-view]").forEach(b => {
     if (current) renderRows();
   };
 });
-const exportCsv = () => { if (current) location.href = `/api/runs/${encodeURIComponent(current.id)}/export.csv`; else toast("먼저 점검을 실행하세요.", true); };
+const NEED_RUN = "먼저 점검을 실행하거나 점검 이력을 선택해 주세요.";  // 결과를 고르지 않은 처음 화면에서 결과·내보내기를 누를 때
+const exportCsv = () => { if (current) location.href = `/api/runs/${encodeURIComponent(current.id)}/export.csv`; else toast(NEED_RUN, true); };
 $("csvBtn").onclick = exportCsv;
 $("jsonBtn").onclick = () => { if (current) location.href = `/api/runs/${encodeURIComponent(current.id)}/result.json`; };
 $("navCsv").onclick = e => { e.preventDefault(); exportCsv(); };
 $("logMore").onclick = () => { techFilter.clear(); render(); $("resultPanel").scrollIntoView({ behavior: "smooth" }); };
 
 // 메뉴: 보이는 영역에 맞춰 강조
-document.querySelectorAll(".nav a[data-nav]").forEach(a => a.addEventListener("click", () => {
+document.querySelectorAll(".nav a[data-nav]").forEach(a => a.addEventListener("click", e => {
+  if (a.dataset.nav === "resultPanel" && !current) { e.preventDefault(); toast(NEED_RUN, true); return; }
   document.querySelectorAll(".nav a").forEach(x => x.classList.toggle("on", x === a));
 }));
 
@@ -1163,9 +1285,8 @@ document.querySelectorAll(".nav a[data-nav]").forEach(a => a.addEventListener("c
     $("outHint").textContent = `결과 파일(result.json) 저장 위치: ${s.out_dir}`;
     modelAvailable = s.model_available;
     if (!modelAvailable) {
-      $("useMl").checked = false;
-      $("mlLabel").title = "models/laya-illegal-ad 가 없어 규칙만으로 판정합니다.";
-      $("mlLabel").append(" (모델 없음)");
+      $("mlLabel").title = "AI 자산이 준비되지 않았습니다. 체크를 직접 해제하면 진단 모드로 실행하며 미판정 항목은 보류됩니다.";
+      $("mlLabel").append(" (AI 자산 미준비 · 해제 시 진단 모드)");
     }
     setRunning(s.running);
     await loadHistory();

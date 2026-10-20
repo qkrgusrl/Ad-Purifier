@@ -1,0 +1,24 @@
+{
+  "started_at": "2026-10-18T10:59:14.656677+00:00",
+  "finished_at": "2026-10-18T10:59:47.194436+00:00",
+  "execution_pid": 19222,
+  "exit_code": 0,
+  "watchdog_timeout": false,
+  "forced_cleanup": [],
+  "execution_process_absent": true,
+  "observed_child_pids": [
+    19243,
+    19244,
+    19245,
+    19246,
+    19247,
+    19248,
+    19249,
+    19250,
+    19251,
+    19252,
+    19253,
+    19255
+  ],
+  "all_observed_children_absent": true
+}

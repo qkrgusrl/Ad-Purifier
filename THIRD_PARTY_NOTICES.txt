@@ -1,0 +1,61 @@
+AdPurifier 0.2.0-preview.1 — 제3자 구성요소 고지
+
+이 파일은 동봉된 제3자 구성요소를 설명한다. AdPurifier의 비공개 자체 소스에
+새 오픈소스 라이선스를 부여하지 않는다. 각 구성요소의 조건은 해당 원문을 따른다.
+
+Gemma 4 E2B IT QAT Q4_0 GGUF
+  제공자: Google
+  저장소: https://huggingface.co/google/gemma-4-E2B-it-qat-q4_0-gguf
+  revision: 675cff42a74c774d6cb76f76d8eacb49b48c9b93
+  Apache License 2.0: https://ai.google.dev/gemma/apache_2
+  원문: licenses/Apache-2.0.txt; 모델 카드: licenses/Gemma-E2B-README.md
+  파일 크기/SHA256: assets.lock.json
+
+Laya 0.4.2
+  PyPI 배포물의 실제 LICENSE 원문: licenses/Laya-LICENSE
+  빌드 환경 wheel의 원문/metadata: licenses/python-packages/laya/
+  이 소프트웨어 패키지의 라이선스와 long2 학습 산출물의 배포 권한은 별개다.
+  long2 학습 산출물은 프로젝트 소유자가 제공한 private build-inputs 릴리스에서 동봉한다.
+
+mmBERT-base (long2의 기반 encoder)
+  https://huggingface.co/jhu-clsp/mmBERT-base
+  revision: c5955035435e2bf121cde7f3c8863ef52ff35d82
+  모델 카드에서 MIT로 선언: licenses/mmBERT-base-README.md
+  모델 저장소는 별도 LICENSE 파일을 제공하지 않는다. 카드의 원래 저자 표시를 보존한다.
+  MIT 표준 조건 원문: licenses/MIT.txt (권리자/연도를 임의로 만들지 않음)
+
+llama.cpp b11429 / commit d81235049384534c167caea52b85a694f6103d14
+  https://github.com/ggml-org/llama.cpp
+  MIT 원문: licenses/llama.cpp-LICENSE.txt
+  LLVM OpenMP 원문: runtime/llama/LICENSE-LLVM-OpenMP
+
+Playwright 1.64.0 / Chromium revision 1248 (156.0.8078.4)
+  https://github.com/microsoft/playwright
+  Apache 2.0 및 포함된 제3자 라이선스는 licenses/python-packages/playwright/에 보존한다.
+  Chromium 전체 배포 원문(ABOUT, LICENSE 등)은 runtime/chromium 아래 원래 파일을 보존한다.
+  Chromium/FFmpeg의 각 구성요소 조건은 해당 배포물에 포함된 원문을 따른다.
+
+Python 및 Python 패키지
+  CPU torch 2.5.1, transformers 4.57.6, tokenizers 0.22.2,
+  huggingface-hub 0.36.0, safetensors 0.8.0, numpy 1.26.4,
+  psutil 7.2.2, PyInstaller 6.22.3, hooks 2026.8 및 전이 의존성.
+  정확한 wheel 버전/해시: requirements-windows.lock.txt
+  빌드 시 설치된 각 패키지의 저작권/라이선스/NOTICE 원문과 METADATA를
+  licenses/python-packages/ 및 packages.json에 복사한다.
+  PyInstaller의 예외 조항을 포함한 bootloader 라이선스도 위 폴더에 보존한다.
+  Python 자체 라이선스: licenses/Python-LICENSE.txt (빌드한 인터프리터의 원문).
+
+Microsoft Visual C++ 2015–2022 Runtime (x64 release CRT)
+  Copyright Microsoft Corporation. All rights reserved.
+  VS 2022 설치의 VC/Redist/MSVC/<version>/x64/Microsoft.VC143.CRT에서
+  단일 release DLL 세트를 원형 그대로 runtime/llama에 동봉한다.
+  이 구성요소는 Microsoft Software License Terms를 따르며 오픈소스가 아니다.
+  공식 약관 원본: licenses/Microsoft-VC-Runtime-2015-2022-License.docx
+  https://visualstudio.microsoft.com/license-terms/vs2022-cruntime/
+  배포 허용 목록: https://learn.microsoft.com/en-us/visualstudio/releases/2022/redistribution
+  선택한 family 버전, DLL 파일 버전 및 실제 해시는 crt-manifest.json에 기록한다.
+  앱 로컬 CRT의 업데이트는 AdPurifier 설치본을 갱신하여 배포한다.
+
+설치 및 정확도
+  설치 self-test는 동봉된 구성요소의 로드, 실제 생성, 원문 결합, 브라우저와 파일 I/O를
+  확인한다. 불법광고 탐지의 정확도 또는 법적 판단의 정확성을 보장하지 않는다.
