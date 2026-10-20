@@ -2,6 +2,7 @@
 import html
 import json
 import re
+from html.parser import HTMLParser
 
 DEFAULT_VERSION = "v15"
 SENTENCE_ID_VERSIONS = ISOLATED_VERSIONS = frozenset(("v15",))
@@ -29,8 +30,21 @@ def input_only(task, data):
 
 
 _RAW_HTML = re.compile(r'<!--[\s\S]*?-->|<(?:"[^"]*"|\x27[^\x27]*\x27|[^\x27"<>])*>|[^<]+|<')
-_RAW_SENTENCES = re.compile(r'.*?(?:[.!?。！？](?=\s|$)|\n|$)', re.S)
 _STATEMENT_TAGS=frozenset(('p','blockquote','script','h1','h2','h3','h4','h5','h6','button','a','li','td','th','pre','label','option','textarea','title'))
+_TAG_ATTR = re.compile(r'''\s+([^\s"'<>/=]+)(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'<>=`]+))?''')
+_PRESENTATION_ATTRS = frozenset(('style', 'class'))
+
+
+def _presentation_only_start_tag(text):
+    """따옴표를 지키며 속성 이름만 읽어, style/class만 있는 시작 태그인지 확인한다."""
+    opened = re.match(r'<\s*[A-Za-z][\w:-]*', text)
+    if not opened:
+        return False
+    position, names = opened.end(), []
+    while attr := _TAG_ATTR.match(text, position):
+        names.append(attr[1].lower())
+        position = attr.end()
+    return bool(names) and text[position:].strip() in ('>', '/>') and set(names) <= _PRESENTATION_ATTRS
 
 
 def _raw_spans(raw):
@@ -55,7 +69,7 @@ def _raw_spans(raw):
             try:
                 json.loads(text);spans.append((piece.start(),piece.end()))
             except (ValueError,TypeError):
-                spans.extend((piece.start()+s.start(),piece.start()+s.end()) for s in _RAW_SENTENCES.finditer(text) if s.end()>s.start())
+                spans.append((piece.start(),piece.end()))
     if capture:spans.append((capture[0],len(raw)))
     return spans
 
@@ -67,7 +81,8 @@ def source_units(data):
         raw=data.get(field,"")
         for index,(start,end) in enumerate(_raw_spans(raw),1):
             text=raw[start:end]
-            structural=bool(re.fullmatch(r'<\s*/?[\w:-]+\s*/?\s*>',text)) or bool(re.fullmatch(r'<\s*([\w:-]+)\s*>\s*</\s*\1\s*>',text)) or text.upper().startswith('<!DOCTYPE')
+            structural=(bool(re.fullmatch(r'<\s*/?[\w:-]+\s*/?\s*>',text)) or bool(re.fullmatch(r'<\s*([\w:-]+)\s*>\s*</\s*\1\s*>',text))
+                        or text.upper().startswith('<!DOCTYPE') or _presentation_only_start_tag(text))
             units.append({'id':f'{prefix}{index:04}','source_field':field,'text':text,
                           'start_char':start,'end_char':end,'selectable':bool(text.strip()) and not structural})
     if not any(u['selectable'] for u in units):
@@ -78,12 +93,103 @@ def source_units(data):
     return units
 
 
+class _VisibleContext(HTMLParser):
+    """전체 HTML을 파싱하고 raw 위치 경계로 가시 텍스트만 앞뒤로 나눈다."""
+    _VOID = frozenset(('area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr'))
+    _HIDDEN = frozenset(('head','script','style','noscript','template'))
+
+    def __init__(self, raw, start, end):
+        super().__init__(convert_charrefs=False)
+        self.raw, self.start, self.end = raw, start, end
+        self.lines = [0] + [m.end() for m in re.finditer('\n', raw)]
+        self.stack, self.before, self.after = [], [], []
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        styles = {}
+        inline_style = re.sub(r'/\*.*?\*/', '', attrs.get('style') or '', flags=re.S)
+        valid_values = {
+            'display': set(('none block inline inline-block flex inline-flex grid inline-grid flow-root '
+                             'table inline-table table-row-group table-header-group table-footer-group '
+                             'table-row table-column-group table-column table-cell table-caption '
+                             'list-item contents inherit initial unset revert revert-layer').split()),
+            'visibility': {'visible', 'hidden', 'collapse', 'inherit', 'initial', 'unset', 'revert', 'revert-layer'},
+        }
+        for match in re.finditer(r'(?:^|;)\s*(display|visibility)\s*:\s*([\w-]+)\s*(!important\s*)?(?=;|$)',
+                                 inline_style, re.I):
+            prop, value, important = match.groups()
+            prop, value, important = prop.lower(), value.lower(), bool(important)
+            if value not in valid_values[prop]:
+                continue
+            if prop not in styles or important or not styles[prop][1]:
+                styles[prop] = (value, important)
+        hidden = (bool(self.stack and self.stack[-1][1]) or tag in self._HIDDEN
+                  or 'hidden' in attrs or styles.get('display', ('', False))[0] == 'none')
+        visibility = self.stack[-1][2] if self.stack else 'visible'
+        declared_visibility = styles.get('visibility', ('', False))[0]
+        if declared_visibility in ('visible', 'hidden', 'collapse'):
+            visibility = declared_visibility
+        if tag not in self._VOID:
+            self.stack.append((tag, hidden, visibility))
+
+    def handle_startendtag(self, tag, attrs):
+        self.handle_starttag(tag, attrs)
+        if tag not in self._VOID:
+            self.handle_endtag(tag)
+
+    def handle_endtag(self, tag):
+        for index in range(len(self.stack) - 1, -1, -1):
+            if self.stack[index][0] == tag:
+                del self.stack[index:]
+                break
+
+    def handle_data(self, data):
+        if self.stack and (self.stack[-1][1] or self.stack[-1][2] != 'visible'):
+            return
+        line, column = self.getpos()
+        offset = self.lines[line - 1] + column
+        # 위치를 경계 표식으로 사용해 태그/속성/script 문법을 바꾸지 않는다.
+        before = data[:max(0, self.start - offset)]
+        after = data[max(0, self.end - offset):]
+        self.before.append(html.unescape(before))
+        self.after.append(html.unescape(after))
+
+    def handle_entityref(self, name):
+        line, column = self.getpos()
+        offset = self.lines[line - 1] + column
+        token = '&' + name
+        if self.raw.startswith(token + ';', offset):
+            token += ';'
+        self.handle_data(token)
+
+    def handle_charref(self, name):
+        self.handle_entityref('#' + name)
+
+
+def _context_window(data):
+    raw, target = data.get('context', ''), data.get('html', '')
+    if not raw:
+        return '', '', 'empty_context'
+    start = raw.find(target) if target else -1
+    if start < 0:
+        return '', '', 'no_raw_anchor'
+    if raw.find(target, start + 1) >= 0:
+        return '', '', 'duplicate_raw_anchor'
+    parser = _VisibleContext(raw, start, start + len(target))
+    parser.feed(raw)
+    parser.close()
+    before, after = ''.join(parser.before), ''.join(parser.after)
+    return before[-50:], after[:50], 'unique_raw_anchor'
+
+
 def prepare_input(task,data,version):
     clean=input_only(task,data)
     if task!='verify' or version not in SENTENCE_ID_VERSIONS:
         return clean
     rendered=[]
     for u in source_units(clean):
+        if u['source_field'] != 'html':
+            continue
         item={k:u[k] for k in ('id','source_field','text','selectable')}
         readable=html.unescape(u['text'])
         try:
@@ -100,4 +206,7 @@ def prepare_input(task,data,version):
         if readable!=u['text']:
             item['display_text']=readable
         rendered.append(item)
-    return {'candidate_id':clean['candidate_id'],'source_units':rendered}
+    before, after, status = _context_window(clean)
+    # candidate owner는 의미 판정 요소가 아니므로 모델 전송값은 고정한다. 원래 ID는 input_only/clean_input에 남는다.
+    return {'candidate_id':'target','source_units':rendered,
+            'context_before':before,'context_after':after,'context_status':status}

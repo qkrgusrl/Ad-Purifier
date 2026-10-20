@@ -62,7 +62,7 @@ class AIIntegrationTests(unittest.TestCase):
         self.assertEqual(main.candidates_from(page_data, detect_posted=True), [])
         h = OfflineRun(page_data=page_data, predict=lambda ts: [prediction(.99) for _ in ts], extract=recover)
         report = self.run_case(h, detect_posted=True)
-        self.assertEqual(len(h.extract_inputs), 1, "실제 DOM 잔여를 추출해야 함")
+        self.assertEqual(h.extract_inputs + h.verify_inputs, [], "고신뢰 잔여는 Gemma 없이 결정론 회수")
         self.assertEqual(len(report["candidates"]), 1, "원문 결합 회수를 같은 키워드 필터로 다시 버리면 안 됨")
         c = report["candidates"][0]
         row = page_data[0][1][0][1]["source_blocks"][0]
@@ -281,30 +281,37 @@ class AIIntegrationTests(unittest.TestCase):
         self.assertEqual(c.get("processing_status"), "completed")
         self.assertTrue(c.get("reason"))
 
-    def test_laya_error_is_verified_by_gemma(self):
+    def test_laya_error_stays_review_without_gemma(self):
         def fail(texts):
             raise RuntimeError("fixture_laya_error")
         h = OfflineRun(predict=fail, verify=lambda x: bound_reply(x, "clean"))
         report = self.run_case(h)
-        self.assertEqual(len(h.verify_inputs), 1, "Laya 오류 후보가 검증 없이 누락됨")
-        self.assertEqual(report["candidates"][0]["verdict"], "clean")
+        self.assertEqual(h.verify_inputs + h.extract_inputs, [])
+        self.assertEqual(h.entered, 0)
+        self.assertEqual(report["candidates"][0]["verdict"], "uncertain")
+        self.assert_review(report)
 
-    def test_short_laya_batch_verifies_each_unreturned_item(self):
+    def test_short_laya_batch_keeps_each_unreturned_item_review(self):
         rows = [source("s1", "환전 안내 하나"), source("s2", "환전 안내 둘")]
         h = OfflineRun(rows, predict=lambda ts: [prediction(.99)])
         report = self.run_case(h)
-        self.assertEqual(len(h.verify_inputs), 1, "zip으로 짧은 배치 출력의 나머지를 버리면 안 됨")
-        verified_html = h.verify_inputs[0]["html"]
+        self.assertEqual(h.verify_inputs + h.extract_inputs, [])
+        self.assertEqual(h.entered, 0)
         missing_text = sorted(h.laya_inputs)[1]
-        self.assertIn(missing_text, verified_html)
-        self.assertTrue(all(c["verdict"] == "ad" for c in report["candidates"]))
+        missing = next(c for c in report["candidates"] if c["evidence_text"] == missing_text)
+        self.assertEqual(missing["verdict"], "uncertain")
+        self.assertEqual(sorted(c["verdict"] for c in report["candidates"]), ["ad", "uncertain"])
+        self.assert_review(report)
 
     def test_truncated_laya_output_must_not_be_confident(self):
         h = OfflineRun(predict=lambda ts: [prediction(.99, truncated=True) for _ in ts])
-        self.run_case(h)
-        self.assertEqual(len(h.verify_inputs), 1, "잘린 Laya 입력/출력의 0.99를 확정하면 안 됨")
+        report = self.run_case(h)
+        self.assertEqual(h.verify_inputs + h.extract_inputs, [])
+        self.assertEqual(h.entered, 0)
+        self.assertEqual(report["candidates"][0]["verdict"], "uncertain")
+        self.assert_review(report)
 
-    def test_educational_borderline_skips_laya_but_reaches_gemma(self):
+    def test_educational_borderline_without_laya_stays_review(self):
         row = source(text="카지노 바카라 가입코드")
         row["signals"] = []
         data = {"frame_url": URL, "hidden": [], "texts": [row], "links": [],
@@ -316,8 +323,10 @@ class AIIntegrationTests(unittest.TestCase):
         h = OfflineRun(page_data=[(URL, [("", data)])], verify=lambda x: bound_reply(x, "clean"))
         report = self.run_case(h, detect_posted=True)
         self.assertEqual(h.laya_inputs, [], "기존 예방 문맥 Laya 우회가 바뀜")
-        self.assertEqual(len(h.verify_inputs), 1, "교육 문맥 경계 후보도 Gemma 검증 필요")
-        self.assertEqual(report["candidates"][0]["verdict"], "clean")
+        self.assertEqual(h.verify_inputs + h.extract_inputs, [])
+        self.assertEqual(h.entered, 0)
+        self.assertEqual(report["candidates"][0]["verdict"], "uncertain")
+        self.assert_review(report)
 
     def test_gemma_error_keeps_uncertain_and_out_of_result(self):
         def fail(item):

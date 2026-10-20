@@ -36,6 +36,8 @@ class EvidenceIntegrationTests(unittest.TestCase):
                 return {"tokens": list(range(100))}
             if path != "/v1/chat/completions":
                 raise AssertionError("예상하지 않은 transport: " + path)
+            if kwargs.get("on_dispatch") is not None:
+                kwargs["on_dispatch"]()
             return {"choices": [{"finish_reason": "stop", "message": {"content": json.dumps(
                 {"verdict": verdict, "evidence_id": evidence_id})}}]}
 
@@ -87,7 +89,8 @@ class EvidenceIntegrationTests(unittest.TestCase):
         self.assertEqual(set(call["input"]), {"candidate_id", "html", "context"})
         self.assertEqual(call["input"], {"candidate_id": owner, "html": item["html"],
                                           "context": item["context"]})
-        self.assertEqual(set(call["model_input"]), {"candidate_id", "source_units"})
+        self.assertEqual(set(call["model_input"]), {"candidate_id", "source_units",
+                                                          "context_before", "context_after", "context_status"})
         choice = next(u for u in call["model_input"]["source_units"] if u["id"] == evidence_id)
         self.assertTrue(choice["selectable"])
         self.assertEqual(choice["source_field"], field)
@@ -112,7 +115,7 @@ class EvidenceIntegrationTests(unittest.TestCase):
         self.assertEqual(main.adscore.score(main.normalize(text))[0], 0)
         self.assertEqual(main.candidates_from(page_data, detect_posted=True), [])
         harness = OfflineRun(page_data=page_data,
-                             predict=lambda ts: [prediction(.99) for _ in ts],
+                             predict=lambda ts: [prediction(.55) for _ in ts],
                              extract=lambda data: self.protocol("extract", data, "ad", "h0001"))
         report = self.run_case(harness, detect_posted=True)
         self.assertEqual(harness.laya_inputs, [main.normalize(text)])
@@ -129,8 +132,8 @@ class EvidenceIntegrationTests(unittest.TestCase):
         self.assertEqual(candidate["source_html"], original)
         self.assertEqual(candidate["extraction"], self.trace[0]["reply"]["candidates"][0])
         self.assertEqual((candidate["verdict"], candidate["processing_status"], candidate["decided_by"]),
-                         ("ad", "completed", "laya"))
-        self.assertEqual(candidate["ml_prob"], .99)
+                         ("ad", "completed", "gemma"))
+        self.assertEqual(candidate["ml_prob"], .55)
         self.assertIs(report["needs_review"], False)
         self.assertEqual(report["unresolved_count"], 0)
 
@@ -149,15 +152,38 @@ class EvidenceIntegrationTests(unittest.TestCase):
         self.assertEqual(len(harness.verify_inputs), 1)
         item = harness.verify_inputs[0]
         self.assertEqual((item["html"], item["context"]), (row["source_html"], context))
-        self.assert_protocol(self.trace[0], item, verdict, evidence_id,
-                             "html" if evidence_id.startswith("h") else "context")
+        if evidence_id.startswith("h"):
+            self.assert_protocol(self.trace[0], item, verdict, evidence_id, "html")
+        else:
+            # 문맥 ID는 이제 복원 단계부터 거부한다. 소유 검증의 보류 결과는 유지한다.
+            trace = self.trace[0]
+            reply = trace["reply"]
+            self.assertNotEqual(reply["status"], "ok")
+            result, = reply["results"]
+            self.assertEqual(result["verdict"], "uncertain")
+            self.assertTrue(result["needs_review"])
+            self.assertIsNone(result["evidence"])
+            call = result["call"]
+            self.assertEqual(call["input"], item)
+            self.assertEqual(call["request_count"], 1)
+            self.assertEqual(call["model_output"], {"verdict": verdict, "evidence_id": evidence_id})
+            raw = call["raw_response"]["choices"][0]
+            self.assertEqual(raw["finish_reason"], "stop")
+            self.assertEqual(json.loads(raw["message"]["content"]), call["model_output"])
+            self.assertEqual(set(call["model_input"]), {"candidate_id", "source_units",
+                                                        "context_before", "context_after", "context_status"})
+            chats = [r["payload"] for r in trace["requests"] if r["path"] == "/v1/chat/completions"]
+            self.assertEqual(len(chats), 1)
+            self.assertEqual(json.loads(chats[0]["messages"][1]["content"]), call["model_input"])
+            self.assertFalse(any(u["id"] == evidence_id and u["selectable"]
+                                 for u in call["model_input"]["source_units"]))
         self.assertEqual(len(report["candidates"]), 1)
         return report, report["candidates"][0]
 
     def test_context_ad_id_cannot_complete_other_source_as_ad(self):
         report, candidate = self.border_case("<p>카지노 바카라 가입코드</p>", "ad")
         self.assertEqual(candidate["verdict"], "uncertain",
-                         "다른 문단 context의 유효한 광고 ID를 source 위치의 광고로 확정함")
+                         "거부해야 할 context 광고 ID로 source 위치의 광고를 확정함")
         self.assertNotEqual(candidate["processing_status"], "completed")
         self.assertTrue(candidate["reason"])
         self.assertIs(report["needs_review"], True)

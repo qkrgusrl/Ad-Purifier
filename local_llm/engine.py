@@ -4,11 +4,13 @@ import hashlib
 import json
 import os
 import sys
+from collections import OrderedDict
 from contextlib import contextmanager
 import platform
 import queue
 import secrets
 import socket
+import uuid
 import subprocess
 import tempfile
 import threading
@@ -24,6 +26,8 @@ from .prompts import (DEFAULT_VERSION, PROMPTS, SENTENCE_ID_VERSIONS,
 
 
 _dll_launch_lock = threading.Lock()
+_semantic_cache_lock = threading.Lock()
+SEMANTIC_CACHE_LIMIT = 256
 
 
 @contextmanager
@@ -90,7 +94,8 @@ def http_json(base, path, payload=None, timeout=300, api_key=None):
 
 class LocalServer:
     def __init__(self, log_dir=None, threads=None, ctx_size=4096, repack=True,
-                 cache_prompt=None, deadline=None, cancel=None, budget=None):
+                 cache_prompt=None, deadline=None, cancel=None, budget=None, on_event=None):
+        self.on_event = on_event
         self.paths = {'server': str(llama_server()), 'model': str(gemma_model())}
         self.threads, self.ctx_size = threads, ctx_size
         self.repack, self.cache_prompt = repack, cache_prompt
@@ -100,6 +105,7 @@ class LocalServer:
         self.stop_event = threading.Event()
         self.proc = None
         self.peak_rss = 0
+        self._semantic_cache_data = OrderedDict()
 
     def __enter__(self):
         self.budget.remaining()
@@ -184,7 +190,7 @@ class LocalServer:
                         self.key_file.unlink(missing_ok=True)
                     self.api_key = None
 
-    def request(self, path, payload=None, timeout=300):
+    def request(self, path, payload=None, timeout=300, on_dispatch=None):
         # socket timeout은 개별 read마다 갱신될 수 있으므로 전체 요청도 절대시각으로 제한한다.
         allowed = min(timeout, self.budget.remaining())
         if allowed <= 0:
@@ -197,6 +203,8 @@ class LocalServer:
                 completed.put((True, http_json(base, path, payload, allowed, api_key)))
             except BaseException as exc:
                 completed.put((False, exc))
+        if on_dispatch is not None:
+            on_dispatch()
         threading.Thread(target=fetch, daemon=True).start()
         while True:
             wait = min(.05, self.budget.remaining(), expires-time.perf_counter())
@@ -223,6 +231,66 @@ class LocalServer:
         template = self.request("/apply-template", {"messages": messages, "chat_template_kwargs": {"enable_thinking": False}, "reasoning_effort": "none"})
         return len(self.request("/tokenize", {"content": template["prompt"], "add_special": False, "parse_special": True})["tokens"])
 
+    def _emit_event(self, event):
+        observer = getattr(self, "on_event", None)
+        if observer is not None:
+            try:
+                observer(dict(event))
+            except Exception:
+                # 관측 실패는 추론 결과나 모델 실행 정책을 바꾸지 않는다.
+                try:
+                    observer({"event": "audit_error"})
+                except Exception:
+                    pass
+
+    def _semantic_cache_key(self, system, request, clean_input, version):
+        paths = getattr(self, "paths", None)
+        model = paths.get("model") if isinstance(paths, dict) else None
+        if not isinstance(model, str) or not model:
+            return None  # 모델 식별이 없으면 결과 공유 금지
+        try:
+            stat = os.stat(model)
+            identity = [model, stat.st_size, stat.st_mtime_ns]
+        except OSError:
+            identity = [model, None, None]
+        payload = {"cache_schema": 1, "version": version, "system_sha256": hashlib.sha256(system.encode()).hexdigest(),
+                   "model": identity, "ctx_size": getattr(self, "ctx_size", None), "request": request,
+                   "raw_source_sha256": source_digest(clean_input)}
+        return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+
+    def _semantic_cache_get(self, key):
+        with _semantic_cache_lock:
+            cache = getattr(self, "_semantic_cache_data", None)
+            if cache is None:
+                return None
+            entry = cache.get(key)
+            if entry is not None:
+                cache.move_to_end(key)
+            return dict(entry) if entry is not None else None
+
+    def _semantic_cache_evict(self, key):
+        with _semantic_cache_lock:
+            cache = getattr(self, "_semantic_cache_data", None)
+            if cache is not None:
+                cache.pop(key, None)
+
+    def _semantic_cache_put(self, key, choice):
+        if not (isinstance(choice, dict) and set(choice) == {"verdict", "evidence_id"}):
+            return
+        entry = {"verdict": choice["verdict"], "evidence_id": choice["evidence_id"]}
+        with _semantic_cache_lock:
+            cache = getattr(self, "_semantic_cache_data", None)
+            if cache is None:
+                cache = OrderedDict()
+                try:
+                    self._semantic_cache_data = cache
+                except Exception:
+                    return
+            cache[key] = entry
+            cache.move_to_end(key)
+            while len(cache) > SEMANTIC_CACHE_LIMIT:
+                cache.popitem(last=False)
+
     def infer(self, task, data, version=DEFAULT_VERSION, max_tokens=None):
         if version != DEFAULT_VERSION:
             raise ValueError("v15만 지원")
@@ -237,6 +305,17 @@ class LocalServer:
         result = {"task": task, "version": version, "input": clean_input,
                   "prompt_sha256": hashlib.sha256(system.encode()).hexdigest(), "max_tokens": limit,
                   "temperature": 0, "seed": 42, "thinking": False, "cache_prompt": use_cache, "request_count":0}
+        request_id = uuid.uuid4().hex
+        overflow_preflight = False
+        event_extra = {}
+        def emit(name):
+            self._emit_event({"event": name, "request_id": request_id,
+                              "candidate_id": clean_input.get("candidate_id"), "task": task,
+                              "status": result.get("status", "started"),
+                              "completion_received": bool(result.get("completion_received", False)),
+                              "request_count": result["request_count"],
+                              "preflight_failed": int(bool(result.get("preflight_failed") or overflow_preflight or
+                                  result.get("decision_rule") == "empty_source_needs_review")), **event_extra})
         try:
             model_input=prepare_input(task,clean_input,version)
             if version in SENTENCE_ID_VERSIONS:
@@ -250,6 +329,40 @@ class LocalServer:
                                    'wall_seconds':time.perf_counter()-started})
                     return result
             messages = [{"role": "system", "content": system}, {"role": "user", "content": json.dumps(model_input, ensure_ascii=False)}]
+            request = {"messages": messages, "temperature": 0, "seed": 42, "max_tokens": limit,
+                       "cache_prompt": use_cache, "chat_template_kwargs": {"enable_thinking": False},
+                       "reasoning_effort": "none", "response_format": {"type": "json_object", "schema": schema_for(task, model_input, version)}}
+            cache_key = (self._semantic_cache_key(system, request, clean_input, version)
+                         if task == "verify" and version in SENTENCE_ID_VERSIONS else None)
+            budget = getattr(self, "budget", None)
+            if cache_key:
+                result["cache_key"] = cache_key
+                event_extra["cache_key"] = cache_key
+                if budget is not None:
+                    budget.remaining()  # 캐시 경로도 취소/기한을 우회하지 않는다.
+                entry = self._semantic_cache_get(cache_key)
+                if entry is not None:
+                    try:
+                        choice = {"verdict": entry.get("verdict"), "evidence_id": entry.get("evidence_id")}
+                        if set(entry) != {"verdict", "evidence_id"}:
+                            raise ValueError("cache_entry_schema")
+                        parsed = resolve_sentence_choice(clean_input, choice, version)
+                        checked = {key: parsed[key] for key in ("verdict", "evidence")}
+                        validation = validate_output(task, clean_input, checked)
+                        if validation["errors"]:
+                            raise ValueError("cache_binding_invalid")
+                    except Exception:
+                        self._semantic_cache_evict(cache_key)  # 결합 실패: 폐기 후 새 추론
+                    else:
+                        if budget is not None:
+                            budget.remaining()
+                        event_extra.update({"status": "reused", "cache_hit": True, "cache_key": cache_key,
+                                            "reuse_kind": "semantic_cache"})
+                        result.update({"model_output": choice, "parsed": parsed, "validation": validation,
+                                       "status": "ok", "request_count": 0, "inference_seconds": 0,
+                                       "cache_hit": True, "cache_key": cache_key, "reuse_kind": "semantic_cache",
+                                       "wall_seconds": time.perf_counter() - started})
+                        return result
             try:
                 prompt_tokens = self.prompt_size(task, clean_input, version)
             except Exception:
@@ -257,13 +370,13 @@ class LocalServer:
                 raise
             result["preflight_prompt_tokens"] = prompt_tokens
             if prompt_tokens + limit + 64 > self.ctx_size:
+                overflow_preflight = True
                 raise ValueError("input_overflow: 원문을 자르지 않고 입력을 분할해야 함")
-            request = {"messages": messages, "temperature": 0, "seed": 42, "max_tokens": limit,
-                       "cache_prompt": use_cache, "chat_template_kwargs": {"enable_thinking": False},
-                       "reasoning_effort": "none", "response_format": {"type": "json_object", "schema": schema_for(task, model_input, version)}}
             inference_start = time.perf_counter()
-            result['request_count']=1
-            response = self.request("/v1/chat/completions", request)
+            def on_dispatch():
+                result['request_count'] = 1
+                emit('request_start')
+            response = self.request("/v1/chat/completions", request, on_dispatch=on_dispatch)
             result['completion_received'] = True
             result["inference_seconds"] = time.perf_counter() - inference_start
             result["raw_response"] = response
@@ -278,9 +391,17 @@ class LocalServer:
             checked = {key: parsed[key] for key in ("verdict", "evidence")} if task == "verify" and version in SENTENCE_ID_VERSIONS else parsed
             result["validation"] = validate_output(task, clean_input, checked)
             result["status"] = "ok" if not result["validation"]["errors"] else "invalid_output"
+            if cache_key and result["status"] == "ok":
+                self._semantic_cache_put(cache_key, result.get("model_output"))
         except Exception as exc:
             result["status"] = "error"
             result["error"] = f"{type(exc).__name__}: {exc}"
+        finally:
+            if "status" not in result:
+                result["status"] = "cancelled"
+            if result["request_count"]:
+                emit("request_end")
+            emit("item_end")
         result["wall_seconds"] = time.perf_counter() - started
         return result
 
@@ -325,6 +446,10 @@ def resolve_sentence_choice(data,obj,version=None):
     original_verdict=obj.get('verdict') if isinstance(obj,dict) else None
     if not isinstance(obj,dict) or set(obj)!={'verdict','evidence_id'} or obj['verdict'] not in ('ad','clean','uncertain'):
         raise ValueError('sentence_choice_schema: verdict/evidence_id 필요')
+    if isinstance(obj['evidence_id'], str) and obj['evidence_id'].startswith('c'):
+        if obj['verdict'] == 'clean':
+            raise ValueError('clean_requires_target_html: context만으로 대상 정상 확정 불가')
+        raise ValueError('unbound_sentence_id: context ID는 선택할 수 없음')
     chosen=next((u for u in source_units(data) if u['id']==obj['evidence_id'] and u['selectable']),None)
     if chosen is None or (chosen.get('structural_only') and obj['verdict']!='uncertain'):
         raise ValueError('unbound_sentence_id: 선택할 수 없는 ID 또는 내용 없는 확정')

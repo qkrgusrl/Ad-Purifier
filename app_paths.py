@@ -1,4 +1,5 @@
 """실행 폴더의 자산과 사용자 쓰기 가능 로그 경로."""
+import importlib.util
 import os
 import sys
 import tempfile
@@ -79,7 +80,18 @@ def ensure_writable_output(root=None):
 
 def bootstrap():
     os.environ.setdefault('TOKENIZERS_PARALLELISM', 'false')
-    os.environ['PLAYWRIGHT_BROWSERS_PATH'] = str(app_root() / 'runtime/chromium')
+    if 'PLAYWRIGHT_BROWSERS_PATH' not in os.environ:
+        bundled = app_root() / 'runtime/chromium'
+        if getattr(sys, 'frozen', False) or bundled.is_dir():
+            os.environ['PLAYWRIGHT_BROWSERS_PATH'] = str(bundled)
+        else:
+            # 0은 설치된 Playwright 패키지의 hermetic 브라우저 경로다.
+            # 그 디렉터리가 없으면 환경변수를 두지 않아 사용자 cache를 쓴다.
+            spec = importlib.util.find_spec('playwright')
+            if spec is not None and spec.submodule_search_locations:
+                if any((Path(root) / 'driver/package/.local-browsers').is_dir()
+                       for root in spec.submodule_search_locations):
+                    os.environ['PLAYWRIGHT_BROWSERS_PATH'] = '0'
     os.environ['HF_HUB_OFFLINE'] = '1'
     os.environ['TRANSFORMERS_OFFLINE'] = '1'
     os.environ['HF_HUB_DISABLE_TELEMETRY'] = '1'

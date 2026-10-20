@@ -33,6 +33,55 @@ def _receive_message(conn):
     return message
 
 
+def _preflight_limits(agent, texts, questions):
+    """(state 토큰 수 목록, 최소 room, max_len, head_max_len). 판단 불가면 None(fail-open)."""
+    if not texts or not questions or not all(isinstance(text, str) for text in texts):
+        return None
+    from laya.common import encode_text, serialize_state, state_room
+    from laya.hooks import default_hooks
+
+    # hook은 입력, 질문, 토큰 예산을 바꿀 수 있으므로 하나라도 있으면 검사를 생략한다.
+    if default_hooks() or list(getattr(agent, "hooks", None) or ()):
+        return None
+    tok, cfg = agent.tok, agent.cfg
+    max_len = int(cfg.get("max_len", 512))
+    head_max_len = int(cfg.get("head_max_len", 192))
+    room = min(state_room(tok, agent._to_internal(question), max_len, head_max_len)
+               for question in questions.values())
+    counts = [len(encode_text(tok, serialize_state(text).replace(tok.mask_token, " "),
+                              add_special_tokens=False)["input_ids"]) for text in texts]
+    return counts, room, max_len, head_max_len
+
+
+def _checked_predict(agent, texts, questions, batch_size):
+    """확실히 잘릴 입력은 forward 전에 빼고, 나머지만 predict_batch로 보내 원래 index로 합친다."""
+    try:
+        limits = _preflight_limits(agent, texts, questions)
+    except Exception:
+        limits = None  # 지원하지 않는 agent/tokenizer API는 기존 경로로 분류한다.
+    if limits is None:
+        return agent.predict_batch(texts, questions, batch_size=batch_size)
+    counts, room, max_len, head_max_len = limits
+    keep = [i for i, count in enumerate(counts) if count <= room]
+    if len(keep) == len(texts):
+        return agent.predict_batch(texts, questions, batch_size=batch_size)
+    merged = [None] * len(texts)
+    for i, count in enumerate(counts):
+        if count > room:
+            merged[i] = {"status": "preflight_rejected", "answers": {},
+                         "usage": {"input_tokens": 0, "output_tokens": 0, "state_tokens": count},
+                         "preflight": {"reason": "input_too_long", "input_tokens": count,
+                                       "token_limit": room, "max_len": max_len,
+                                       "head_max_len": head_max_len, "model_invoked": False}}
+    if keep:
+        outputs = agent.predict_batch([texts[i] for i in keep], questions, batch_size=batch_size)
+        if not isinstance(outputs, list) or len(outputs) != len(keep):
+            raise RuntimeError("Laya 예측 출력 개수 불일치")
+        for i, output in zip(keep, outputs):
+            merged[i] = output
+    return merged
+
+
 def _model_worker(conn, model_path):
     from laya.agent import Agent
 
@@ -42,8 +91,8 @@ def _model_worker(conn, model_path):
         request = _receive_message(conn)
         if request.get("op") != "predict":
             raise RuntimeError("알 수 없는 Laya 요청")
-        outputs = agent.predict_batch(request["texts"], request["questions"],
-                                      batch_size=request["batch_size"])
+        outputs = _checked_predict(agent, request["texts"], request["questions"],
+                                   request["batch_size"])
         _send_message(conn, {"status": "ok", "outputs": outputs})
 
 

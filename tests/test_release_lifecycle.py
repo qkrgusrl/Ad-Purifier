@@ -397,11 +397,14 @@ class LayaCleanupContractTests(unittest.TestCase):
                 self.assertNotEqual(candidate["processing_status"], "completed")
                 self.assertTrue(stats["failures"])
 
-    def test_cleaned_runtime_errors_still_allow_gemma_fallback(self):
+    def test_cleaned_runtime_errors_keep_review_without_gemma(self):
         for stage in ("load_runtime", "predict_runtime"):
             with self.subTest(stage=stage):
-                calls, _, _ = self.analyze_failure(stage)
-                self.assertEqual(calls, ["construct", "verify"], "정리 성공한 모델 오류의 fallback은 유지해야 함")
+                calls, candidate, stats = self.analyze_failure(stage)
+                self.assertEqual(calls, [], "유효 Laya 없는 runtime 오류는 Gemma 대상이 아님")
+                self.assertEqual(candidate["verdict"], "uncertain")
+                self.assertNotEqual(candidate["processing_status"], "completed")
+                self.assertTrue(stats["failures"])
 
 
 class UIShutdownLifecycleTests(unittest.TestCase):

@@ -726,7 +726,7 @@ LLM_RESERVE = 6 * 60    # Gemma 검증을 위해 크롤링에서 남길 시간
 def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT_MODEL, use_ml=True,
         progress=None, phase=None, user_agent=DEFAULT_UA, detect_posted=True,
         time_budget=TIME_BUDGET, llm_reserve=LLM_RESERVE, collapse=False, cancel=None,
-        laya_confidence_threshold=0.8, complete_validation=False):
+        laya_confidence_threshold=0.8, complete_validation=False, telemetry=None):
     """크롤링 → 판정 → result.json/report.json 저장. report 딕셔너리를 돌려준다.
 
     phase(단계명): UI에 현재 단계(crawl/judge/save)를 알리는 콜백.
@@ -736,6 +736,8 @@ def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT
     complete_validation: 수집 시간 상한을 유지하고 수집된 항목의 AI 판정은 시간 상한 없이 완료.
     cancel: threading.Event. 켜지면 ScanCancelled를 일으키고 결과 파일은 건드리지 않는다(지난 제출용 result.json 보존).
     """
+    from .ai_telemetry import AuditPublisher
+    publisher = AuditPublisher(out, telemetry)
     model = Path(model)
     if not model.is_absolute():
         model = app_dir() / model
@@ -757,10 +759,15 @@ def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT
     try:
         ai = analyze(cands, pages, str(model), use_ml, judge_deadline, cancel,
                      laya_confidence_threshold=laya_confidence_threshold, cancel_error=ScanCancelled,
-                     detect_posted=detect_posted)
-    except asyncio.CancelledError as exc:
-        # Gemma context 정리 후 UI가 처리하는 취소 예외로 전달하며 저장 단계에 진입하지 않는다.
-        raise ScanCancelled() from exc
+                     detect_posted=detect_posted, telemetry=publisher)
+        ai["telemetry"] = publisher.enrich(ai["telemetry"])
+    except BaseException as exc:
+        if publisher.snapshot is not None:
+            publisher({"event": "progress", "snapshot": {**publisher.snapshot, "stage": "incomplete"}})
+        if isinstance(exc, asyncio.CancelledError):
+            # Gemma context 정리 후 UI가 처리하는 취소 예외로 전달한다.
+            raise ScanCancelled() from exc
+        raise
     unresolved = sum(c["verdict"] == "uncertain" for c in cands) + len(ai["unresolved_sources"])
     if cancelled():
         raise ScanCancelled()

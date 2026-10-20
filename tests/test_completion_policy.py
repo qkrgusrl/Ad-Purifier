@@ -148,7 +148,8 @@ class CompletionPolicyTests(unittest.TestCase):
                                verify=lambda item: bound_reply(item, "uncertain", "needs_review"))
                 report = self.execute(h)
                 self.assertEqual(h.laya_inputs, ["환전 안내"])
-                self.assertEqual(len(h.verify_inputs), 2, "공유 예측 실패의 모든 owner가 Gemma/보류로 남아야 함")
+                self.assertEqual(h.verify_inputs + h.extract_inputs, [], "유효 예측 없는 모든 owner는 Gemma 없이 보류")
+                self.assertEqual(h.entered, 0)
                 self.assertEqual(set(self.owners(report)), {"s1", "s2"})
                 self.assertTrue(all(c["verdict"] == "uncertain" for c in self.owners(report).values()))
                 self.assertEqual(report["unresolved_count"], 2)
@@ -201,12 +202,13 @@ class CompletionPolicyTests(unittest.TestCase):
                 forwarded = []
                 def serve():
                     forwarded.extend(sys.argv[1:])
-                argv = ["--no-browser"] + (["--complete-validation"] if complete else [])
+                argv = ["--no-browser", "--complete-validation" if complete else "--no-complete-validation"]
                 with patch.object(app, "bootstrap"), patch.object(app, "ensure_writable_output"), patch.object(
                     server, "main", side_effect=serve
                 ):
                     self.assertEqual(app.main(argv), 0)
                 self.assertEqual("--complete-validation" in forwarded, complete)
+                self.assertEqual("--no-complete-validation" in forwarded, not complete)
                 self.assertNotIn("--no-time-limit", forwarded,
                                  "AI 완료 우선 옵션이 수집 시간 제한 해제로 바뀌면 안 됨")
 

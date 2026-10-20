@@ -19,6 +19,7 @@ runs/
 /result.json
 /result_extra.json
 /report.json
+/ai-audit/
 history/
 
 # 로컬 전용 에디터·세션 설정 (개인 권한·경로 포함)
@@ -33,6 +34,7 @@ history/
 /packaging/.downloads/
 /licenses/python-packages/
 /self-test.json
+/installed-assets.json
 
 /licenses/Python-LICENSE.txt
 

@@ -373,7 +373,7 @@ class OutputDirectoryContractTests(ContractCase):
         with patch.dict(sys.modules, {"ui.server": fake_ui, "scripts.self_test": fake_smoke}):
             self.assertEqual(app.main(["--no-browser", "--port", "48760"]), 0)
             self.assertEqual(app.main(["--self-test"]), 0)
-        self.assertEqual(starts, [("UI", ["--port", "48760", "--no-browser"]),
+        self.assertEqual(starts, [("UI", ["--port", "48760", "--no-browser", "--complete-validation"]),
                                   ("model", self.install / "self-test.json")])
         self.assertEqual(snapshot(self.install), before)
 
