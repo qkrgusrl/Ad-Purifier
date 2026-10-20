@@ -33,6 +33,7 @@ history/
 /packaging/.downloads/
 /licenses/python-packages/
 /self-test.json
+/installed-assets.json
 
 /licenses/Python-LICENSE.txt
 

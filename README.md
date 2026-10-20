@@ -216,7 +216,7 @@ v2는 검증셋과 문장을 공유하지 않지만, 대출깡·외국어 스팸
 - 점검 이력 카드를 다시 누르거나 **선택 해제**를 누르면 처음 화면으로 돌아갑니다.
 - 화면의 '최대 페이지' 입력칸을 없앴습니다. 화면은 항상 시간 한도 안에서 사이트 전체를 봅니다.
 
-**시간 한도 없음(실험)**: `python -m ui.server --no-time-limit`. 큰 사이트 전체를 보는 데 걸리는 시간과 LLM 검증에 남는 시간을 재는 용도입니다.
+**시간 한도 없음(실험)**: `.venv/bin/python -u -m ui.server --port 8780 --no-time-limit`. 큰 사이트 전체를 보는 데 걸리는 시간과 LLM 검증에 남는 시간을 재는 용도입니다.
 
 ### 개발하면서 찾은 함정 (같은 실수 반복 금지)
 - **NFKC 정규화가 호환자모(ㅅ)를 조합자모(ᄉ)로 바꿉니다.** 그래서 자모 재조합을 NFKC보다 **먼저** 하고, 호환자모 범위는 NFKC에서 제외합니다.
@@ -282,20 +282,24 @@ CPU 전용 torch, laya, playwright, Chromium을 설치합니다.
 
 ---
 
-## 4. 모델 안내 — ⚠️ 저장소에 모델이 없습니다
+## 4. 모델과 OS별 runtime 준비 (최초 1회)
 
-파인튜닝한 모델(`models/laya-illegal-ad/model.safetensors`)은 **614MB**라서
-GitHub의 **파일당 100MB 제한**을 넘어 저장소에 올릴 수 없습니다.
-**각자 `pip install laya`로 설치한 뒤** 아래 중 하나로 쓰세요.
+저장소에는 모델 가중치와 native runtime이 포함되지 않습니다. 실행 전에 배포 자산을 다음 **저장소 루트 기준 경로**에 설치하세요. 실행 중 자동 다운로드는 하지 않습니다.
 
-### 방법 A. 기본 모델 바로 쓰기 (제로샷, 가장 간단)
-`pip install laya`를 하면 처음 실행할 때 HuggingFace에서 기본 모델을 자동으로 받습니다(인터넷 필요, 수백 MB).
-```bash
-.venv/bin/python -m detector.main http://127.0.0.1:8765/ --out runs/full \
-    --model convaiinnovations/laya-multilingual
-```
+| 자산 | 설치 경로 |
+|---|---|
+| Laya long2 전체 모델 폴더 | `models/laya-illegal-ad-long2/` (가중치, 설정, questions, encoder, tokenizer 포함) |
+| Gemma GGUF | `models/gemma/gemma-4-E2B_q4_0-it.gguf` |
+| 현재 OS·CPU 아키텍처용 llama.cpp 서버와 의존 라이브러리 | macOS/Linux: `runtime/llama/llama-server`, Windows: `runtime/llama/llama-server.exe` 및 동봉 DLL |
+| Chromium | 아래 브라우저 경로 선택 규칙 참고 |
 
-### 방법 B. 직접 파인튜닝해서 만들기
+모델 배포본은 팀 공유 자산을 사용하고, llama.cpp는 실행할 OS·아키텍처에 맞는 native 배포본을 해당 폴더에 풀어 실행 권한과 동봉 라이브러리를 갖추세요. Windows DLL을 macOS/Linux에서 사용할 수 없습니다. `assets.lock.json`과 Windows 자산 설치 절차는 **Windows 전용**입니다. macOS/Linux에 그 잠금 파일로 Windows runtime을 설치하지 마세요.
+
+브라우저는 명시한 `PLAYWRIGHT_BROWSERS_PATH`를 우선합니다. 미지정 시 소스 실행은 `runtime/chromium/`이 있으면 그 폴더, 없으면 설치된 Playwright의 `driver/package/.local-browsers/`가 실제 존재할 때 `0`, 둘 다 없으면 사용자 cache를 사용합니다. 위 설치 명령의 `playwright install chromium`은 기본 사용자 cache에 설치합니다. 동봉하려면 최초 설치 때 `PLAYWRIGHT_BROWSERS_PATH="$PWD/runtime/chromium" .venv/bin/python -m playwright install chromium`을 사용하세요. 설치형 실행 파일은 기본적으로 실행 파일 옆 `runtime/chromium/`을 사용합니다.
+
+GPU 없이 **CPU만으로 실행**합니다. Laya와 Gemma의 CPU 실행 및 스레드 자동 선택을 사용하며 GPU 설치는 필요하지 않습니다. 처리 시간은 CPU와 후보 수에 따라 달라집니다. 시작·상태 조회는 파일과 Python 의존성만 확인하고 모델을 실행하지 않습니다. AI 자산이 없으면 탐지 시작 요청은 명확한 오류(HTTP 409)를 반환합니다. 파일 준비 상태는 실제 추론 성공을 뜻하지 않습니다.
+
+### 참고: 직접 파인튜닝하기 (공식 실행에 필요한 long2 배포본과 별도)
 프로토타입과 같은 설정입니다. CPU로도 돌아가지만 시간이 걸립니다.
 ```bash
 # 1) 학습 데이터 생성 (train.jsonl·dev.jsonl, 이미 들어 있으니 수정했을 때만 실행)
@@ -312,17 +316,16 @@ GitHub의 **파일당 100MB 제한**을 넘어 저장소에 올릴 수 없습니
 ```
 Mac(16GB)에서는 `--micro-batch 4 --grad-accum 8`이 메모리 안에 들어갑니다(실제 배치 32는 같음). 3에폭에 2\~3시간이 걸리니, 빠르게 하려면 코랩 T4 GPU(무료)에서 `--micro-batch 16 --grad-accum 2 --device cuda`로 학습하세요(약 15분).
 
-`models/laya-illegal-ad`가 있으면 탐지기가 `--model` 옵션 없이 자동으로 씁니다.
-다른 모델과 비교하려면 `AD_PURIFIER_MODEL` 환경변수로 모델 폴더를 지정하세요. 화면도 이 모델로 판정하고, 결과 제목에 모델 이름이 표시됩니다.
+기본 모델은 `models/laya-illegal-ad-long2`입니다. 다른 모델과 비교하려면 `AD_PURIFIER_MODEL`로 전체 모델 폴더를 지정하세요. `AD_PURIFIER_GEMMA_MODEL`과 `AD_PURIFIER_LLAMA_SERVER`도 지원합니다. 상대 경로는 현재 작업 폴더와 무관하게 저장소 루트(설치형은 실행 파일 폴더)를 기준으로 해석합니다.
 ```bash
-AD_PURIFIER_MODEL=$PWD/models/laya-illegal-ad-v3 .venv/bin/python -m ui.server --port 8781
+AD_PURIFIER_MODEL=models/laya-illegal-ad-v3 .venv/bin/python -u -m ui.server --port 8780
 ```
 
-### 방법 C. 모델 없이 룰만 쓰기
+### 진단: 모델 없이 룰만 쓰기
 ```bash
 .venv/bin/python -m detector.main http://127.0.0.1:8765/ --out runs/rules --no-ml
 ```
-경계 구간은 정상으로 처리합니다(재현율이 떨어짐).
+AI 판정 없이 실행하는 진단용 명령입니다.
 
 ---
 
@@ -330,10 +333,14 @@ AD_PURIFIER_MODEL=$PWD/models/laya-illegal-ad-v3 .venv/bin/python -m ui.server -
 
 ### 화면으로 실행 (기본)
 ```bash
-.venv/bin/python testsite/server.py     # (테스트할 때) 모의 사이트 → http://127.0.0.1:8765/
-.venv/bin/python -m ui.server           # 화면 → 브라우저가 자동으로 열림 (http://127.0.0.1:8780/)
+cd Ad-Purifier
+.venv/bin/python -u -m ui.server --port 8780
 ```
-Windows에서는 `run_ui.bat`을 실행합니다.
+저장소 루트에 이미 있다면 `cd Ad-Purifier`는 생략합니다. 브라우저가 자동으로 열립니다. 개인 wrapper 없이 이 명령으로 공통 bootstrap과 탐지 pipeline을 실행합니다. Windows 소스 실행도 같은 모듈을 사용합니다: `.venv\Scripts\python.exe -u -m ui.server --port 8780`.
+
+기본은 `complete_validation=True`입니다. 크롤링 시간 상한을 유지하면서 수집된 항목의 AI 판정을 끝까지 진행하므로 총 실행 시간은 30분을 넘길 수 있습니다. `--no-complete-validation`을 명시하면 판정에도 기존 시간 상한을 적용합니다. `--complete-validation`과 함께 지정하면 마지막 옵션이 우선합니다. `--no-time-limit`은 별도의 수집 시간 제한 해제 옵션입니다.
+
+페이지 수 상한 기본값은 `max_pages=0`(수집 시간 예산 안에서 제한 없음)이며 `/api/status`의 `max_pages`에 현재 요청값을 표시합니다. 모의 사이트가 필요할 때만 별도 터미널에서 `.venv/bin/python testsite/server.py`를 실행하세요.
 
 1. URL을 입력하고 **탐지 시작**을 누르면 진행률(수집한 페이지 수, 현재 URL)이 표시됩니다. 탐지 중에는 같은 버튼이 **탐지 중지**로 바뀝니다. 중지하면 그 점검은 저장하지 않고, 지난 `result.json`과 이력은 그대로 남습니다.
 2. 끝나면 **대시보드**가 나옵니다.
@@ -385,7 +392,7 @@ Windows에서는 `run_ui.bat`을 실행합니다.
 - `result.json`은 탐지할 때마다 덮어쓰고, 지난 결과는 `history/`에 남습니다. 이력을 지우려면 `history/` 폴더를 삭제하세요.
 - 정상 판정 후보도 보기를 켜면 탐지기가 걸러낸 후보(예: 접근성용 "본문 바로가기")까지 흐리게 표시됩니다.
 - 화면은 페이지 수 제한 없이 시간 한도(약 21분) 안에서 사이트 전체를 탐색합니다. 페이지 수를 줄여 빠르게 보려면 명령줄의 `--max-pages`를 쓰세요.
-- 실험용으로 `python -m ui.server --no-time-limit`을 쓰면 시간 한도 없이 대기열이 빌 때까지 탐색합니다. 사이트 전체를 보는 데 걸리는 시간과 LLM 검증에 남는 시간을 재는 용도이고, 제출 시간(30분)을 넘길 수 있습니다.
+- 실험용으로 `.venv/bin/python -u -m ui.server --port 8780 --no-time-limit`을 쓰면 시간 한도 없이 대기열이 빌 때까지 탐색합니다. 사이트 전체를 보는 데 걸리는 시간과 LLM 검증에 남는 시간을 재는 용도이고, 제출 시간(30분)을 넘길 수 있습니다.
 
 ### 명령줄로 실행
 
@@ -421,7 +428,7 @@ Windows에서는 `run_testsite.bat`을 실행한 뒤 `run_detect.bat http://127.
 | `--llm-reserve` | 360 (6분) | 나중에 붙일 LLM 최종 검증 몫으로 남겨 두는 시간(초). 크롤링은 `time-budget − llm-reserve − 판정 2분`까지 |
 | `--concurrency` | 4 | 동시에 여는 탭 수 |
 | `--timeout` | 15000 | 페이지 로딩 제한 시간(ms) |
-| `--model` | `models/laya-illegal-ad` (`AD_PURIFIER_MODEL` 환경변수로 변경 가능) | Laya 모델 경로 또는 HuggingFace ID |
+| `--model` | `models/laya-illegal-ad-long2` (`AD_PURIFIER_MODEL` 환경변수로 변경 가능) | 로컬 Laya 모델 폴더 |
 | `--no-ml` | – | Laya 없이 룰만 사용 |
 | `--user-agent` | 일반 Chrome | 크롤러 User-Agent. 기본으로 평범한 한국어 브라우저처럼 접속합니다(로캘 `ko-KR`, `Accept-Language` 포함). 점검 기관에 신원을 밝혀야 하면 뒤에 도구명을 덧붙이세요. |
 | `--no-extra` | – | 게시형(은닉 없는) 불법광고 탐지를 끄고 적격평가 4종만 탐지 |

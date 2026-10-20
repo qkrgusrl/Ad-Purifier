@@ -26,13 +26,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from app_paths import resource_root, gemma_model, llama_server
+from app_paths import bootstrap, resource_root, gemma_model, llama_server
 
 from detector.main import DEFAULT_MODEL, JUDGE_RESERVE, KST, LLM_RESERVE, TIME_BUDGET, ScanCancelled, app_dir, run
 
 CRAWL_LIMIT = TIME_BUDGET - LLM_RESERVE - JUDGE_RESERVE  # 화면 진행률에 쓰는 크롤링 최대 시간(초)
 NO_LIMIT_BUDGET = 7 * 24 * 3600  # --no-time-limit: 사실상 무제한(대기열이 비면 끝난다)
-options = {"time_limit": True, "complete_validation": False}
+options = {"time_limit": True, "complete_validation": True}
 
 STATIC = resource_root() / "ui" / "static"
 HISTORY = app_dir() / "history"
@@ -42,7 +42,7 @@ REVIEW_STATES = {"new", "confirmed", "false_positive", "resolved"}
 
 state_lock = threading.Lock()
 state = {"running": False, "phase": "idle", "entry_url": "", "pages_done": 0, "pages_found": 0, "current_url": "",
-         "started": None, "run_id": None, "error": None, "cancelling": False}
+         "started": None, "run_id": None, "error": None, "cancelling": False, "max_pages": 0}
 cancel_event = threading.Event()  # 탐지 취소 신호 (진행 중인 점검 하나에만 쓰고, 새 점검을 시작할 때 비운다)
 
 
@@ -403,7 +403,7 @@ class Handler(BaseHTTPRequestHandler):
                 if state["running"] or (previous_worker is not None and previous_worker.is_alive()):
                     return self.send(409, {"error": "이미 탐지가 진행 중입니다."})
                 state.update(running=True, phase="start", entry_url=url, pages_done=0, pages_found=1, current_url=url,
-                             started=time.time(), run_id=None, error=None, cancelling=False)
+                             started=time.time(), run_id=None, error=None, cancelling=False, max_pages=max_pages)
                 cancel_event.clear()
                 self.server.scan_worker = threading.Thread(target=scan_job, args=(url, use_ml, max_pages),
                                                            name="scan-worker")
@@ -446,6 +446,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
+    bootstrap()
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8", errors="replace")
@@ -453,15 +454,16 @@ def main():
     ap.add_argument("--port", type=int, default=8780)
     ap.add_argument("--no-browser", action="store_true")
     ap.add_argument("--no-time-limit", action="store_true", help="실험용: 시간 한도 없이 사이트 전체 탐색")
-    ap.add_argument("--complete-validation", action="store_true",
-                    help="수집 시간 상한 유지; 수집된 항목의 AI 판정은 시간 상한 없이 완료")
+    ap.add_argument("--complete-validation", action=argparse.BooleanOptionalAction, default=True,
+                    help="기본: 수집 시간 상한 유지, 수집된 항목의 AI 판정 완료; --no-complete-validation으로 판정 시간 상한 적용")
     args = ap.parse_args()
     options["time_limit"] = not args.no_time_limit
     options["complete_validation"] = args.complete_validation
     try:
         httpd = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
-    except OSError:  # 포트가 사용 중이면 빈 포트로
-        httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    except OSError as exc:
+        raise RuntimeError(f"요청한 포트 {args.port}에서 서버를 시작할 수 없습니다. "
+                           f"포트가 이미 사용 중인지 또는 바인딩 권한이 있는지 확인하세요. 원인: {exc}") from exc
     url = f"http://127.0.0.1:{httpd.server_address[1]}/"
     print(f"광고청정기 실행 중: {url}  (종료: Ctrl+C)")
     print(f"결과 파일 위치: {app_dir()}")

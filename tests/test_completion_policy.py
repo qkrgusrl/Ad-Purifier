@@ -201,12 +201,13 @@ class CompletionPolicyTests(unittest.TestCase):
                 forwarded = []
                 def serve():
                     forwarded.extend(sys.argv[1:])
-                argv = ["--no-browser"] + (["--complete-validation"] if complete else [])
+                argv = ["--no-browser", "--complete-validation" if complete else "--no-complete-validation"]
                 with patch.object(app, "bootstrap"), patch.object(app, "ensure_writable_output"), patch.object(
                     server, "main", side_effect=serve
                 ):
                     self.assertEqual(app.main(argv), 0)
                 self.assertEqual("--complete-validation" in forwarded, complete)
+                self.assertEqual("--no-complete-validation" in forwarded, not complete)
                 self.assertNotIn("--no-time-limit", forwarded,
                                  "AI 완료 우선 옵션이 수집 시간 제한 해제로 바뀌면 안 됨")
 
