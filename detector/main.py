@@ -485,6 +485,18 @@ LINK_FARM_BONUS = 3    # 그중 하나라도 광고 키워드면 → 그 사이�
 REDIRECT_BONUS = 2     # 페이지가 스크립트로 다른 사이트로 넘기려 함(기생 페이지) → 광고 근거가 있는 문구에 가산점
 HEAD_TEXT_MIN = 10     # 본문 글자 요소가 이보다 적은 페이지는 제목·메타 태그 문구도 검사
 UI_CONTROL = re.compile(r"신고하기|신고 하기|고객센터|관련\s*글|목록|이전\s*글|다음\s*글|댓글|로그인|회원가입|바로가기")
+# 메뉴·탭·모바일 전용 같은 UI 부품은 display:none으로 접혀 있다가 누르면 보인다 — 숨김 광고가 아니다.
+# 클래스·태그 토큰이 부품 이름일 때만 본다 ('data-nav-hidden'처럼 이름 중간에 섞인 것은 아님).
+# 2026-10-20 외부 시험: gnb-submenu·util-menu mobile-only·탭 패널·breadcrumb의 '카지노 교육기관' 같은 항목을 Laya가 숨김 광고로 올리던 오탐
+UI_WIDGET = re.compile(r"^(?:gnb|lnb|snb|nav|navi|navbar|menu|submenu|dropdown|tab|tabs|accordion|modal|popup|mobile|util|allmenu|breadcrumbs?)(?:$|[-_\d])"
+                       r"|[-_](?:menu|submenu|tab|tabs|dropdown)$", re.I)
+
+
+def ui_widget_hidden(c):
+    """숨김 후보가 UI 부품을 display:none으로 접어 둔 것뿐인가 (다른 숨김 신호가 함께 있으면 아님)."""
+    if set(c.get("signals", [])) != {"display:none"}:
+        return False
+    return any(UI_WIDGET.search(tok) for tok in re.split(r"[\s>.#:()\[\]=\"']+", c["location"]) if tok)
 
 
 def link_farms(page_url, texts):
@@ -683,6 +695,9 @@ def judge(cands, model_path, use_ml, deadline=None, cancel=None):
         c["hits"] = [n if w > 0 else "-" + n for n, w in c["score_detail"]]
         c["verdict"] = adscore.verdict(c["score"])
         c["decided_by"] = "rules"
+        if c["verdict"] == "borderline" and c["technique"] in CORE_TECHNIQUES and ui_widget_hidden(c):
+            c["verdict"] = "clean"  # 규칙이 확정(≥4)하지 않은 UI 부품 숨김은 AI로 넘기지 않는다
+            c["hits"].append("-ui-widget-hidden")
     if use_ml:
         from .ai import analyze
         analyze(cands, [], model_path, use_ml, deadline, cancel, cancel_error=ScanCancelled)
