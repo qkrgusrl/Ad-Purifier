@@ -5,7 +5,7 @@ from .prototype import run_extract, run_verify
 
 
 class GemmaClient:
-    def __init__(self, *, deadline=None, cancel=None, threads=2, ctx_size=4096, log_dir=None):
+    def __init__(self, *, deadline=None, cancel=None, threads=None, ctx_size=4096, log_dir=None):
         self.budget = Budget(deadline, cancel)
         self.options = dict(log_dir=log_dir, threads=threads, ctx_size=ctx_size, budget=self.budget)
         self.server = None

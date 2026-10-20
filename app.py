@@ -17,6 +17,7 @@ def main(argv=None):
     parser.add_argument('--no-browser', action='store_true')
     parser.add_argument('--port', type=int, default=8780)
     parser.add_argument('--no-time-limit', action='store_true')
+    parser.add_argument('--complete-validation', action='store_true')
     args = parser.parse_args(argv)
     ensure_writable_output()
     if args.self_test:
@@ -30,6 +31,8 @@ def main(argv=None):
         ui_args.append('--no-browser')
     if args.no_time_limit:
         ui_args.append('--no-time-limit')
+    if args.complete_validation:
+        ui_args.append('--complete-validation')
     previous = sys.argv
     try:
         sys.argv = [previous[0], *ui_args]

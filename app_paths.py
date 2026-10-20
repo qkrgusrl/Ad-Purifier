@@ -78,8 +78,6 @@ def ensure_writable_output(root=None):
 
 
 def bootstrap():
-    os.environ.setdefault('OMP_NUM_THREADS', '2')
-    os.environ.setdefault('MKL_NUM_THREADS', '2')
     os.environ.setdefault('TOKENIZERS_PARALLELISM', 'false')
     os.environ['PLAYWRIGHT_BROWSERS_PATH'] = str(app_root() / 'runtime/chromium')
     os.environ['HF_HUB_OFFLINE'] = '1'

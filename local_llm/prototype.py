@@ -18,6 +18,7 @@ def plan_chunks(server, blocks, version, max_tokens=512, preflight_errors=None):
             if preflight_errors is None:
                 raise
             preflight_errors.append({'block_ids': [block['block_id']],
+                                     'preflight_failed': 1,
                                      'error': f'preflight_error: {type(exc).__name__}: {exc}',
                                      'action': '원문과 오류를 보존해 재검토 또는 사전 검사 재시도'})
     return chunks, oversized

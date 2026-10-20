@@ -89,7 +89,7 @@ def http_json(base, path, payload=None, timeout=300, api_key=None):
 
 
 class LocalServer:
-    def __init__(self, log_dir=None, threads=2, ctx_size=4096, repack=True,
+    def __init__(self, log_dir=None, threads=None, ctx_size=4096, repack=True,
                  cache_prompt=None, deadline=None, cancel=None, budget=None):
         self.paths = {'server': str(llama_server()), 'model': str(gemma_model())}
         self.threads, self.ctx_size = threads, ctx_size
@@ -118,11 +118,13 @@ class LocalServer:
             with os.fdopen(fd, 'w') as stream:
                 stream.write(self.api_key)
             self.command = [self.paths['server'], '-m', self.paths['model'], '--host', '127.0.0.1', '--port', str(port),
-                            '--device', 'none', '--gpu-layers', '0', '--no-op-offload', '--no-kv-offload',
-                            '--threads', str(self.threads), '--threads-batch', str(self.threads),
+                            '--device', 'none', '--gpu-layers', '0', '--no-op-offload', '--no-kv-offload']
+            if self.threads is not None:
+                self.command.extend(['--threads', str(self.threads), '--threads-batch', str(self.threads)])
+            self.command.extend([
                             '--ctx-size', str(self.ctx_size), '--parallel', '1', '--batch-size', '512', '--ubatch-size', '128',
                             '--fit', 'off', '--no-context-shift', '--no-webui', '--offline', '--verbosity', '4',
-                            '--api-key-file', str(self.key_file)]
+                            '--api-key-file', str(self.key_file)])
             if not self.repack:
                 self.command.append('--no-repack')
             self.log = (self.log_dir / 'server.log').open('w', encoding='utf-8')
@@ -248,7 +250,11 @@ class LocalServer:
                                    'wall_seconds':time.perf_counter()-started})
                     return result
             messages = [{"role": "system", "content": system}, {"role": "user", "content": json.dumps(model_input, ensure_ascii=False)}]
-            prompt_tokens = self.prompt_size(task, clean_input, version)
+            try:
+                prompt_tokens = self.prompt_size(task, clean_input, version)
+            except Exception:
+                result['preflight_failed'] = 1
+                raise
             result["preflight_prompt_tokens"] = prompt_tokens
             if prompt_tokens + limit + 64 > self.ctx_size:
                 raise ValueError("input_overflow: 원문을 자르지 않고 입력을 분할해야 함")
@@ -258,6 +264,7 @@ class LocalServer:
             inference_start = time.perf_counter()
             result['request_count']=1
             response = self.request("/v1/chat/completions", request)
+            result['completion_received'] = True
             result["inference_seconds"] = time.perf_counter() - inference_start
             result["raw_response"] = response
             choice = response["choices"][0]
@@ -322,6 +329,8 @@ def resolve_sentence_choice(data,obj,version=None):
     if chosen is None or (chosen.get('structural_only') and obj['verdict']!='uncertain'):
         raise ValueError('unbound_sentence_id: 선택할 수 없는 ID 또는 내용 없는 확정')
     field,start,end=chosen['source_field'],chosen['start_char'],chosen['end_char']
+    if obj['verdict'] == 'clean' and field != 'html':
+        raise ValueError('clean_requires_target_html: context만으로 대상 정상 확정 불가')
     return {'verdict':obj['verdict'],'model_verdict':original_verdict,'evidence':data.get(field,'')[start:end],
             'evidence_id':chosen['id'],'source_field':field,'start_char':start,'end_char':end,
             'source_sha256':source_digest(data),'owner_id':data['candidate_id'],'evidence_scope':'source_unit_selection'}

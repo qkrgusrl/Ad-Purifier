@@ -24,7 +24,7 @@ import webbrowser
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from app_paths import resource_root, gemma_model, llama_server
 
@@ -32,7 +32,7 @@ from detector.main import DEFAULT_MODEL, JUDGE_RESERVE, KST, LLM_RESERVE, TIME_B
 
 CRAWL_LIMIT = TIME_BUDGET - LLM_RESERVE - JUDGE_RESERVE  # 화면 진행률에 쓰는 크롤링 최대 시간(초)
 NO_LIMIT_BUDGET = 7 * 24 * 3600  # --no-time-limit: 사실상 무제한(대기열이 비면 끝난다)
-options = {"time_limit": True}
+options = {"time_limit": True, "complete_validation": False}
 
 STATIC = resource_root() / "ui" / "static"
 HISTORY = app_dir() / "history"
@@ -113,7 +113,7 @@ def scan_job(entry_url, use_ml, max_pages):
     try:
         budget = {} if options["time_limit"] else {"time_budget": NO_LIMIT_BUDGET}
         report = run(entry_url, app_dir(), max_pages=max_pages, use_ml=use_ml, progress=progress, phase=phase,
-            cancel=cancel_event, **budget)
+            cancel=cancel_event, complete_validation=options["complete_validation"], **budget)
         dest = HISTORY / run_id
         dest.mkdir(parents=True, exist_ok=True)
         for name in ("result.json", "report.json"):
@@ -207,6 +207,37 @@ def load_run(run_id):
         c["memo"] = r.get("memo", "")
     rep["id"] = run_id
     return rep
+
+
+def ui_report(rep):
+    """UI 조회 전용 projection. 원문을 복제하거나 저장 객체를 변경하지 않는다."""
+    heavy = {"source_html", "source_context", "source_near_text", "context", "raw",
+             "gemma", "extraction", "visit_log", "external_skipped", "duplicates"}
+    value = {key: item for key, item in rep.items() if key not in heavy}
+    value["candidates"] = [
+        {key: item for key, item in candidate.items() if key not in heavy}
+        for candidate in rep.get("candidates", [])
+    ]
+    warning_fields = {"source_id", "reason", "processing_status", "url", "location",
+                      "status", "error", "message", "stage", "technique", "selector",
+                      "frame_url", "attr"}
+
+    def warnings(items):
+        return [{key: item for key, item in row.items()
+                 if key in warning_fields and not isinstance(item, (dict, list))}
+                for row in items]
+
+    for key in ("failed_pages", "failed_frames", "http_errors"):
+        if key in rep:
+            value[key] = warnings(rep[key])
+    ai = rep.get("ai")
+    if isinstance(ai, dict):
+        value["ai"] = {key: item for key, item in ai.items()
+                       if key not in heavy and not isinstance(item, (dict, list))}
+        if "unresolved_sources" in ai:
+            value["ai"]["unresolved_sources"] = warnings(ai["unresolved_sources"][:5])
+            value["ai"]["unresolved_sources_count"] = len(ai["unresolved_sources"])
+    return value
 
 
 def delete_runs(run_ids):
@@ -313,6 +344,7 @@ class Handler(BaseHTTPRequestHandler):
             s["model_readiness"] = model_readiness()
             s["model_available"] = s["model_readiness"]["files_present"]
             s["crawl_limit"] = CRAWL_LIMIT if options["time_limit"] else 0  # 0 = 시간 제한 없음(실험)
+            s["validation_mode"] = "complete" if options["complete_validation"] else "bounded"
             s["out_dir"] = str(app_dir())
             return self.send(200, s)
         if path == "/api/runs":
@@ -323,7 +355,8 @@ class Handler(BaseHTTPRequestHandler):
             if rep is None:
                 return self.send(404, {"error": "점검 이력을 찾을 수 없습니다."})
             if len(parts) == 3:
-                return self.send(200, rep)
+                view = parse_qs(urlparse(self.path).query).get("view", [])
+                return self.send(200, ui_report(rep) if view == ["ui"] else rep)
             result_path = HISTORY / parts[2] / "result.json"
             if parts[3:] == ["export.csv"]:
                 result_doc = json.loads(result_path.read_text(encoding="utf-8")) if result_path.is_file() else {}
@@ -420,8 +453,11 @@ def main():
     ap.add_argument("--port", type=int, default=8780)
     ap.add_argument("--no-browser", action="store_true")
     ap.add_argument("--no-time-limit", action="store_true", help="실험용: 시간 한도 없이 사이트 전체 탐색")
+    ap.add_argument("--complete-validation", action="store_true",
+                    help="수집 시간 상한 유지; 수집된 항목의 AI 판정은 시간 상한 없이 완료")
     args = ap.parse_args()
     options["time_limit"] = not args.no_time_limit
+    options["complete_validation"] = args.complete_validation
     try:
         httpd = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     except OSError:  # 포트가 사용 중이면 빈 포트로
@@ -431,6 +467,8 @@ def main():
     print(f"결과 파일 위치: {app_dir()}")
     if args.no_time_limit:
         print("[실험] 시간 한도 없이 탐색합니다 — 제출 시간(30분)을 넘길 수 있습니다.")
+    if args.complete_validation:
+        print("[완료 우선] 수집된 항목의 AI 판정에는 시간 제한이 없습니다.")
     if not args.no_browser:
         threading.Timer(0.5, webbrowser.open, args=(url,)).start()
     try:

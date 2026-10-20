@@ -132,6 +132,9 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
         raise ValueError("laya_confidence_threshold는 0.5~1 범위여야 합니다")
     stats = {"mode": "policy" if use_ml else "diagnostic", "laya_confidence_threshold": laya_confidence_threshold,
              "laya_inputs": 0, "gemma_verify": 0, "gemma_extract": 0, "residual_screened_clean": 0,
+             "gemma_requests": dict.fromkeys(("attempted", "succeeded", "transport_failed", "output_failed", "preflight_failed", "reused"), 0),
+             "source_rows": 0, "unique_count": 0, "cache_reuse": 0,
+             "laya_sec": 0.0, "gemma_verify_sec": 0.0, "gemma_extract_sec": 0.0,
              "unresolved_sources": [], "failures": [], "source_results": [],
              "scope": "수집된 DOM 텍스트 소유 단위; 전체 HTTP 원문 및 이미지 검사는 포함하지 않음"}
 
@@ -153,9 +156,9 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
     def input_for(row):
         return {"html": row.get("source_html", ""), "context": row.get("source_context", "")}
 
-    # 같은 문구라도 다른 원문/주변 문맥이면 별도 예측. 같은 source의 회수 후 판정만 캐시 재사용.
+    # 이 호출의 model/QUESTION은 고정. Laya 입력만 공유하고 Gemma 원문 결합은 owner별 유지.
     def key(row):
-        return (normalize(row.get("evidence_text", row.get("text", ""))), digest(input_for(row)))
+        return normalize(row.get("evidence_text", row.get("text", "")))
 
     check()
     used = {c.get("source_id") for c in cands}
@@ -183,8 +186,13 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
         return stats
 
     predictions = {}
-    rows_by_key = {key(c): c for c in border if not about(c)}
-    rows_by_key.update((key(r), r) for r in residual)
+    rows_by_key = {}
+    for row in [c for c in border if not about(c)] + residual:
+        rows_by_key.setdefault(key(row), []).append(row)
+    stats["source_rows"] = sum(len(owners) for owners in rows_by_key.values())
+    stats["unique_count"] = len(rows_by_key)
+    stats["cache_reuse"] = stats["source_rows"] - stats["unique_count"]
+    laya_started = time.perf_counter()
     try:
         if rows_by_key and check():
             from training.make_dataset import QUESTION
@@ -196,7 +204,7 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                     chunk = keys[offset:offset + 64]
                     stats["laya_inputs"] += len(chunk)
                     try:
-                        outputs = runner.predict_batch([k[0] for k in chunk], QUESTION, batch_size=16)
+                        outputs = runner.predict_batch(chunk, QUESTION, batch_size=16)
                         if not check():
                             break
                         for index, k in enumerate(chunk):
@@ -212,16 +220,18 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                                     raise ValueError("잘못된 Laya 확률")
                                 predictions[k] = p
                             except (IndexError, KeyError, TypeError, ValueError):
-                                stats["failures"].append({"source_id": rows_by_key[k].get("source_id"), "stage": "laya", "reason": "출력 누락/잘림/오류"})
+                                stats["failures"].extend({"source_id": owner.get("source_id"), "stage": "laya", "reason": "출력 누락/잘림/오류"}
+                                                         for owner in rows_by_key[k])
                     except LayaCleanupError:
                         raise
                     except Exception as exc:
                         check()
-                        stats["failures"].extend({"source_id": rows_by_key[k].get("source_id"), "stage": "laya", "reason": str(exc)} for k in chunk)
+                        stats["failures"].extend({"source_id": owner.get("source_id"), "stage": "laya", "reason": str(exc)}
+                                                 for k in chunk for owner in rows_by_key[k])
     except LayaCleanupError as exc:
         # __enter__ 실패 때도 PID/정리 단계가 포함된 전용 타입으로 Gemma 시작을 차단한다.
         stats["failures"].extend({"source_id": r.get("source_id"), "stage": "laya_cleanup", "reason": str(exc)}
-                                 for r in rows_by_key.values())
+                                 for owners in rows_by_key.values() for r in owners)
         for c in border:
             review(c, str(exc), "error")
         for row in residual:
@@ -229,7 +239,9 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
         return stats
     except Exception as exc:
         check()
-        stats["failures"].extend({"source_id": r.get("source_id"), "stage": "laya", "reason": str(exc)} for r in rows_by_key.values())
+        stats["failures"].extend({"source_id": r.get("source_id"), "stage": "laya", "reason": str(exc)} for owners in rows_by_key.values() for r in owners)
+    finally:
+        stats["laya_sec"] = round(time.perf_counter() - laya_started, 3)
     check()
 
     pending = []
@@ -264,6 +276,48 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
     with ExitStack() as stack:
         client = None
         client_error = None
+        inner_proofs = {}
+
+        def count_requests(response):
+            # extract wrapper의 합계와 block leaf를 중복 집계하지 않는다.
+            if "block_calls" in response:
+                for call in response["block_calls"]:
+                    count_requests(call)
+            elif "calls" in response:
+                for call in response["calls"]:
+                    count_requests(call)
+                stats["gemma_requests"]["preflight_failed"] += sum(
+                    f.get("preflight_failed", 0) for f in response.get("failures", []))
+            elif "results" in response:
+                for row in response["results"]:
+                    count_requests(row.get("call", {}))
+            else:
+                counts = stats["gemma_requests"]
+                attempted = response.get("request_count", 0)
+                counts["attempted"] += attempted
+                counts["preflight_failed"] += response.get("preflight_failed", 0)
+                if attempted:
+                    kind = ("succeeded" if response.get("status") == "ok" else
+                            "output_failed" if response.get("completion_received") or "raw_response" in response else
+                            "transport_failed")
+                    counts[kind] += attempted
+
+        def reusable_proof(c):
+            extraction = c.get("extraction", {})
+            owner = extraction.get("block_id")
+            call = inner_proofs.get(owner, {})
+            parsed = call.get("parsed", {})
+            item = {"candidate_id": owner, **input_for(c)}
+            if (call.get("status") != "ok" or call.get("validation", {}).get("errors")
+                    or call.get("input") != item or parsed.get("verdict") != "ad"
+                    or not valid_binding(parsed, item, owner)
+                    or any(parsed.get(k) != extraction.get(k) for k in
+                           ("evidence", "evidence_id", "owner_id", "source_field", "start_char", "end_char", "source_sha256"))
+                    or not matching_recovery_text(parsed, c)):
+                return None
+            return {"task": "verify", "version": "v15", "status": "ok", "results": [
+                {**parsed, "candidate_id": owner, "status": "ok", "needs_review": False, "call": call}]}
+
         def get_client():
             nonlocal client, client_error
             if not check():
@@ -273,19 +327,74 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
             if client is None:
                 try:
                     from local_llm.client import GemmaClient
-                    client = stack.enter_context(GemmaClient(deadline=deadline, cancel=cancel))
+                    # Budget의 None은 30분 기본값이므로 무제한을 명시한다. 보고서에는 저장하지 않는다.
+                    client = stack.enter_context(GemmaClient(deadline=math.inf if deadline is None else deadline, cancel=cancel))
                 except Exception as exc:
                     client_error = str(exc)
                     raise
             return client
 
+        def verify_pending(start, end):
+            verify_started = time.perf_counter()
+            for index in range(start, end):
+                c = pending[index]
+                if not check():
+                    review(c, "공유 점검 시간 예산 초과", "timeout")
+                    continue
+                if c.get("attr", "").startswith("::"):
+                    review(c, "CSS 가상 문구는 원본 HTML 텍스트에 결합할 수 없음")
+                    continue
+                if not c.get("source_html"):
+                    review(c, "원본 HTML 없음: 재합성하지 않음")
+                    continue
+                item = {"candidate_id": f"{c.get('source_id', 'source')}:{index}", **input_for(c)}
+                try:
+                    response = reusable_proof(c)
+                    if response is not None:
+                        item["candidate_id"] = c["extraction"]["block_id"]
+                        stats["gemma_requests"]["reused"] += 1
+                    else:
+                        gemma = get_client()
+                        stats["gemma_verify"] += 1
+                        response = gemma.verify(item)
+                        count_requests(response)
+                    if not check():
+                        raise TimeoutError("Gemma 검증 중 공유 시간 예산 초과")
+                    c["gemma"] = response
+                    rows = response.get("results", [])
+                    row = rows[0] if len(rows) == 1 else {}
+                    if (response.get("status") != "ok" or row.get("status") != "ok" or row.get("needs_review")
+                            or row.get("candidate_id") != item["candidate_id"]
+                            or row.get("verdict") not in ("ad", "clean")
+                            or not valid_binding(row, item, item["candidate_id"])):
+                        review(c, "Gemma 보류/누락/원문 결합 실패")
+                    elif row["verdict"] == "ad" and row.get("source_field") != "html":
+                        review(c, "광고 근거가 source_html에 없음: 주변 문맥만으로 현재 위치를 확정할 수 없음")
+                    elif row["verdict"] == "ad" and not matching_recovery_text(row, c):
+                        review(c, "선택 광고 근거가 현재 문구의 직접 본문에 결합되지 않음: 소유 관계 재검토")
+                    elif row["verdict"] == "clean" and row.get("source_field") != "html":
+                        review(c, "정상 근거가 대상 source_html에 없음: 주변 문맥만으로 정상 확정 불가")
+                    elif row["verdict"] == "clean" and not matching_recovery_text(row, c):
+                        review(c, "선택 정상 근거가 현재 문구의 직접 본문에 결합되지 않음: 소유 관계 재검토")
+                    else:
+                        c.update(verdict=row["verdict"], decided_by="gemma", processing_status="completed", reason="Gemma v15 원문 결합 검증 완료")
+                except Exception as exc:
+                    check()
+                    review(c, f"{type(exc).__name__}: {exc}", "timeout" if isinstance(exc, TimeoutError) else "error")
+            stats["gemma_verify_sec"] = round(stats["gemma_verify_sec"] + time.perf_counter() - verify_started, 3)
+
+        initial_pending = len(pending)
+        verify_pending(0, initial_pending)
+
         if extract_rows:
+            extract_started = time.perf_counter()
             blocks = [{"block_id": r["source_id"], **input_for(r)} for r in extract_rows]
             by_id = {r["source_id"]: r for r in extract_rows}
             try:
                 gemma = get_client()
                 stats["gemma_extract"] += len(blocks)
                 response = gemma.extract({"blocks": blocks})
+                count_requests(response)
                 if not check():
                     raise TimeoutError("Gemma 추출 중 공유 시간 예산 초과")
                 stats["extraction"] = response
@@ -309,8 +418,14 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                     for bc in call.get("block_calls", []):
                         sid = bc.get("input", {}).get("candidate_id", bc.get("block_id"))
                         parsed = bc.get("parsed", {})
+                        if sid in by_id:
+                            inner_proofs[sid] = bc
                         if sid in by_id and bc.get("status") == "ok" and parsed.get("verdict") == "clean":
-                            if valid_binding(parsed, input_for(by_id[sid]), sid):
+                            if (bc.get("input") == {"candidate_id": sid, **input_for(by_id[sid])}
+                                    and parsed.get("source_field") == "html"
+                                    and not bc.get("validation", {}).get("errors")
+                                    and valid_binding(parsed, input_for(by_id[sid]), sid)
+                                    and matching_recovery_text(parsed, by_id[sid])):
                                 cleaned[sid] = parsed
                 for sid, row in by_id.items():
                     if sid in failed:
@@ -345,41 +460,10 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                 check()
                 for row in extract_rows:
                     unresolved(row, f"{type(exc).__name__}: {exc}", "timeout" if isinstance(exc, TimeoutError) else "error")
+            finally:
+                stats["gemma_extract_sec"] = round(time.perf_counter() - extract_started, 3)
 
-        for index, c in enumerate(pending):
-            if not check():
-                review(c, "공유 점검 시간 예산 초과", "timeout")
-                continue
-            if c.get("attr", "").startswith("::"):
-                review(c, "CSS 가상 문구는 원본 HTML 텍스트에 결합할 수 없음")
-                continue
-            if not c.get("source_html"):
-                review(c, "원본 HTML 없음: 재합성하지 않음")
-                continue
-            item = {"candidate_id": f"{c.get('source_id', 'source')}:{index}", **input_for(c)}
-            try:
-                gemma = get_client()
-                stats["gemma_verify"] += 1
-                response = gemma.verify(item)
-                if not check():
-                    raise TimeoutError("Gemma 검증 중 공유 시간 예산 초과")
-                c["gemma"] = response
-                rows = response.get("results", [])
-                row = rows[0] if len(rows) == 1 else {}
-                if (response.get("status") != "ok" or row.get("status") != "ok" or row.get("needs_review")
-                        or row.get("candidate_id") != item["candidate_id"]
-                        or row.get("verdict") not in ("ad", "clean")
-                        or not valid_binding(row, item, item["candidate_id"])):
-                    review(c, "Gemma 보류/누락/원문 결합 실패")
-                elif row["verdict"] == "ad" and row.get("source_field") != "html":
-                    review(c, "광고 근거가 source_html에 없음: 주변 문맥만으로 현재 위치를 확정할 수 없음")
-                elif row["verdict"] == "ad" and not matching_recovery_text(row, c):
-                    review(c, "선택 광고 근거가 현재 문구의 직접 본문에 결합되지 않음: 소유 관계 재검토")
-                else:
-                    c.update(verdict=row["verdict"], decided_by="gemma", processing_status="completed", reason="Gemma v15 원문 결합 검증 완료")
-            except Exception as exc:
-                check()
-                review(c, f"{type(exc).__name__}: {exc}", "timeout" if isinstance(exc, TimeoutError) else "error")
+        verify_pending(initial_pending, len(pending))
     check()
     stats["failures"].extend({"source_id": c.get("source_id"), "stage": "verify", "reason": c["reason"]}
                              for c in pending if c["verdict"] == "uncertain")

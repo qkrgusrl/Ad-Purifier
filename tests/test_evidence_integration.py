@@ -134,7 +134,7 @@ class EvidenceIntegrationTests(unittest.TestCase):
         self.assertIs(report["needs_review"], False)
         self.assertEqual(report["unresolved_count"], 0)
 
-    def border_case(self, context, verdict):
+    def border_case(self, context, verdict, evidence_id="c0001"):
         row = source(text="환전 안내", html="<p>환전 안내</p>", context=context)
         row.update(selector="p", tag="p", href=None)
         initial = main.judge(main.candidates_from(
@@ -142,14 +142,15 @@ class EvidenceIntegrationTests(unittest.TestCase):
         self.assertEqual(len(initial), 1)
         self.assertEqual(initial[0]["verdict"], "borderline")
         harness = OfflineRun([row], predict=lambda ts: [prediction(.55) for _ in ts],
-                             verify=lambda item: self.protocol("verify", item, verdict, "c0001"))
+                             verify=lambda item: self.protocol("verify", item, verdict, evidence_id))
         report = self.run_case(harness)
         self.assertEqual(harness.laya_inputs, [main.normalize(row["text"])])
         self.assertEqual(harness.extract_requests, [])
         self.assertEqual(len(harness.verify_inputs), 1)
         item = harness.verify_inputs[0]
         self.assertEqual((item["html"], item["context"]), (row["source_html"], context))
-        self.assert_protocol(self.trace[0], item, verdict, "c0001", "context")
+        self.assert_protocol(self.trace[0], item, verdict, evidence_id,
+                             "html" if evidence_id.startswith("h") else "context")
         self.assertEqual(len(report["candidates"]), 1)
         return report, report["candidates"][0]
 
@@ -242,8 +243,9 @@ class EvidenceIntegrationTests(unittest.TestCase):
                 self.trace.append({"shape": tag, "page_data": page_data,
                                    "initial_candidates": initial, "parent_source_units": units,
                                    "chosen_child_unit": chosen, "text_owner_nodes": parser.nodes})
-                self.assertEqual(harness.laya_inputs, [main.normalize(parent["text"])]
-                                 * (2 if tag == "span" else 1))
+                self.assertEqual(harness.laya_inputs, sorted({main.normalize(row["text"])
+                                 for row, verdict in ((parent, "borderline"), (child, child_initial))
+                                 if verdict == "borderline"}))
                 self.assertEqual(harness.extract_requests, [])
                 self.assertEqual(len(harness.verify_inputs), 2 if tag == "span" else 1)
                 item = next(i for i in harness.verify_inputs if i["html"] == original)
@@ -408,8 +410,10 @@ class EvidenceIntegrationTests(unittest.TestCase):
                     self.assertIs(report["needs_review"], False)
                     self.assertEqual(report["unresolved_count"], 0)
 
-    def test_prevention_context_clean_id_remains_allowed(self):
-        report, candidate = self.border_case("<p>도박 예방교육 자료로 인용한 문구입니다.</p>", "clean")
+    def test_prevention_context_with_target_html_clean_id_remains_allowed(self):
+        # context는 역할 판단에 사용하고 최종 근거는 대상 HTML에 결합한다.
+        report, candidate = self.border_case(
+            "<p>아래 환전 안내는 도박 예방교육 자료로 인용한 문구입니다.</p>", "clean", "h0001")
         self.assertEqual((candidate["verdict"], candidate["processing_status"], candidate["decided_by"]),
                          ("clean", "completed", "gemma"))
         self.assertIs(report["needs_review"], False)

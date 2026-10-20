@@ -137,16 +137,16 @@ class DistributionTests(unittest.TestCase):
         with patch.dict(os.environ, {"AD_PURIFIER_MODEL": str(self.base / "절대 모델")}):
             self.assertEqual(Path(paths.laya_model()), self.base / "절대 모델")
 
-    def test_bootstrap_defaults_cpu_threads_and_tokenizer_parallelism(self):
+    def test_bootstrap_leaves_cpu_threads_unset_and_defaults_tokenizer_parallelism(self):
         paths = required_module("app_paths")
-        expected = {"OMP_NUM_THREADS": "2", "MKL_NUM_THREADS": "2",
+        expected = {"OMP_NUM_THREADS": None, "MKL_NUM_THREADS": None,
                     "TOKENIZERS_PARALLELISM": "false"}
         before = dict(os.environ)
         with patch.dict(os.environ, {k: v for k, v in before.items() if k not in expected}, clear=True):
             paths.bootstrap()
             actual = {key: os.environ.get(key) for key in expected}
         self.assertEqual(dict(os.environ), before, "bootstrap 테스트가 기존 환경을 복구하지 않음")
-        self.assertEqual(actual, expected, "미지정 CPU 스레드/토크나이저 기본값을 bootstrap에서 설정해야 함")
+        self.assertEqual(actual, expected, "미지정 CPU 스레드는 그대로 두고 토크나이저 기본값만 설정해야 함")
 
     def test_bootstrap_preserves_explicit_cpu_and_tokenizer_environment(self):
         paths = required_module("app_paths")

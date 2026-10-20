@@ -701,13 +701,14 @@ LLM_RESERVE = 6 * 60    # Gemma 검증을 위해 크롤링에서 남길 시간
 def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT_MODEL, use_ml=True,
         progress=None, phase=None, user_agent=DEFAULT_UA, detect_posted=True,
         time_budget=TIME_BUDGET, llm_reserve=LLM_RESERVE, collapse=False, cancel=None,
-        laya_confidence_threshold=0.8):
+        laya_confidence_threshold=0.8, complete_validation=False):
     """크롤링 → 판정 → result.json/report.json 저장. report 딕셔너리를 돌려준다.
 
     phase(단계명): UI에 현재 단계(crawl/judge/save)를 알리는 콜백.
     detect_posted: 게시형(은닉 없는) 불법광고도 탐지해 result_extra.json으로 분리 저장.
     max_pages: 0이면 페이지 수 제한 없이 시간 예산 안에서 전부 탐색.
     time_budget: 전체 목표 시간(초). 크롤링은 time_budget - llm_reserve - 판정 몫까지만 한다.
+    complete_validation: 수집 시간 상한을 유지하고 수집된 항목의 AI 판정은 시간 상한 없이 완료.
     cancel: threading.Event. 켜지면 ScanCancelled를 일으키고 결과 파일은 건드리지 않는다(지난 제출용 result.json 보존).
     """
     model = Path(model)
@@ -717,7 +718,7 @@ def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT
     started = datetime.now(KST)
     t0 = time.perf_counter()
     crawl_deadline = t0 + max(60, time_budget - llm_reserve - JUDGE_RESERVE)
-    judge_deadline = t0 + max(0, time_budget - 30)
+    judge_deadline = None if complete_validation else t0 + max(0, time_budget - 30)
     phase("crawl")
     pages, issues = asyncio.run(crawl(entry_url, max_pages, concurrency, timeout, progress, user_agent, crawl_deadline,
                                       cancel))
@@ -766,7 +767,8 @@ def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT
                 "stopped_by_time": issues["stopped_by_time"],
                 "discovered_pages": len(pages) + issues["left_in_queue"] + len(issues["failed"])}
     crawl_incomplete = bool(issues["stopped_by_time"] or issues["left_in_queue"] or issues["failed"] or issues["http_errors"] or frame_failures)
-    report = {"needs_review": bool(unresolved or crawl_incomplete or not use_ml), "crawl_incomplete": crawl_incomplete,
+    report = {"validation_mode": "complete" if complete_validation else "bounded",
+              "needs_review": bool(unresolved or crawl_incomplete or not use_ml), "crawl_incomplete": crawl_incomplete,
               "coverage": coverage, "failed_frames": frame_failures, "unresolved_count": unresolved, "ai": ai, "meta": meta, "pages": len(pages), "crawl_sec": round(t_crawl, 2), "entry_failed": entry_failed,
               "failed_pages": issues["failed"], "http_errors": issues["http_errors"],
               "stopped_by_time": issues["stopped_by_time"], "left_in_queue": issues["left_in_queue"],
@@ -810,6 +812,8 @@ def main():
     ap.add_argument("--timeout", type=int, default=15000)
     ap.add_argument("--model", default=str(DEFAULT_MODEL))
     ap.add_argument("--laya-confidence-threshold", type=float, default=0.8)
+    ap.add_argument("--complete-validation", action="store_true",
+                    help="수집 시간 상한 유지; 수집된 항목의 AI 판정은 시간 상한 없이 완료")
     ap.add_argument("--no-ml", action="store_true", help="진단 모드: AI를 생략하고 미판정 항목은 검토 필요로 표시")
     ap.add_argument("--user-agent", default=DEFAULT_UA,
                     help="크롤러 User-Agent (기본: 일반 Chrome). 점검 기관에 신원을 밝혀야 하면 뒤에 도구명을 덧붙여 쓰세요.")
@@ -822,7 +826,7 @@ def main():
     report = run(args.entry_url, args.out, args.max_pages, args.concurrency, args.timeout, args.model, not args.no_ml,
                  user_agent=args.user_agent, detect_posted=not args.no_extra,
                  time_budget=args.time_budget, llm_reserve=args.llm_reserve, collapse=args.collapse_repeats,
-                 laya_confidence_threshold=args.laya_confidence_threshold)
+                 laya_confidence_threshold=args.laya_confidence_threshold, complete_validation=args.complete_validation)
     cands = report["candidates"]
     findings = sum(c["verdict"] == "ad" for c in cands)
     by = {}

@@ -663,8 +663,10 @@ let modelAvailable = true;
 
 async function api(path, opts) {
   const res = await fetch(path, opts);
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || res.statusText);
+  let data;
+  try { data = await res.json(); }
+  catch { throw new Error("서버 응답이 올바른 JSON이 아닙니다."); }
+  if (!res.ok) throw new Error(data?.error || res.statusText);
   return data;
 }
 
@@ -723,7 +725,25 @@ $("deselect").onclick = () => showHome();
 
 async function openRun(id) {
   try {
-    const rep = await api(`/api/runs/${encodeURIComponent(id)}`);
+    const rep = await api(`/api/runs/${encodeURIComponent(id)}?view=ui`);
+    const object = value => value !== null && typeof value === "object" && !Array.isArray(value);
+    const optionalRows = value => value == null || (Array.isArray(value) && value.every(object));
+    const candidate = c => object(c)
+      && ["key", "url", "location", "technique", "evidence_text"].every(key => typeof c[key] === "string")
+      && typeof c.score === "number" && Number.isFinite(c.score)
+      && ["normalized", "verdict", "review", "memo"].every(key => c[key] == null || typeof c[key] === "string")
+      && optionalRows(c.also_on)
+      && (c.also_on == null || c.also_on.every(row => typeof row.url === "string"))
+      && ["signals", "hits"].every(key => c[key] == null || (Array.isArray(c[key]) && c[key].every(item => typeof item === "string")))
+      && (c.score_detail == null || (Array.isArray(c.score_detail) && c.score_detail.every(Array.isArray)));
+    if (!object(rep) || !object(rep.meta)
+        || typeof rep.meta.entry_url !== "string" || !rep.meta.entry_url.trim()
+        || typeof rep.meta.started_at !== "string" || !rep.meta.started_at.trim()
+        || !Array.isArray(rep.candidates) || !rep.candidates.every(candidate)
+        || !["http_errors", "failed_pages", "failed_frames"].every(key => optionalRows(rep[key]))
+        || (rep.ai != null && (!object(rep.ai) || !optionalRows(rep.ai.unresolved_sources)))) {
+      throw new Error("점검 결과의 필수 항목이 올바르지 않습니다.");
+    }
     if (!current || current.id !== rep.id) { techFilter.clear(); openKey = null; }
     current = rep;
   } catch (e) { toast(`이력을 열 수 없습니다: ${e.message}`, true); return; }
@@ -862,7 +882,7 @@ function renderWarnings(r) {
   const box = $("runWarn");
   const failed = r.failed_pages || [], httpErr = r.http_errors || [];
   const entryHttp = httpErr.find(e => e.url === r.meta.entry_url);
-  const list = (items, fmt) => `<ul>${items.slice(0, 5).map(x => `<li>${fmt(x)}</li>`).join("")}${items.length > 5 ? `<li>외 ${items.length - 5}건 (report.json 참고)</li>` : ""}</ul>`;
+  const list = (items, fmt, total = items.length) => `<ul>${items.slice(0, 5).map(x => `<li>${fmt(x)}</li>`).join("")}${total > 5 ? `<li>외 ${total - 5}건 (report.json 참고)</li>` : ""}</ul>`;
   let html = "", critical = false;
   if (r.entry_failed) {
     critical = true;
@@ -880,7 +900,7 @@ function renderWarnings(r) {
     const cov = r.coverage || {};
     html += `${html ? "<br>" : ""}<b>검토 필요: 미처리 범위 또는 진단 모드 결과입니다.</b> AI 보류 ${r.unresolved_count || 0}개. 방문 ${cov.visited_pages ?? r.pages}페이지 / 발견 ${cov.discovered_pages ?? r.pages}페이지, 대기 ${cov.pending_pages || 0}, 접속 실패 ${cov.failed_pages || 0}, 프레임 수집 실패 ${cov.failed_frames || 0}. 전체 사이트 크기는 확인되지 않았습니다.`;
     const unresolved = (r.ai || {}).unresolved_sources || [];
-    if (unresolved.length) html += list(unresolved, x => `${esc(x.source_id || "원문")} — ${esc(x.reason)}`);
+    if (unresolved.length) html += list(unresolved, x => `${esc(x.source_id || "원문")} — ${esc(x.reason)}`, r.ai.unresolved_sources_count ?? unresolved.length);
   }
   box.hidden = !html;
   box.className = `warn-banner ${critical ? "critical" : ""}`;
@@ -1177,7 +1197,8 @@ async function pollStatus() {
     const limit = !crawl ? "" : s.crawl_limit ? ` / 최대 ${Math.round(s.crawl_limit / 60)}분` : ", 시간 제한 없음(실험)";  // 크롤링 시간 한도
     // 페이지 수 제한이 없으므로 '전체 중 몇 쪽'이 아니라 '본 페이지 · 아직 볼 주소'로 보여 준다
     const waiting = Math.max(0, s.pages_found - s.pages_done);
-    $("progText").textContent = `${PHASE[s.phase] || s.phase}, ${s.pages_done}페이지 점검${crawl && waiting ? `, 대기 ${waiting}개` : ""}`;
+    const validation = s.validation_mode === "complete" ? ", 완료 우선 · AI 시간 제한 없음" : "";
+    $("progText").textContent = `${PHASE[s.phase] || s.phase}${validation}, ${s.pages_done}페이지 점검${crawl && waiting ? `, 대기 ${waiting}개` : ""}`;
     syncClock(s.elapsed, limit);
     $("progUrl").textContent = s.current_url;
     if (s.phase === "cancelling" && stopMode !== "stopping") { stopMode = "stopping"; setRunning(true); }

@@ -20,8 +20,13 @@ import unittest
 from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
+# 참조 이력: 2026-10-20 사용자 승인 Gemma 연결 계약 변경.
+# 원본 v15 verify SHA: 18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547
+# 원본 참조: 이전 커밋의 local_llm/prompts.py
+# 변경은 clean 지시 한 문장: context를 함께 읽되 evidence_id는 대상 html에서 선택.
+# 아래는 해당 변경 후 UTF-8 프롬프트의 고정 reference SHA이며 실행 시 산출하지 않는다.
 V15_SHA = {
-    "verify": "18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547",
+    "verify": "d85ae6b92880d65bae1da47fc464b23dc1ba009f6994d810cf47afa9716326f6",
     "extract": "16105e207ac8e74bfc1398d64e8b05ba979ac6876672c351b8799edbe40e9872",
 }
 
@@ -116,12 +121,28 @@ class GemmaProtocolTests(unittest.TestCase):
         self.assertEqual(result["status"], "ok")
         self.assertEqual(row["owner_id"], "c1")
         self.assertEqual(row["evidence_id"], "h0002")
+        self.assertEqual(row["source_field"], "html")
+        self.assertEqual(row["evidence"], "<p>😀 주문하기.</p>")
+        self.assertEqual(row["end_char"], len(data["html"]))
         self.assertEqual(row["start_char"], len("<p>😀 주문하기.</p>"))
         self.assertEqual(data[row["source_field"]][row["start_char"]:row["end_char"]], row["evidence"])
         expected = hashlib.sha256(json.dumps({k: data[k] for k in ("html", "context")},
                                             ensure_ascii=False, sort_keys=True).encode()).hexdigest()
         self.assertEqual(row["source_sha256"], expected)
         self.assertEqual(state["exited"], 1)
+
+    def test_context_only_clean_is_rejected_even_with_related_education_context(self):
+        Client, state, _ = self.fake_transport({"verdict": "clean", "evidence_id": "c0001"})
+        data = {"candidate_id": "quote-owner", "html": "<p>환전 안내</p>",
+                "context": "<p>위 환전 안내는 도박 예방교육에서 인용한 광고 문구입니다.</p>"}
+        with Client() as client:
+            result = client.verify(data)
+        self.assertEqual(result["status"], "needs_review")
+        row, = result["results"]
+        self.assertEqual(row["verdict"], "uncertain")
+        self.assertTrue(row["needs_review"])
+        self.assertIsNone(row["evidence"])
+        self.assertEqual(sum(path == "/v1/chat/completions" for path, _ in state["requests"]), 1)
 
     def test_invalid_id_malformed_json_and_truncated_generation_fail_closed(self):
         cases = [("forged-id", {"verdict": "clean", "evidence_id": "h9999"}, "stop"),

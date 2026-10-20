@@ -34,9 +34,6 @@ def _receive_message(conn):
 
 
 def _model_worker(conn, model_path):
-    import torch
-    torch.set_num_threads(2)
-    torch.set_num_interop_threads(2)
     from laya.agent import Agent
 
     agent = Agent(model_path, device="cpu")
@@ -56,9 +53,6 @@ def _child_entry(conn, model_path, target):
         os.dup2(sink.fileno(), 1)
         os.dup2(sink.fileno(), 2)
         sys.stdout = sys.stderr = sink
-        for name in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS",
-                     "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS", "BLIS_NUM_THREADS"):
-            os.environ[name] = "2"
         os.environ["TOKENIZERS_PARALLELISM"] = "false"
         try:
             (target or _model_worker)(conn, model_path)

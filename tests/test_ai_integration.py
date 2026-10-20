@@ -203,7 +203,7 @@ class AIIntegrationTests(unittest.TestCase):
         with self.subTest(stage="extract_review"):
             self.assert_review(report)
 
-        # verify는 예방 문맥을 근거로 clean을 판정할 수 있다. extract의 위치 제한과 별개다.
+        # 예방 문맥은 읽되 clean의 선택 근거는 대상 HTML에 결합해야 한다.
         prevention = "도박 예방교육 자료로 인용한 문구입니다."
         normal = source(context=prevention)
 
@@ -215,8 +215,13 @@ class AIIntegrationTests(unittest.TestCase):
             response["results"][0]["call"]["parsed"].update(binding)
             return response
 
-        with self.subTest(stage="verify_context_allowed"):
+        with self.subTest(stage="verify_context_only_review"):
             verified = self.run_case(OfflineRun([normal], verify=verify_context))
+            self.assert_review(verified)
+            self.assertEqual(verified["candidates"][0]["verdict"], "uncertain")
+
+        with self.subTest(stage="verify_related_context_target_html_allowed"):
+            verified = self.run_case(OfflineRun([normal], verify=lambda item: bound_reply(item, "clean")))
             self.assertEqual(verified["candidates"][0]["verdict"], "clean")
             self.assertIs(verified["needs_review"], False)
 
