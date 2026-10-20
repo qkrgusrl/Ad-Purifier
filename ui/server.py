@@ -249,6 +249,11 @@ def ui_report(rep):
         if "unresolved_sources" in ai:
             value["ai"]["unresolved_sources"] = warnings(ai["unresolved_sources"][:5])
             value["ai"]["unresolved_sources_count"] = len(ai["unresolved_sources"])
+        if isinstance(ai.get("length_skipped"), list):
+            fields = ("source_id", "stage", "url", "selector", "chars", "input_tokens", "token_limit")
+            value["ai"]["length_skipped"] = [
+                {key: row.get(key) for key in fields if not isinstance(row.get(key), (dict, list))}
+                for row in ai["length_skipped"][:20] if isinstance(row, dict)]
     return value
 
 

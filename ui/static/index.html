@@ -198,6 +198,13 @@ input[type=number] { width: 84px; }
 .warn-banner b { display: block; margin-bottom: 2px; }
 .warn-banner ul { margin: 6px 0 0; padding-left: 18px; font-size: 12px; }
 .warn-banner li { overflow-wrap: anywhere; }
+.length-card { margin-bottom: 22px; padding: 14px 18px; font-size: 13px; }
+.length-card h3 { margin: 0 0 4px; font-size: 14px; }
+.length-card p { margin: 0; color: var(--dim); }
+.length-card.has { border-color: #f3d595; }
+.length-card ul { margin: 8px 0 0; padding: 0; list-style: none; font-size: 12px; }
+.length-card li { display: flex; gap: 8px; align-items: baseline; padding: 3px 0; overflow-wrap: anywhere; }
+.length-card .tag { flex: none; padding: 1px 7px; border-radius: 999px; background: var(--amber-weak); color: #7a4d00; font-weight: 600; }
 
 /* ---------- 대시보드: 게이지 + 통계 카드 ---------- */
 .hero { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 22px; }
@@ -507,6 +514,7 @@ tr.row.in-page td:first-child { padding-left: 28px; }
 
     <div id="dashboard" hidden>
       <div class="warn-banner" id="runWarn" role="alert" hidden></div>
+      <section class="card length-card" id="lengthCard" aria-label="입력 길이 때문에 판정하지 못한 항목" hidden></section>
       <div class="hero">
         <section class="card gauge" id="gauge" aria-label="광고 청정도">
           <div class="ring">
@@ -833,6 +841,7 @@ function render() {
   const clean = cleanPct(pol);
   const lv = (r.entry_failed || r.needs_review) ? LEVEL_NA : levelOf(clean);
   renderWarnings(r);
+  renderLengthSkips(r);
 
   // 청정도 게이지
   const g = $("gauge");
@@ -880,6 +889,27 @@ function render() {
 
   renderLog(ads);
   renderRows();
+}
+
+/* 입력 길이 제한으로 모델이 보지 못한 항목: 정상이 아니라 '판정 보류'로 남은 것을 따로 보여준다 */
+function renderLengthSkips(r) {
+  const box = $("lengthCard");
+  const ai = r.ai;
+  // 이 기능 이전에 저장된 보고서나 AI를 쓰지 않은 점검은 길이 집계가 없다
+  if (!ai || ai.mode !== "policy" || !Number.isInteger(ai.length_skipped_count)) { box.hidden = true; box.innerHTML = ""; return; }
+  box.hidden = false;
+  const total = ai.length_skipped_count, rows = ai.length_skipped || [];
+  box.classList.toggle("has", total > 0);
+  if (!total) {
+    box.innerHTML = `<h3>입력 길이 제한으로 빠진 항목 0건</h3><p>Laya와 Gemma 모두 길이 때문에 거절한 원문이 없습니다.</p>`;
+    return;
+  }
+  const stageName = { laya: "Laya", gemma: "Gemma" };
+  const tok = x => Number.isInteger(x.input_tokens) && Number.isInteger(x.token_limit) ? `${x.input_tokens} / ${x.token_limit}토큰` : "토큰 수 미확인";
+  const items = rows.slice(0, 10).map(x => `<li><span class="tag">${esc(stageName[x.stage] || x.stage)}</span><span>${esc(x.url || "")} ${esc(x.selector || "")} · ${Number.isInteger(x.chars) ? x.chars + "자" : "글자 수 미확인"} · ${tok(x)}</span></li>`).join("");
+  box.innerHTML = `<h3>입력 길이 제한으로 판정하지 못한 항목 ${total}건</h3>
+    <p>Laya ${ai.length_skipped_laya || 0}건 · Gemma ${ai.length_skipped_gemma || 0}건. 정상으로 처리하지 않고 모두 '검토 필요'로 남겼습니다. 원문을 자르면 광고 근거가 사라질 수 있어 자동으로 줄이지 않습니다.</p>
+    <ul>${items}${total > 10 ? `<li>외 ${total - 10}건 (report.json의 ai.length_skipped 참고)</li>` : ""}</ul>`;
 }
 
 /* 접속 실패·HTTP 오류 안내: 0건이 '깨끗해서'인지 '못 봐서'인지 구분되게 */

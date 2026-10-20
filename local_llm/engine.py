@@ -371,7 +371,7 @@ class LocalServer:
             result["preflight_prompt_tokens"] = prompt_tokens
             if prompt_tokens + limit + 64 > self.ctx_size:
                 overflow_preflight = True
-                raise ValueError("input_overflow: 원문을 자르지 않고 입력을 분할해야 함")
+                raise ValueError(f"input_overflow: 원문을 자르지 않고 입력을 분할해야 함 ({prompt_tokens}+{limit}+64 > {self.ctx_size}토큰)")
             inference_start = time.perf_counter()
             def on_dispatch():
                 result['request_count'] = 1

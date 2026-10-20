@@ -50,7 +50,7 @@ class AITelemetryTests(unittest.TestCase):
                 raise OSError('fixture-preflight')
             return {'prompt': json.dumps(payload['messages'], ensure_ascii=False)}
         if path == '/tokenize':
-            return {'tokens': list(range(100))}
+            return {'tokens': list(range(5000 if self.fault == 'overflow' else 100))}
         self.assertEqual(path, '/v1/chat/completions')
         if kwargs.get('on_dispatch') is not None:
             kwargs['on_dispatch']()
@@ -176,6 +176,41 @@ class AITelemetryTests(unittest.TestCase):
         failed_text = sorted(set(r['text'] for r in rows))[1]
         failed_ids = {r['source_id'] for r in rows if r['text'] == failed_text}
         self.assertFalse(any(r['event'] == 'request_start' and r.get('source_id') in failed_ids for r in records))
+
+    def test_laya_input_too_long_is_listed_as_length_skipped(self):
+        rows = [source('s1'), source('s2', text='환전 시간 안내')]
+        rejected = prediction(preflight={'reason': 'input_too_long', 'input_tokens': 1500,
+                                         'token_limit': 900, 'model_invoked': False},
+                              status='preflight_rejected', answers={})
+        h = OfflineRun(rows, predict=lambda ts: [rejected for _ in ts])
+        report = self.execute(h)
+        ai_report = report['ai']
+        self.assertEqual(ai_report['length_skipped_count'], 2)
+        self.assertEqual((ai_report['length_skipped_laya'], ai_report['length_skipped_gemma']), (2, 0))
+        self.assertEqual({x['source_id'] for x in ai_report['length_skipped']}, {'s1', 's2'})
+        for item in ai_report['length_skipped']:
+            self.assertEqual((item['stage'], item['input_tokens'], item['token_limit']), ('laya', 1500, 900))
+            self.assertGreater(item['chars'], 0)
+        self.assertTrue(report['needs_review'], '길이 때문에 못 본 항목은 정상으로 두지 않고 검토 필요')
+        self.assertEqual(self.chats, [], '거절된 입력을 Gemma로 대신 보내면 안 됨')
+
+    def test_gemma_input_overflow_is_listed_as_length_skipped(self):
+        self.fault = 'overflow'
+        h = OfflineRun([source('s1')], predict=lambda ts: [prediction(.55) for _ in ts])
+        report = self.execute(h)
+        ai_report = report['ai']
+        self.assertEqual(ai_report['length_skipped_count'], 1)
+        self.assertEqual((ai_report['length_skipped_laya'], ai_report['length_skipped_gemma']), (0, 1))
+        item = ai_report['length_skipped'][0]
+        self.assertEqual((item['stage'], item['source_id'], item['input_tokens']), ('gemma', 's1', 5000))
+        self.assertEqual(item['token_limit'], 4096 - 192 - 64)
+        self.assertEqual(self.chats, [], '길이 초과 입력은 모델 요청 없이 보류')
+        self.assertTrue(report['needs_review'])
+
+    def test_no_length_skip_when_inputs_fit(self):
+        h = OfflineRun([source('s1')], predict=lambda ts: [prediction(.55) for _ in ts])
+        ai_report = self.execute(h)['ai']
+        self.assertEqual((ai_report['length_skipped_count'], ai_report['length_skipped']), (0, []))
 
     def test_full_precision_threshold_and_each_duplicate_owner_audit(self):
         for p in (.2, .20000000000001, .79999999999999, .8):
