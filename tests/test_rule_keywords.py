@@ -19,7 +19,11 @@ class RuleKeywordTests(unittest.TestCase):
                      "발로란트 무료 스킨 핵 【핵블리.com】 서든핵 주소",
                      "[0l0-4798-5876] 스타머니 한게임머니상 피망머니상 365일24시",
                      "롤링금 적립:",
-                     "홍대입구역하퍼룸 010 5815 2262 아현동셔츠빠예약방법"):
+                     "홍대입구역하퍼룸 010 5815 2262 아현동셔츠빠예약방법",
+                     # hanyanglaw 게시판 도배: 사전을 피한 도박 표기 (단서 0이면 잔여 선별에서 빠지므로 규칙이 잡아야 함)
+                     "1, 첫입금플러스",
+                     "파워삿횰덤 (비타민게임) 웹바둑이",
+                     "펀치바둑이 타워game 츄쳔인 ; 복단지 010,7364,8213"):
             with self.subTest(text=text):
                 self.assertGreaterEqual(score(text), adscore.HIGH)
 
@@ -27,7 +31,9 @@ class RuleKeywordTests(unittest.TestCase):
         for text in ("해피머니상품권 1만원 지급",
                      "졸업증명서 위조 혐의로 검거",
                      "구글찌라시 피해 신고 및 예방 안내",
-                     "롤링페이퍼 만들기 체험"):
+                     "롤링페이퍼 만들기 체험",
+                     "카지노 실습실",  # '카지'(잘린 표기) 패턴이 '카지노'에 겹쳐 붙지 않아야 함
+                     "바둑이와 철수"):
             with self.subTest(text=text):
                 self.assertLess(score(text), adscore.HIGH)
 
