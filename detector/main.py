@@ -713,7 +713,7 @@ LLM_RESERVE = 8 * 60    # Laya 판정 뒤 Gemma 검증 몫 (크롤링+Laya는 ti
 def run(entry_url, out, concurrency=4, timeout=15000, model=DEFAULT_MODEL, use_ml=True,
         progress=None, phase=None, user_agent=DEFAULT_UA, detect_posted=True,
         time_budget=TIME_BUDGET, llm_reserve=LLM_RESERVE, collapse=False, cancel=None,
-        laya_confidence_threshold=0.8, complete_validation=False, telemetry=None):
+        laya_confidence_threshold=0.8, complete_validation=False, telemetry=None, residual_needs_rule_clue=True):
     """크롤링 → 판정 → result.json/report.json 저장. report 딕셔너리를 돌려준다.
 
     phase(단계명): UI에 현재 단계(crawl/judge/save)를 알리는 콜백.
@@ -721,6 +721,7 @@ def run(entry_url, out, concurrency=4, timeout=15000, model=DEFAULT_MODEL, use_m
     time_budget: 전체 목표 시간(초). 페이지 수 제한 없이 크롤링은 time_budget - llm_reserve - 판정 몫까지,
     Laya 판정은 time_budget - llm_reserve까지, Gemma는 time_budget - 30초까지 한다.
     complete_validation: 수집 시간 상한을 유지하고 수집된 항목의 AI 판정은 시간 상한 없이 완료.
+    residual_needs_rule_clue: 규칙 후보가 아닌 잔여 원문 중 규칙 단서가 하나도 없는 문구는 Laya·Gemma에 보내지 않음(기본).
     cancel: threading.Event. 켜지면 ScanCancelled를 일으키고 결과 파일은 건드리지 않는다(지난 제출용 result.json 보존).
     """
     from .ai_telemetry import AuditPublisher
@@ -746,7 +747,8 @@ def run(entry_url, out, concurrency=4, timeout=15000, model=DEFAULT_MODEL, use_m
     try:
         ai = analyze(cands, pages, str(model), use_ml, judge_deadline, cancel,
                      laya_confidence_threshold=laya_confidence_threshold, cancel_error=ScanCancelled,
-                     detect_posted=detect_posted, telemetry=publisher, laya_deadline=laya_deadline)
+                     detect_posted=detect_posted, telemetry=publisher, laya_deadline=laya_deadline,
+                     residual_needs_rule_clue=residual_needs_rule_clue)
         ai["telemetry"] = publisher.enrich(ai["telemetry"])
     except BaseException as exc:
         if publisher.snapshot is not None:

@@ -215,8 +215,10 @@ class OfflineRun:
         return self.stack.__exit__(*args)
 
     def run(self, out, **kwargs):
+        # 잔여 선별 장치(원문 결합·회수·Gemma 추출) 자체를 검증하므로 규칙 단서 0 문구도 회수 대상에 둔다.
+        # 실제 실행 기본값(단서 0은 제외)은 test_residual_rule_clue.py에서 따로 검증한다.
         options = {"model": "NONEXISTENT_TEST_WEIGHTS", "detect_posted": False, "time_budget": 600,
-                   "llm_reserve": 60}
+                   "llm_reserve": 60, "residual_needs_rule_clue": False}
         options.update(kwargs)
         return main.run(URL, out, **options)
 

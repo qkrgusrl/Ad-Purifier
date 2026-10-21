@@ -8,7 +8,9 @@ import time
 from collections import Counter
 from contextlib import ExitStack
 from html.parser import HTMLParser
+from urllib.parse import urlparse
 
+from . import adscore
 from .textnorm import normalize
 from .laya_runtime import LayaCleanupError, LayaRunner
 from .inspection import project, split_row, matches as matches_inspection
@@ -153,7 +155,7 @@ def matching_recovery_text(binding, row):
             and parser.body_start <= binding["start_char"] < binding["end_char"] <= parser.body_end)
 
 
-def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_confidence_threshold=.8, cancel_error=None, detect_posted=True, telemetry=None, laya_deadline=None):
+def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_confidence_threshold=.8, cancel_error=None, detect_posted=True, telemetry=None, laya_deadline=None, residual_needs_rule_clue=False):
     from .ai_telemetry import AIProgress, context_conflict
     from .main import ScanCancelled, candidates_from, judge, source_fields
     from local_llm.prompts import DECISION_POLICY
@@ -165,7 +167,7 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
              "gemma_decision_policy": DECISION_POLICY,
              "laya_inputs": 0, "laya_preflight_rejected": 0,
              "length_skipped": [], "length_skipped_count": 0, "length_skipped_laya": 0, "length_skipped_gemma": 0,
-             "gemma_verify": 0, "gemma_extract": 0, "residual_screened_clean": 0,
+             "gemma_verify": 0, "gemma_extract": 0, "residual_screened_clean": 0, "residual_no_rule_clue": 0,
              "gemma_requests": dict.fromkeys(("attempted", "succeeded", "transport_failed", "output_failed", "preflight_failed", "reused"), 0),
              "source_rows": 0, "unique_count": 0, "cache_reuse": 0,
              "laya_sec": 0.0, "gemma_verify_sec": 0.0, "gemma_extract_sec": 0.0,
@@ -256,6 +258,12 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
     def key(row):
         return normalize(row.get("evidence_text", row.get("text", "")))
 
+    def rule_clue(row, url):
+        """규칙 사전의 가산 단서(키워드·연락처·도메인 등)가 하나라도 있는가.
+        단서가 하나도 없는 문구('패밀리 사이트'·기사 제목·주소)를 Laya가 광고로 확신하는 오탐이 많고
+        (jnbburi 190건 전부), 애매한 것은 Gemma 추출로 넘어가 시간을 잡아먹어(hanyanglaw 2,414건) 잔여 선별에서 뺀다."""
+        return any(w > 0 for _, w in adscore.explain(key(row), urlparse(url).netloc)[1])
+
     check()
     used = {c.get("source_id") for c in cands}
     residual, seen = [], set()
@@ -265,6 +273,9 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                 sid = row.get("source_id")
                 if sid and sid not in used and sid not in seen:
                     seen.add(sid)
+                    if residual_needs_rule_clue and not rule_clue(row, url):
+                        stats["residual_no_rule_clue"] += 1
+                        continue
                     residual.append({**row, "url": url, "prefix": prefix})
     border = []
     for c in cands:
