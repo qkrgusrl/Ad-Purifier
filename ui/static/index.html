@@ -352,7 +352,7 @@ tr.page-head:hover td { background: #ebf6f2; }
 tr.page-head.open .chev { transform: rotate(90deg); }
 .ph .where { flex: 1 1 260px; min-width: 0; }
 .ph .where b { display: block; font-size: 13.5px; overflow-wrap: anywhere; }
-.ph .where a { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.ph .where a, .ph .where .sub { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
 .ph .cnt { font-weight: 800; color: var(--coral); white-space: nowrap; }
 .ph .cnt.done { color: var(--green); }
 .ph .chips { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -673,6 +673,8 @@ let viewMode = "page";       // 결과 표 보기: page(페이지별 묶음) | l
 try { viewMode = localStorage.getItem("ap.viewMode") === "list" ? "list" : "page"; } catch {}
 let openPages = new Set();   // 페이지별 보기에서 펼친 페이지
 let openPagesRun = null;     // openPages가 어느 점검의 것인지 (점검을 바꾸면 처음 상태로)
+let openPhrases = new Set();  // 문구별 보기에서 펼친 문구
+let openPhrasesRun = null;
 let polling = null;
 let pollFailures = 0;
 let modelAvailable = true;
@@ -986,7 +988,7 @@ function focusRow(key) {
   techFilter.clear(); $("reviewFilter").value = ""; $("search").value = "";
   openKey = key;
   const c = current.candidates.find(x => x.key === key);
-  if (c) openPages.add(c.url);
+  if (c) { openPages.add(c.url); openPhrases.add(phraseKey(c)); }
   render();
   const tr = document.querySelector(`tr.row[data-key="${key}"]`);
   if (tr) { tr.scrollIntoView({ behavior: "smooth", block: "center" }); tr.focus({ preventScroll: true }); }
@@ -1019,28 +1021,42 @@ function renderRows() {
     return;
   }
   samePhrase = phraseGroups(current.candidates);
-  $("colPage").textContent = viewMode === "page" ? "위치" : "페이지";
+  $("colPage").textContent = viewMode === "page" ? "위치" : "페이지 · 위치";
+  // inPage: 페이지별 묶음 안(위치만), 아니면 문구별 묶음 안(페이지 주소 + 위치)
   const rowHtml = (c, inPage) => {
     const isAd = c.verdict === "ad";
     const state = c.verdict === "clean" ? "excluded" : c.review === "resolved" ? "purified" : c.review === "false_positive" ? "dismissed" : "";
     const row = `<tr class="row ${state} ${openKey === c.key ? "open" : ""} ${inPage ? "in-page" : ""}" data-key="${c.key}"
         tabindex="0" aria-expanded="${openKey === c.key}">
       <td><span class="badge t-${esc(c.technique)}">${TECH[c.technique] || esc(c.technique)}</span></td>
-      <td class="text">${esc(c.evidence_text)}${repeatBadge(c)}${c.review === "resolved" && isAd ? '<span class="stamp">정화 완료</span>' : ""}</td>
-      <td class="page">${inPage ? `<code title="${esc(c.location)}">${esc(shortLoc(c.location))}</code>` : esc(c.url)}</td>
+      <td class="text">${esc(c.evidence_text)}${inPage ? repeatBadge(c) : ""}${c.review === "resolved" && isAd ? '<span class="stamp">정화 완료</span>' : ""}</td>
+      <td class="page">${inPage ? "" : `<span title="${esc(c.url)}">${esc(pathOf(c.url))}</span><br>`}<code title="${esc(c.location)}">${esc(shortLoc(c.location))}</code></td>
       <td class="judge">${judgeLabel(c)}</td>
       <td>${isAd ? `<select data-review="${c.key}" class="r-${c.review}" aria-label="검토 상태">${Object.entries(REVIEW).map(([k, v]) =>
         `<option value="${k}" ${k === c.review ? "selected" : ""}>${v}</option>`).join("")}</select>` : "-"}</td>
     </tr>`;
     return row + (openKey === c.key ? detailRow(c) : "");
   };
+  const pend = g => g.filter(isPending).length;
   if (viewMode === "list") {
-    $("rows").innerHTML = list.map(c => rowHtml(c, false)).join("");
+    // 문구별: 같은 문구끼리 묶고, 처리 필요가 많은 문구부터. 펼치면 그 문구가 나온 페이지·위치를 한 줄씩 (탐지 건수는 줄 수 그대로)
+    const groups = new Map();
+    for (const c of list) { const k = phraseKey(c); groups.set(k, [...(groups.get(k) || []), c]); }
+    const phrases = [...groups.entries()].sort((a, b) => pend(b[1]) - pend(a[1]) || b[1].length - a[1].length || a[0].localeCompare(b[0]));
+    if (openPhrasesRun !== current.id) { openPhrasesRun = current.id; openPhrases = new Set(phrases.slice(0, 3).map(([k]) => k)); }
+    $("rows").innerHTML = phrases.map(([k, g]) => {
+      const open = openPhrases.has(k);
+      return phraseHead(k, g, open) + (open ? g.map(c => rowHtml(c, false)).join("") : "");
+    }).join("");
+    $("rows").querySelectorAll("tr.page-head").forEach(tr => {
+      const toggle = () => { const k = tr.dataset.phrase; openPhrases.has(k) ? openPhrases.delete(k) : openPhrases.add(k); renderRows(); };
+      tr.onclick = toggle;
+      tr.onkeydown = e => { if (e.target === tr && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toggle(); } };
+    });
   } else {
     // 페이지별: 같은 페이지 주소끼리 묶고, 처리 필요가 많은 페이지부터. 처음에는 앞의 3개 페이지만 펼친다
     const groups = new Map();
     for (const c of list) groups.set(c.url, [...(groups.get(c.url) || []), c]);
-    const pend = g => g.filter(isPending).length;
     const pages = [...groups.entries()].sort((a, b) => pend(b[1]) - pend(a[1]) || b[1].length - a[1].length || a[0].localeCompare(b[0]));
     if (openPagesRun !== current.id) { openPagesRun = current.id; openPages = new Set(pages.slice(0, 3).map(([u]) => u)); }
     $("rows").innerHTML = pages.map(([url, g]) => {
@@ -1100,6 +1116,27 @@ function pageHead(url, g, open) {
     <td colspan="5"><div class="ph">
       <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
       <span class="where"><b title="${esc(url)}">${esc(pathOf(url))}</b><a href="${esc(url)}" target="_blank" rel="noopener noreferrer">새 창으로 열기</a></span>
+      <span class="cnt ${pending ? "" : "done"}">불법광고 ${ads.length}건</span>
+      <span class="chips">${Object.entries(by).map(([t, k]) => `<span class="badge t-${esc(t)}">${TECH[t] || esc(t)} ${k}</span>`).join("")}</span>
+      <span class="st">${status || (rest ? `정상 판정 후보 ${rest}` : "")}</span>
+    </div></td></tr>`;
+}
+
+/* 문구 머리줄: 문구, 나온 곳(탐지 건수)·페이지 수, 숨김 방식별 건수, 처리 상태 */
+function phraseHead(text, g, open) {
+  const ads = g.filter(c => c.verdict === "ad");
+  const by = {};
+  for (const c of ads) by[c.technique] = (by[c.technique] || 0) + 1;
+  const n = st => ads.filter(c => c.review === st).length;
+  const pending = ads.filter(isPending).length;
+  const status = [pending && `처리 필요 ${pending}`, n("resolved") && `조치 완료 ${n("resolved")}`,
+                  n("false_positive") && `오탐 ${n("false_positive")}`].filter(Boolean).join(", ");
+  const pageCount = new Set(g.map(c => c.url)).size;
+  const rest = g.length - ads.length;
+  return `<tr class="page-head ${open ? "open" : ""}" data-phrase="${esc(text)}" tabindex="0" aria-expanded="${!!open}">
+    <td colspan="5"><div class="ph">
+      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+      <span class="where"><b title="${esc(text)}">${esc(text.length > 80 ? text.slice(0, 80) + "…" : text || "(빈 문구)")}</b><span class="sub">${g.length}곳 · 페이지 ${pageCount}개</span></span>
       <span class="cnt ${pending ? "" : "done"}">불법광고 ${ads.length}건</span>
       <span class="chips">${Object.entries(by).map(([t, k]) => `<span class="badge t-${esc(t)}">${TECH[t] || esc(t)} ${k}</span>`).join("")}</span>
       <span class="st">${status || (rest ? `정상 판정 후보 ${rest}` : "")}</span>
