@@ -1,7 +1,7 @@
 """불법광고 탐지기 (프로토타입).
 
-사용: python -m detector.main <진입URL> [--out 폴더(기본: 프로젝트 루트/exe 폴더)] [--max-pages 0(제한 없음)]
-      [--time-budget 1740] [--llm-reserve 360] [--model 경로] [--no-ml]
+사용: python -m detector.main <진입URL> [--out 폴더(기본: 프로젝트 루트/exe 폴더)]
+      [--time-budget 1740] [--llm-reserve 480] [--model 경로] [--no-ml]
 산출: result.json (적격평가 스키마), report.json (판정 근거 포함 내부 리포트)
 """
 import argparse
@@ -340,12 +340,11 @@ async def scan_page(ctx, url, timeout_ms, on_site=None, guard=None):
         await close_page(page)
 
 
-async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_agent=DEFAULT_UA, deadline=None,
-                cancel=None):
+async def crawl(entry, concurrency, timeout_ms, progress=None, user_agent=DEFAULT_UA, deadline=None, cancel=None):
     """(페이지 목록, 문제 목록). progress(완료 페이지 수, 발견 페이지 수, 방금 끝난 URL) — UI 진행률 표시용.
 
     방문 순서는 Frontier가 정한다(게시판·수상한 제목 우선, 나머지도 버리지 않음 — frontier.py 참고).
-    max_pages: 방문할 최대 페이지 수(0 = 제한 없음). deadline: time.perf_counter() 기준 크롤링 마감 시각(None = 없음).
+    페이지 수 제한은 없다. deadline: time.perf_counter() 기준 크롤링 마감 시각(None = 없음).
     마감이 되면 새 페이지는 열지 않고, 열어 둔 페이지만 마저 검사한 뒤 끝낸다.
     cancel: threading.Event. 켜지면 브라우저를 바로 닫아 열려 있던 페이지 대기까지 끊고 돌아온다(결과는 버림 — run이 처리).
     문제 목록: {"failed": 접속 실패 [{url, reason}], "http_errors": 4xx/5xx 응답 [{url, status}],
@@ -377,7 +376,7 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
     # sitemap.xml에 등록된 URL도 대기열에 (링크 탐색으로 닿지 않는 고아 페이지 대응). 우선순위는 다른 주소와 똑같이 매긴다.
     sitemap = await _fetch_sitemap(entry, timeout_s=min(timeout_ms / 1000, 8))
     frontier.add_links(crawlable((su, "") for su in sitemap), 2)
-    state = {"inflight": 0, "visited": 0, "stopped_by_time": False, "slow": False}
+    state = {"inflight": 0, "stopped_by_time": False, "slow": False}
     recent = collections.deque(maxlen=SLOW_WINDOW)  # 최근 방문의 시간 초과 여부
     retried = set()  # 시간 초과로 한 번 다시 시도한 주소
     t_start = time.perf_counter()
@@ -387,27 +386,18 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
         ctx = await secure_context(browser, user_agent)
 
         async def worker(idx):
-            retry_item = None
             while True:
                 if cancel is not None and cancel.is_set():
-                    if retry_item is not None:
-                        frontier.requeue(*retry_item)
                     return
                 if deadline is not None and time.perf_counter() >= deadline:
-                    if retry_item is not None:
-                        frontier.requeue(*retry_item)
                     state["stopped_by_time"] = state["stopped_by_time"] or len(frontier) > 0
                     return
-                if retry_item is None and max_pages and state["visited"] >= max_pages:
-                    return
-                if retry_item is None and state["slow"] and idx >= SLOW_CONCURRENCY:  # 느린 모드: 탭 수를 줄여 서버 부담을 덜어 줌
+                if state["slow"] and idx >= SLOW_CONCURRENCY:  # 느린 모드: 탭 수를 줄여 서버 부담을 덜어 줌
                     if not len(frontier) and state["inflight"] == 0:
                         return
                     await asyncio.sleep(0.5)
                     continue
-                is_retry = retry_item is not None
-                item = retry_item if is_retry else frontier.pop()
-                retry_item = None
+                item = frontier.pop()
                 if item is None:
                     if state["inflight"] == 0:  # 대기열도 비고 검사 중인 페이지도 없음 → 끝
                         return
@@ -415,7 +405,6 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
                     continue
                 url, depth = item
                 state["inflight"] += 1
-                state["visited"] += 0 if is_retry else 1
                 try:
                     is_entry = url == entry  # 시작 주소가 www 등 다른 주소로 넘어가면 그곳을 사이트로 삼는다
                     # 시작 페이지를 못 열면 점검 전체가 0건이 된다 — 첫 응답만 8~10초 걸리는 사이트(s-solution 등)도 있어 넉넉히 기다린다
@@ -448,10 +437,7 @@ async def crawl(entry, max_pages, concurrency, timeout_ms, progress=None, user_a
                         print(f"[info] 시간 초과가 잦아 느린 모드로 전환 (제한 {SLOW_TIMEOUT_MS // 1000}초, 동시 {SLOW_CONCURRENCY}개)")
                     if timed_out and url not in retried:  # 시간 초과는 한 번 더 (느린 모드라면 늘어난 제한 시간으로)
                         retried.add(url)
-                        if max_pages:
-                            retry_item = (url, depth)
-                        else:
-                            frontier.requeue(url, depth)
+                        frontier.requeue(url, depth)
                     else:
                         failed.append({"url": url, "reason": str(e) if isinstance(e, PageLoadError) else f"{type(e).__name__}: {e}"})
                         print(f"[warn] {url}: {e}")
@@ -718,12 +704,13 @@ EXTRA_LABEL = {"POSTED": "게시형 불법광고(은닉 없음)"}
 
 
 # 시간 예산(초). 적격평가 검출 시간 상한은 30분 — 넘기면 시간 점수 0점, result.json이 없으면 평가 제외될 수 있다.
+# 순서: 크롤링(19분) → Laya 판정(21분까지) → Gemma 검증(28분 30초까지) → 저장. 페이지 수 제한은 없다.
 TIME_BUDGET = 29 * 60   # 전체 목표: 30분 상한에서 1분 여유
-JUDGE_RESERVE = 2 * 60  # 로컬 판정(룰+Laya)·저장 몫. 실사이트 11곳 측정 시 판정은 0.4~11초
-LLM_RESERVE = 6 * 60    # Gemma 검증을 위해 크롤링에서 남길 시간
+JUDGE_RESERVE = 2 * 60  # 크롤링 뒤 Laya 판정 몫. 실사이트 11곳 측정 시 판정은 0.4~11초
+LLM_RESERVE = 8 * 60    # Laya 판정 뒤 Gemma 검증 몫 (크롤링+Laya는 time_budget - llm_reserve = 21분까지)
 
 
-def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT_MODEL, use_ml=True,
+def run(entry_url, out, concurrency=4, timeout=15000, model=DEFAULT_MODEL, use_ml=True,
         progress=None, phase=None, user_agent=DEFAULT_UA, detect_posted=True,
         time_budget=TIME_BUDGET, llm_reserve=LLM_RESERVE, collapse=False, cancel=None,
         laya_confidence_threshold=0.8, complete_validation=False, telemetry=None):
@@ -731,8 +718,8 @@ def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT
 
     phase(단계명): UI에 현재 단계(crawl/judge/save)를 알리는 콜백.
     detect_posted: 게시형(은닉 없는) 불법광고도 탐지해 result_extra.json으로 분리 저장.
-    max_pages: 0이면 페이지 수 제한 없이 시간 예산 안에서 전부 탐색.
-    time_budget: 전체 목표 시간(초). 크롤링은 time_budget - llm_reserve - 판정 몫까지만 한다.
+    time_budget: 전체 목표 시간(초). 페이지 수 제한 없이 크롤링은 time_budget - llm_reserve - 판정 몫까지,
+    Laya 판정은 time_budget - llm_reserve까지, Gemma는 time_budget - 30초까지 한다.
     complete_validation: 수집 시간 상한을 유지하고 수집된 항목의 AI 판정은 시간 상한 없이 완료.
     cancel: threading.Event. 켜지면 ScanCancelled를 일으키고 결과 파일은 건드리지 않는다(지난 제출용 result.json 보존).
     """
@@ -745,10 +732,10 @@ def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT
     started = datetime.now(KST)
     t0 = time.perf_counter()
     crawl_deadline = t0 + max(60, time_budget - llm_reserve - JUDGE_RESERVE)
+    laya_deadline = None if complete_validation else t0 + max(60, time_budget - llm_reserve)
     judge_deadline = None if complete_validation else t0 + max(0, time_budget - 30)
     phase("crawl")
-    pages, issues = asyncio.run(crawl(entry_url, max_pages, concurrency, timeout, progress, user_agent, crawl_deadline,
-                                      cancel))
+    pages, issues = asyncio.run(crawl(entry_url, concurrency, timeout, progress, user_agent, deadline=crawl_deadline, cancel=cancel))
     cancelled = lambda: cancel is not None and cancel.is_set()
     if cancelled():
         raise ScanCancelled()
@@ -759,7 +746,7 @@ def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT
     try:
         ai = analyze(cands, pages, str(model), use_ml, judge_deadline, cancel,
                      laya_confidence_threshold=laya_confidence_threshold, cancel_error=ScanCancelled,
-                     detect_posted=detect_posted, telemetry=publisher)
+                     detect_posted=detect_posted, telemetry=publisher, laya_deadline=laya_deadline)
         ai["telemetry"] = publisher.enrich(ai["telemetry"])
     except BaseException as exc:
         if publisher.snapshot is not None:
@@ -837,7 +824,6 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("entry_url")
     ap.add_argument("--out", default=str(app_dir()))
-    ap.add_argument("--max-pages", type=int, default=0, help="방문할 최대 페이지 수 (기본 0 = 제한 없음, 시간 예산까지 전부)")
     ap.add_argument("--time-budget", type=int, default=TIME_BUDGET, help=f"전체 목표 시간(초, 기본 {TIME_BUDGET})")
     ap.add_argument("--llm-reserve", type=int, default=LLM_RESERVE, help=f"LLM 검증 몫으로 남길 시간(초, 기본 {LLM_RESERVE})")
     ap.add_argument("--concurrency", type=int, default=4)
@@ -855,7 +841,7 @@ def main():
                     help="여러 페이지에 반복된 같은 광고(게시판 목록·공통 하단 등)를 대표 1건으로 합쳐 제출 (기본: 페이지마다 따로)")
     args = ap.parse_args()
 
-    report = run(args.entry_url, args.out, args.max_pages, args.concurrency, args.timeout, args.model, not args.no_ml,
+    report = run(args.entry_url, args.out, args.concurrency, args.timeout, args.model, not args.no_ml,
                  user_agent=args.user_agent, detect_posted=not args.no_extra,
                  time_budget=args.time_budget, llm_reserve=args.llm_reserve, collapse=args.collapse_repeats,
                  laya_confidence_threshold=args.laya_confidence_threshold, complete_validation=args.complete_validation)

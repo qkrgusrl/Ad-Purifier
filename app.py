@@ -17,7 +17,7 @@ def main(argv=None):
     parser.add_argument('--no-browser', action='store_true')
     parser.add_argument('--port', type=int, default=8780)
     parser.add_argument('--no-time-limit', action='store_true')
-    parser.add_argument('--complete-validation', action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument('--complete-validation', action=argparse.BooleanOptionalAction, default=False)
     args = parser.parse_args(argv)
     ensure_writable_output()
     if args.self_test:

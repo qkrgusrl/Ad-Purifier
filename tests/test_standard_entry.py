@@ -43,8 +43,8 @@ class StandardEntryTests(unittest.TestCase):
         httpd.serve_forever.assert_called_once_with()
         return ui.options.copy()
 
-    def test_app_forwards_default_true_and_explicit_boolean_choices(self):
-        for flags, expected in (([], True), (["--complete-validation"], True),
+    def test_app_forwards_default_false_and_explicit_boolean_choices(self):
+        for flags, expected in (([], False), (["--complete-validation"], True),
                                 (["--no-complete-validation"], False)):
             with self.subTest(flags=flags):
                 received = []
@@ -61,8 +61,8 @@ class StandardEntryTests(unittest.TestCase):
                 self.assertIs(parser.parse_args(received).complete_validation, expected,
                               "false도 UI에 명시 전달해야 함")
 
-    def test_ui_default_complete_and_explicit_bounded_keep_collection_budget(self):
-        for flags, expected in (([], True), (["--complete-validation"], True),
+    def test_ui_default_bounded_and_explicit_complete_keep_collection_budget(self):
+        for flags, expected in (([], False), (["--complete-validation"], True),
                                 (["--no-complete-validation"], False)):
             with self.subTest(flags=flags):
                 actual = self.ui_main(flags)
@@ -105,8 +105,8 @@ class StandardEntryTests(unittest.TestCase):
             browser.assert_not_called()
             fallback.serve_forever.assert_not_called()
 
-    def test_api_missing_or_zero_pages_preserves_ai_worker_route(self):
-        for page_fields in ({}, {"max_pages": 0}):
+    def test_api_ignores_page_fields_and_preserves_ai_worker_route(self):
+        for page_fields in ({}, {"max_pages": 3}):
             with self.subTest(fields=page_fields):
                 handler = object.__new__(ui.Handler)
                 handler.path = "/api/scan"
@@ -118,19 +118,20 @@ class StandardEntryTests(unittest.TestCase):
                 with patch.object(ui, "model_readiness", return_value={"files_present": True}), \
                         patch.object(ui.threading, "Thread") as worker:
                     handler.do_POST()
-                self.assertEqual(worker.call_args.kwargs["args"], ("https://fixture.invalid/", True, 0))
+                self.assertEqual(worker.call_args.kwargs["args"], ("https://fixture.invalid/", True))
                 self.assertIs(worker.call_args.kwargs["target"], ui.scan_job)
                 worker.return_value.start.assert_called_once_with()
                 self.assertEqual(handler.send.call_args.args[0], 202)
 
-    def test_scan_job_forwards_unlimited_pages_ai_and_complete_without_inference(self):
+    def test_scan_job_forwards_ai_and_bounded_without_page_limit_or_inference(self):
         self.ui_main([])
         ui.cancel_event.clear()
         with patch.object(ui, "run", side_effect=ui.ScanCancelled) as run:
-            ui.scan_job("https://fixture.invalid/", True, 0)
+            ui.scan_job("https://fixture.invalid/", True)
         self.assertEqual(run.call_args.args[0], "https://fixture.invalid/")
-        self.assertEqual({k: run.call_args.kwargs[k] for k in ("max_pages", "use_ml", "complete_validation")},
-                         {"max_pages": 0, "use_ml": True, "complete_validation": True})
+        self.assertNotIn("max_pages", run.call_args.kwargs)
+        self.assertEqual({k: run.call_args.kwargs[k] for k in ("use_ml", "complete_validation")},
+                         {"use_ml": True, "complete_validation": False})
         self.assertNotIn("time_budget", run.call_args.kwargs)
 
     def test_bootstrap_preserves_explicit_browser_path_in_source_and_frozen(self):

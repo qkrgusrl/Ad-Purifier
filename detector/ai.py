@@ -153,7 +153,7 @@ def matching_recovery_text(binding, row):
             and parser.body_start <= binding["start_char"] < binding["end_char"] <= parser.body_end)
 
 
-def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_confidence_threshold=.8, cancel_error=None, detect_posted=True, telemetry=None):
+def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_confidence_threshold=.8, cancel_error=None, detect_posted=True, telemetry=None, laya_deadline=None):
     from .ai_telemetry import AIProgress, context_conflict
     from .main import ScanCancelled, candidates_from, judge, source_fields
     from local_llm.prompts import DECISION_POLICY
@@ -296,7 +296,9 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
     try:
         if rows_by_key and check():
             from training.make_dataset import QUESTION
-            with LayaRunner(model_path, deadline=deadline, cancel=cancel) as runner:
+            # Laya는 laya_deadline(크롤링+Laya 21분)까지, 남은 시간은 Gemma 몫
+            laya_until = min((d for d in (deadline, laya_deadline) if d is not None), default=None)
+            with LayaRunner(model_path, deadline=laya_until, cancel=cancel) as runner:
                 # 같은 child/tokenizer로 검사 계획만 만든다. 모델/수집 문구/규칙은 바꾸지 않는다.
                 projected, texts = {}, set()
                 for row in border + residual:

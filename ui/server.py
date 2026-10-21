@@ -33,7 +33,7 @@ from detector.main import DEFAULT_MODEL, JUDGE_RESERVE, KST, LLM_RESERVE, TIME_B
 
 CRAWL_LIMIT = TIME_BUDGET - LLM_RESERVE - JUDGE_RESERVE  # 화면 진행률에 쓰는 크롤링 최대 시간(초)
 NO_LIMIT_BUDGET = 7 * 24 * 3600  # --no-time-limit: 사실상 무제한(대기열이 비면 끝난다)
-options = {"time_limit": True, "complete_validation": True}
+options = {"time_limit": True, "complete_validation": False}
 
 STATIC = resource_root() / "ui" / "static"
 HISTORY = app_dir() / "history"
@@ -43,7 +43,7 @@ REVIEW_STATES = {"new", "confirmed", "false_positive", "resolved"}
 
 state_lock = threading.Lock()
 state = {"running": False, "phase": "idle", "entry_url": "", "pages_done": 0, "pages_found": 0, "current_url": "",
-         "started": None, "run_id": None, "error": None, "cancelling": False, "max_pages": 0, "ai_progress": None}
+         "started": None, "run_id": None, "error": None, "cancelling": False, "ai_progress": None}
 cancel_event = threading.Event()  # 탐지 취소 신호 (진행 중인 점검 하나에만 쓰고, 새 점검을 시작할 때 비운다)
 
 
@@ -100,7 +100,7 @@ def cand_key(c):
     return hashlib.sha1(payload.encode()).hexdigest()[:12]
 
 
-def scan_job(entry_url, use_ml, max_pages):
+def scan_job(entry_url, use_ml):
     with state_lock:
         started = state["started"]
 
@@ -124,7 +124,7 @@ def scan_job(entry_url, use_ml, max_pages):
     run_id = datetime.now(KST).strftime("%Y%m%d-%H%M%S")
     try:
         budget = {} if options["time_limit"] else {"time_budget": NO_LIMIT_BUDGET}
-        report = run(entry_url, app_dir(), max_pages=max_pages, use_ml=use_ml, progress=progress, phase=phase,
+        report = run(entry_url, app_dir(), use_ml=use_ml, progress=progress, phase=phase,
             cancel=cancel_event, complete_validation=options["complete_validation"], telemetry=observer, **budget)
         dest = HISTORY / run_id
         dest.mkdir(parents=True, exist_ok=True)
@@ -411,10 +411,6 @@ class Handler(BaseHTTPRequestHandler):
             use_ml = bool(req.get("use_ml", True))
             if use_ml and not model_readiness()["files_present"]:
                 return self.send(409, {"error": "AI 자산 또는 의존 파일이 없습니다. 설치 상태를 확인하거나 AI 체크를 직접 해제해 진단 모드를 선택하세요."})
-            try:
-                max_pages = max(0, min(int(req.get("max_pages") or 0), 20000))  # 0 = 제한 없음(시간 예산까지 전부)
-            except (TypeError, ValueError):
-                return self.send(400, {"error": "최대 페이지는 숫자로 입력하세요."})
             with state_lock:
                 if getattr(self.server, "closing", False):
                     return self.send(409, {"error": "프로그램 종료 중입니다."})
@@ -422,10 +418,10 @@ class Handler(BaseHTTPRequestHandler):
                 if state["running"] or (previous_worker is not None and previous_worker.is_alive()):
                     return self.send(409, {"error": "이미 탐지가 진행 중입니다."})
                 state.update(running=True, phase="start", entry_url=url, pages_done=0, pages_found=1, current_url=url,
-                             started=time.time(), run_id=None, error=None, cancelling=False, max_pages=max_pages,
+                             started=time.time(), run_id=None, error=None, cancelling=False,
                              ai_progress=None)
                 cancel_event.clear()
-                self.server.scan_worker = threading.Thread(target=scan_job, args=(url, use_ml, max_pages),
+                self.server.scan_worker = threading.Thread(target=scan_job, args=(url, use_ml),
                                                            name="scan-worker")
                 self.server.scan_worker.start()
             return self.send(202, {"ok": True})
@@ -474,8 +470,8 @@ def main():
     ap.add_argument("--port", type=int, default=8780)
     ap.add_argument("--no-browser", action="store_true")
     ap.add_argument("--no-time-limit", action="store_true", help="실험용: 시간 한도 없이 사이트 전체 탐색")
-    ap.add_argument("--complete-validation", action=argparse.BooleanOptionalAction, default=True,
-                    help="기본: 수집 시간 상한 유지, 수집된 항목의 AI 판정 완료; --no-complete-validation으로 판정 시간 상한 적용")
+    ap.add_argument("--complete-validation", action=argparse.BooleanOptionalAction, default=False,
+                    help="기본: 전체 30분 안에 끝나도록 AI 판정에도 시간 상한 적용; --complete-validation이면 수집된 항목의 AI 판정을 시간 제한 없이 완료(실험)")
     args = ap.parse_args()
     options["time_limit"] = not args.no_time_limit
     options["complete_validation"] = args.complete_validation

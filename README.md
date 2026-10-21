@@ -401,9 +401,9 @@ cd Ad-Purifier
 ```
 저장소 루트에 이미 있다면 `cd Ad-Purifier`는 생략합니다. 브라우저가 자동으로 열립니다. 개인 wrapper 없이 이 명령으로 공통 bootstrap과 탐지 pipeline을 실행합니다. Windows 소스 실행도 같은 모듈을 사용합니다: `.venv\Scripts\python.exe -u -m ui.server --port 8780`.
 
-기본은 `complete_validation=True`입니다. 크롤링 시간 상한을 유지하면서 수집된 항목의 AI 판정을 끝까지 진행하므로 총 실행 시간은 30분을 넘길 수 있습니다. `--no-complete-validation`을 명시하면 판정에도 기존 시간 상한을 적용합니다. `--complete-validation`과 함께 지정하면 마지막 옵션이 우선합니다. `--no-time-limit`은 별도의 수집 시간 제한 해제 옵션입니다.
+기본은 시간 한도 적용(`complete_validation=False`)이며 옵션 없이 실행하면 됩니다. 전체 29분 안에 끝나도록 크롤링은 19분까지, Laya 판정은 21분까지, Gemma 검증은 28분 30초까지 하고 저장합니다. 마감까지 판정하지 못한 항목은 정상으로 치지 않고 보류로 남깁니다. `--complete-validation`(실험)은 수집된 항목의 AI 판정을 시간 제한 없이 끝까지 진행하므로 30분을 넘길 수 있습니다. `--no-time-limit`은 별도의 수집 시간 제한 해제 옵션(실험)입니다.
 
-페이지 수 상한 기본값은 `max_pages=0`(수집 시간 예산 안에서 제한 없음)이며 `/api/status`의 `max_pages`에 현재 요청값을 표시합니다. 모의 사이트가 필요할 때만 별도 터미널에서 `.venv/bin/python testsite/server.py`를 실행하세요.
+페이지 수 제한은 없습니다(시간 한도 안에서 사이트 전체 탐색). 모의 사이트가 필요할 때만 별도 터미널에서 `.venv/bin/python testsite/server.py`를 실행하세요.
 
 1. URL을 입력하고 **탐지 시작**을 누르면 진행률(수집한 페이지 수, 현재 URL)이 표시됩니다. 탐지 중에는 같은 버튼이 **탐지 중지**로 바뀝니다. 중지하면 그 점검은 저장하지 않고, 지난 `result.json`과 이력은 그대로 남습니다.
 2. 끝나면 **대시보드**가 나옵니다.
@@ -454,7 +454,7 @@ cd Ad-Purifier
 - 화면은 내 PC 안에서만 열리는 로컬 서버(`127.0.0.1`)입니다. 외부 서버에 올리지 않습니다.
 - `result.json`은 탐지할 때마다 덮어쓰고, 지난 결과는 `history/`에 남습니다. 이력을 지우려면 `history/` 폴더를 삭제하세요.
 - 정상 판정 후보도 보기를 켜면 탐지기가 걸러낸 후보(예: 접근성용 "본문 바로가기")까지 흐리게 표시됩니다.
-- 화면은 페이지 수 제한 없이 시간 한도(약 21분) 안에서 사이트 전체를 탐색합니다. 페이지 수를 줄여 빠르게 보려면 명령줄의 `--max-pages`를 쓰세요.
+- 화면은 페이지 수 제한 없이 시간 한도(크롤링 19분, 전체 29분) 안에서 사이트 전체를 탐색합니다.
 - 실험용으로 `.venv/bin/python -u -m ui.server --port 8780 --no-time-limit`을 쓰면 시간 한도 없이 대기열이 빌 때까지 탐색합니다. 사이트 전체를 보는 데 걸리는 시간과 LLM 검증에 남는 시간을 재는 용도이고, 제출 시간(30분)을 넘길 수 있습니다.
 
 ### 명령줄로 실행
@@ -486,9 +486,8 @@ Windows에서는 `run_testsite.bat`을 실행한 뒤 `run_detect.bat http://127.
 |---|---|---|
 | `<진입URL>` | (필수) | 크롤링을 시작할 주소 |
 | `--out` | 구동 폴더 (프로젝트 루트 / exe 폴더) | `result.json`, `report.json` 저장 위치 |
-| `--max-pages` | 0 (제한 없음) | 방문할 최대 페이지 수. 0이면 시간 예산 안에서 전부 탐색 |
 | `--time-budget` | 1740 (29분) | 전체 목표 시간(초). 적격평가 상한 30분에서 1분 여유 |
-| `--llm-reserve` | 360 (6분) | 나중에 붙일 LLM 최종 검증 몫으로 남겨 두는 시간(초). 크롤링은 `time-budget − llm-reserve − 판정 2분`까지 |
+| `--llm-reserve` | 480 (8분) | Laya 판정 뒤 Gemma 검증 몫(초). 크롤링은 `time-budget − llm-reserve − 판정 2분`(19분), Laya는 `time-budget − llm-reserve`(21분)까지 |
 | `--concurrency` | 4 | 동시에 여는 탭 수 |
 | `--timeout` | 15000 | 페이지 로딩 제한 시간(ms) |
 | `--model` | `models/laya-illegal-ad-long2` (`AD_PURIFIER_MODEL` 환경변수로 변경 가능) | 로컬 Laya 모델 폴더 |
