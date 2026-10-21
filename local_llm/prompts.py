@@ -208,6 +208,11 @@ def _context_window(data):
     parser.feed(raw)
     parser.close()
     before, after = ''.join(parser.before), ''.join(parser.after)
+    if spans is not None:
+        text = ''.join(html.unescape(target[a:b]) for a, b in spans).strip()
+        if text.endswith(('?', '？')) and len(before) < 50:
+            # FAQ의 앞 문맥이 비면 남는 예산으로 답변을 읽는다. 총 문맥은 계속 100자 이하다.
+            return before, after[:100-len(before)], 'unique_raw_anchor_question_balanced'
     return before[-50:], after[:50], 'unique_raw_anchor'
 
 

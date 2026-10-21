@@ -71,6 +71,24 @@ class ContextWindowTests(unittest.TestCase):
         self.assertEqual(projected['context_before'], '')
         self.assertEqual(projected['context_after'], '')
 
+    def test_question_uses_unused_before_budget_for_answer_but_never_exceeds_100(self):
+        target = '<p>질문인가요?</p>'
+        item = self.data(target, target + '<p>' + '답' * 120 + '</p>')
+        item['target_spans'] = [[3, target.index('</p>')]]
+        result = self.project(item)
+        self.assertEqual((result['context_before'], result['context_after']), ('', '답' * 100))
+        for prefix in ('앞' * 20, '앞' * 80):
+            item['context'] = prefix + target + '뒤' * 120
+            result = self.project(item)
+            self.assertEqual(len(result['context_before']) + len(result['context_after']), 100)
+            self.assertEqual(len(result['context_after']), 80 if len(prefix) == 20 else 50)
+
+    def test_non_question_keeps_existing_50_character_each_side(self):
+        target = '<p>일반 문장</p>'
+        item = self.data(target, target + '뒤' * 120)
+        item['target_spans'] = [[3, target.index('</p>')]]
+        self.assertEqual(self.project(item)['context_after'], '뒤' * 50)
+
     def test_display_last_declaration_wins_for_visible_context(self):
         target = '<a>대상</a>'
         projected = self.project(self.data(target,
