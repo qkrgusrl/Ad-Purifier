@@ -45,7 +45,9 @@ class RuleKeywordTests(unittest.TestCase):
                      "제주대학교 주대 앞 버스",
                      "모빌리언스 휴대폰 결제 안내",
                      "이미테이션 게임 상영",
-                     "강남 노래방"):
+                     "강남 노래방",
+                     # 광고 관련 법률 Q&A 답변 (fresh F50)
+                     "(답변) 광고의 특성상 미화나 홍보는 적법한 상행위로 민·형사상 책임을 지지 않으나 성인 무삭제 포르노 광고는 사기 처벌"):
             with self.subTest(text=text):
                 self.assertLess(score(text), adscore.HIGH)
 
