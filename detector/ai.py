@@ -165,6 +165,8 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
              "gemma_decision_policy": DECISION_POLICY,
              "laya_inputs": 0, "laya_preflight_rejected": 0,
              "length_skipped": [], "length_skipped_count": 0, "length_skipped_laya": 0, "length_skipped_gemma": 0,
+             "context_requests": 0, "context_missing": 0, "context_missing_no_anchor": 0,
+             "context_missing_duplicate": 0, "context_missing_empty": 0,
              "gemma_verify": 0, "gemma_extract": 0, "residual_screened_clean": 0,
              "gemma_requests": dict.fromkeys(("attempted", "succeeded", "transport_failed", "output_failed", "preflight_failed", "reused"), 0),
              "source_rows": 0, "unique_count": 0, "cache_reuse": 0,
@@ -553,6 +555,16 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                 for row in response["results"]:
                     count_requests(row.get("call", {}))
             else:
+                # 앞뒤 50자 문맥을 못 붙이고 빈 문맥으로 보낸 요청을 센다(원문 위치 못 찾음/같은 문구 중복/문맥 없음).
+                context_status = (response.get("model_input") or {}).get("context_status")
+                if isinstance(context_status, str):
+                    stats["context_requests"] += 1
+                    if not context_status.startswith("unique_raw_anchor"):
+                        stats["context_missing"] += 1
+                        reason = {"no_raw_anchor": "no_anchor", "duplicate_raw_anchor": "duplicate",
+                                  "empty_context": "empty"}.get(context_status)
+                        if reason:
+                            stats[f"context_missing_{reason}"] += 1
                 counts = stats["gemma_requests"]
                 attempted = response.get("request_count", 0)
                 counts["attempted"] += attempted

@@ -24,9 +24,11 @@ ROOT = Path(__file__).resolve().parents[1]
 # 원본 v15 verify SHA: 18bac24cb7d59ca7d9eca88fcdd729ad5f66c579933f635ecc73bf3a61508547
 # 원본 참조: 이전 커밋의 local_llm/prompts.py
 # 변경은 clean 지시 한 문장: context를 함께 읽되 evidence_id는 대상 html에서 선택.
+# 2026-10-21 사용자 승인 변경: 앞뒤 50자 문맥 필드(context_before/context_after) 설명 한 문장 추가.
+# 직전 verify SHA: d85ae6b92880d65bae1da47fc464b23dc1ba009f6994d810cf47afa9716326f6
 # 아래는 해당 변경 후 UTF-8 프롬프트의 고정 reference SHA이며 실행 시 산출하지 않는다.
 V15_SHA = {
-    "verify": "d85ae6b92880d65bae1da47fc464b23dc1ba009f6994d810cf47afa9716326f6",
+    "verify": "f6fa377ded7ff84a193e414a0a3374fe94d48d3e393aabc966a3c48e6ab4645d",
     "extract": "16105e207ac8e74bfc1398d64e8b05ba979ac6876672c351b8799edbe40e9872",
 }
 
