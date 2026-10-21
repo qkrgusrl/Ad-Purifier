@@ -410,7 +410,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(400, {"error": "http:// 또는 https:// 로 시작하는 URL을 입력하세요."})
             use_ml = bool(req.get("use_ml", True))
             if use_ml and not model_readiness()["files_present"]:
-                return self.send(409, {"error": "AI 자산 또는 의존 파일이 없습니다. 설치 상태를 확인하거나 AI 체크를 직접 해제해 진단 모드를 선택하세요."})
+                return self.send(409, {"error": "AI 자산(Laya·Gemma) 또는 의존 파일이 없습니다. 설치 상태를 확인하세요."})
             with state_lock:
                 if getattr(self.server, "closing", False):
                     return self.send(409, {"error": "프로그램 종료 중입니다."})

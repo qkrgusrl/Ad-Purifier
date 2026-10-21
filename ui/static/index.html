@@ -478,7 +478,6 @@ tr.row.in-page td:first-child { padding-left: 28px; }
       <form class="scan-form" id="scanForm">
         <div class="url-box"><svg class="i"><use href="#ic-search"/></svg>
           <input type="url" id="url" placeholder="점검할 웹사이트 주소 (https://...)" required aria-label="점검할 웹사이트 주소"></div>
-        <label class="inline" id="mlLabel"><input type="checkbox" id="useMl" checked> AI 보조 판정</label>
         <button id="startBtn" type="submit">탐지 시작</button>
       </form>
       <div class="clear-confirm" id="stopConfirm" hidden>
@@ -1188,7 +1187,6 @@ function setRunning(running) {
   $("stopConfirm").hidden = !(running && stopMode === "confirm");
   $("stopYes").disabled = false;
   $("url").disabled = running;
-  $("useMl").disabled = running;
   $("progress").style.display = running ? "block" : "none";
 }
 $("exitBtn").onclick = async () => {
@@ -1310,7 +1308,7 @@ $("scanForm").onsubmit = async e => {
   try {
     await api("/api/scan", {
       method: "POST", headers: JSON_HEADERS,
-      body: JSON.stringify({ url: $("url").value.trim(), use_ml: $("useMl").checked }),
+      body: JSON.stringify({ url: $("url").value.trim(), use_ml: true }),  // 화면 점검은 항상 규칙 → Laya → Gemma
     });
     showHome();
     setRunning(true);
@@ -1349,8 +1347,7 @@ document.querySelectorAll(".nav a[data-nav]").forEach(a => a.addEventListener("c
     $("outHint").textContent = `결과 파일(result.json) 저장 위치: ${s.out_dir}`;
     modelAvailable = s.model_available;
     if (!modelAvailable) {
-      $("mlLabel").title = "AI 자산이 준비되지 않았습니다. 체크를 직접 해제하면 진단 모드로 실행하며 미판정 항목은 보류됩니다.";
-      $("mlLabel").append(" (AI 자산 미준비 · 해제 시 진단 모드)");
+      $("outHint").textContent += " · AI 자산(Laya·Gemma)이 준비되지 않아 탐지를 시작할 수 없습니다. 설치 상태를 확인하세요.";
     }
     setRunning(s.running);
     renderAIProgress(s.ai_progress, s.phase);
