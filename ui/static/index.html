@@ -222,7 +222,9 @@ input[type=number] { width: 84px; }
 .ring .lvl.na { font-size: 30px; }
 .ring .lvl { font-size: 46px; font-weight: 900; line-height: 1.05; color: var(--c); letter-spacing: -.03em; }
 .ring .pct { margin-top: 4px; font-size: 17px; font-weight: 800; color: color-mix(in srgb, var(--c) 80%, #0f2f2a); }
-.ring .cap { margin-top: 4px; font-size: 12px; color: var(--muted); }
+.ring .cap { margin-top: 4px; max-width: 150px; font-size: 12px; color: var(--muted); }
+/* 미확인 범위·AI 보류 참고: 링 안에 넣으면 선과 겹쳐 원 아래에 따로 둔다 */
+.gauge .gauge-ref { margin: 12px 0 0; max-width: 320px; font-size: 12px; line-height: 1.5; color: var(--muted); }
 .gauge .gauge-why { list-style: none; margin: 16px 0 0; padding: 0; width: 100%; max-width: 320px; display: grid; gap: 7px; text-align: left; }
 .gauge .gauge-why:empty { display: none; }
 .gauge .gauge-why li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 8px; font-size: 12px; color: var(--muted); }
@@ -529,6 +531,7 @@ tr.row.in-page td:first-child { padding-left: 28px; }
               <div class="cap" id="gaugeCap"></div>
             </div>
           </div>
+          <p class="gauge-ref" id="gaugeRef" hidden></p>
           <ul class="gauge-why" id="gaugeWhy" aria-label="청정도 세부 지표"></ul>
           <div class="gauge-note">
             <h4>청정도 산정 기준</h4>
@@ -706,7 +709,7 @@ async function loadHistory(selectId) {
   }
   ul.innerHTML = runs.map(r => {
     const pending = r.pending ?? r.findings;
-    const lv = (r.entry_failed || r.needs_review) ? LEVEL_NA : levelOf(cleanPct(pollution({ pages: r.pages, dirtyPages: r.dirty_pages ?? pending,
+    const lv = r.entry_failed ? LEVEL_NA : levelOf(cleanPct(pollution({ pages: r.pages, dirtyPages: r.dirty_pages ?? pending,
                                                                        pending: r.pending_unique ?? pending, hidden: r.pending_hidden ?? 0 })));
     return `<li data-id="${esc(r.id)}" tabindex="0" title="누르면 결과를 열고, 한 번 더 누르면 닫습니다" class="lv-${lv.key} ${current && current.id === r.id ? "active" : ""}" style="--c:${lv.color}">
       <b title="${esc(r.entry_url)}">${esc(r.entry_url)}</b>
@@ -815,11 +818,22 @@ function pollutionOf(r) {
                      pending: new Set(list.map(phraseKey)).size, hidden: list.filter(isHidden).length });
 }
 
+/* 등급을 가리지 않는 미확인 범위 요약: 'AI 보류 3건 · 미확인 5페이지' */
+function uncheckedText(r) {
+  const cov = r.coverage || {};
+  const pages = (cov.pending_pages ?? r.left_in_queue ?? 0) + (cov.failed_pages ?? (r.failed_pages || []).length);
+  const parts = [];
+  if (r.unresolved_count) parts.push(`AI 보류 ${r.unresolved_count}건`);
+  if (pages) parts.push(`미확인 ${pages}페이지`);
+  if ((r.http_errors || []).length) parts.push(`오류 응답 ${r.http_errors.length}페이지`);
+  return parts.join(" · ") || "일부 범위 미확인";
+}
+
 /* 검토 상태가 바뀌면 이력 카드의 등급도 바로 갱신 */
 function refreshHistoryLevel() {
   const li = document.querySelector(`#history li[data-id="${current.id}"]`);
   if (!li) return;
-  const lv = (current.entry_failed || current.needs_review) ? LEVEL_NA : levelOf(cleanPct(pollutionOf(current)));
+  const lv = current.entry_failed ? LEVEL_NA : levelOf(cleanPct(pollutionOf(current)));
   li.classList.toggle("lv-na", lv === LEVEL_NA);
   li.style.setProperty("--c", lv.color);
   const em = li.querySelector("em");
@@ -839,7 +853,8 @@ function render() {
   const dirtyPages = new Set(pendingList.flatMap(pagesOf)).size;
   const pol = pollutionOf(r);
   const clean = cleanPct(pol);
-  const lv = (r.entry_failed || r.needs_review) ? LEVEL_NA : levelOf(clean);
+  // 등급은 확인된 범위의 탐지 결과로 계산한다. 404·접속 실패 몇 페이지나 AI 보류는 등급을 가리지 않고 아래에 참고로 표시
+  const lv = r.entry_failed ? LEVEL_NA : levelOf(clean);
   renderWarnings(r);
   renderLengthSkips(r);
 
@@ -847,14 +862,15 @@ function render() {
   const g = $("gauge");
   g.style.setProperty("--c", lv.color);
   g.style.setProperty("--cw", lv.weak);
-  $("gaugeVal").style.strokeDashoffset = (r.entry_failed || r.needs_review) ? "339.29" : (339.29 * (1 - clean / 100)).toFixed(2);
-  $("gaugeVal").style.opacity = (r.entry_failed || r.needs_review) ? 0 : 1;  // 둥근 선 끝이 점으로 남지 않게
-  $("gaugeLvl").textContent = r.needs_review ? "검토 필요" : lv.word;
+  $("gaugeVal").style.strokeDashoffset = r.entry_failed ? "339.29" : (339.29 * (1 - clean / 100)).toFixed(2);
+  $("gaugeVal").style.opacity = r.entry_failed ? 0 : 1;  // 둥근 선 끝이 점으로 남지 않게
+  $("gaugeLvl").textContent = lv.word;
   $("gaugeLvl").classList.toggle("na", !!r.entry_failed);
-  $("gaugePct").textContent = (r.entry_failed || r.needs_review) ? "청정도 -" : `청정도 ${pctText(clean)}%`;
+  $("gaugePct").textContent = r.entry_failed ? "청정도 -" : `청정도 ${pctText(clean)}%`;
   $("gaugeCap").textContent = r.entry_failed ? "사이트에 접속하지 못했습니다"
-    : r.needs_review ? `AI 보류 ${r.unresolved_count || 0}개 · 수집 범위 확인 필요`
     : pending ? `오염 페이지 ${dirtyPages} / ${r.pages}` : (ads.length ? "모든 불법광고 처리 완료" : "숨겨진 불법광고 없음");
+  $("gaugeRef").hidden = !(r.needs_review && !r.entry_failed);
+  $("gaugeRef").textContent = $("gaugeRef").hidden ? "" : `참고: ${uncheckedText(r)}`;
   // 세부 지표: 네 기준의 세부 지수(0~100, 높을수록 나쁨)를 막대로. 가장 크게 끌어내린 기준을 강조
   $("gaugeWhy").innerHTML = !r.entry_failed && pending ? pol.parts.map(x => `
     <li class="${x === pol.top ? "top" : ""}"><span>${x.name}</span><em>${esc(x.text)}</em>
@@ -933,7 +949,7 @@ function renderWarnings(r) {
   }
   if (r.needs_review) {
     const cov = r.coverage || {};
-    html += `${html ? "<br>" : ""}<b>검토 필요: 미처리 범위 또는 진단 모드 결과입니다.</b> AI 보류 ${r.unresolved_count || 0}개. 방문 ${cov.visited_pages ?? r.pages}페이지 / 발견 ${cov.discovered_pages ?? r.pages}페이지, 대기 ${cov.pending_pages || 0}, 접속 실패 ${cov.failed_pages || 0}, 프레임 수집 실패 ${cov.failed_frames || 0}. 전체 사이트 크기는 확인되지 않았습니다.`;
+    html += `${html ? "<br>" : ""}<b>참고: 일부 범위는 확인하지 못했습니다.</b> 청정도는 확인된 범위의 결과로 계산했습니다. AI 보류 ${r.unresolved_count || 0}개. 방문 ${cov.visited_pages ?? r.pages}페이지 / 발견 ${cov.discovered_pages ?? r.pages}페이지, 대기 ${cov.pending_pages || 0}, 접속 실패 ${cov.failed_pages || 0}, 프레임 수집 실패 ${cov.failed_frames || 0}. 전체 사이트 크기는 확인되지 않았습니다.`;
     const unresolved = (r.ai || {}).unresolved_sources || [];
     if (unresolved.length) html += list(unresolved, x => `${esc(x.source_id || "원문")} — ${esc(x.reason)}`, r.ai.unresolved_sources_count ?? unresolved.length);
   }
@@ -950,8 +966,7 @@ function renderLog(ads) {
   if (!items.length) {
     $("logList").innerHTML = current.entry_failed
       ? `<li class="log-empty" style="display:block;cursor:default"><b style="color:var(--dim)">점검하지 못했습니다</b>사이트 접속에 실패해 결과가 없습니다.</li>`
-      : current.needs_review ? `<li class="log-empty" style="display:block;cursor:default"><b>검토 필요</b>미판정 또는 미방문 범위가 남아 있습니다.</li>`
-      : `<li class="log-empty" style="display:block;cursor:default"><b>수집 범위에서 광고 미검출</b>숨겨진 불법광고가 발견되지 않았습니다.</li>`;
+      : `<li class="log-empty" style="display:block;cursor:default"><b>수집 범위에서 광고 미검출</b>숨겨진 불법광고가 발견되지 않았습니다.${current.needs_review ? ` (참고: ${uncheckedText(current)})` : ""}</li>`;
     return;
   }
   $("logList").innerHTML = items.map(c => `
@@ -1290,8 +1305,7 @@ function startPolling() {
     if (s.phase === "done" || s.phase === "review") {
       await loadHistory(s.run_id);
       if (current && current.entry_failed) toast("사이트에 접속하지 못했습니다. 주소를 확인하세요.", true);
-      else if (current && current.needs_review) toast("검토 필요: 미판정 또는 미방문 범위가 남았습니다.", true);
-      else toast("탐지가 끝났습니다.");
+      else toast(current && current.needs_review ? `탐지가 끝났습니다. (참고: ${uncheckedText(current)})` : "탐지가 끝났습니다.");
     }
   }, 700);
 }
