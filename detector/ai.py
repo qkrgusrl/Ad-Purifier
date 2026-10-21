@@ -261,13 +261,18 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
             c['review_code'] = code
 
     def laya_fallback(c, why):
-        """Gemma로 보내지 않거나 Gemma 시간이 끝난 항목은 보류 대신 Laya 판정으로 확정 (gemma_sec_per_item를 줄 때만)."""
+        """Gemma로 보내지 않거나 Gemma 시간이 끝난 항목은 보류 대신 Laya 판정으로 확정 (gemma_sec_per_item를 줄 때만).
+        문맥 충돌 항목(교육·보도 페이지에서 Laya만 광고 확신)은 Gemma 확인 없이 광고로 확정하지 않고 맥락대로 정상."""
         p = c.get("ml_prob")
         if gemma_sec_per_item is None or p is None:
             return False
         c.pop("review_code", None)
-        c.update(verdict="ad" if p >= .5 else "clean", decided_by="laya", processing_status="completed",
-                 reason=f"Laya 판정 ({why})")
+        if c.get("context_conflict"):
+            c.update(verdict="clean", decided_by="rules", processing_status="completed",
+                     reason=f"맥락 정상 ({why}: 교육·보도 페이지에서 Laya만 광고 확신)")
+        else:
+            c.update(verdict="ad" if p >= .5 else "clean", decided_by="laya", processing_status="completed",
+                     reason=f"Laya 판정 ({why})")
         return True
 
     def unresolved(row, reason, status="review", code=None):
@@ -601,8 +606,10 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
             p = c["ml_prob"]
             detail = c.get("score_detail") or []
             text_score = sum(w for n, w in detail if n not in CONTEXT_SIGNALS) if detail else None
-            a, why = ambiguity(c.get("evidence_text", ""), c.get("score", 0), p,
-                               context_conflict(c, p, laya_confidence_threshold), text_score)
+            conflict = context_conflict(c, p, laya_confidence_threshold)
+            a, why = ambiguity(c.get("evidence_text", ""), c.get("score", 0), p, conflict, text_score)
+            if conflict and why is None:
+                c["context_conflict"] = True  # Gemma 시간이 모자라면 laya_fallback이 맥락대로 정상 처리
             ranked.append((a, why, "verify", c))
         for row in rows:
             p = predictions[key(row)]
