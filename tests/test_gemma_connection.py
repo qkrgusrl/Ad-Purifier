@@ -206,7 +206,8 @@ class GemmaConnectionTests(unittest.TestCase):
                         data[field] = []
 
         def verify(item):
-            evidence_id = "h0004" if item["html"] == raw else "h0002"
+            # 공통 단위에는 부모 직접 문구만 있다. 자식 ID 강제 응답은 계속 거절한다.
+            evidence_id = "h9999" if item["html"] == raw else "h0001"
             return self.protocol("verify", item, "clean", evidence_id)
 
         def extract(data):
@@ -224,8 +225,9 @@ class GemmaConnectionTests(unittest.TestCase):
                 self.chats.append(copy.deepcopy(payload))
                 model_input = json.loads(payload["messages"][1]["content"])
                 owner = model_input["candidate_id"]
-                self.assertIn(owner, (parent["source_id"], child["source_id"]))
-                choice = "h0004" if owner == parent["source_id"] else "h0002"
+                self.assertEqual(owner, 'target')
+                own = ''.join(u['text'] for u in model_input['source_units'])
+                choice = 'h0001' if own == child_text else 'h9999'
                 return {"choices": [{"finish_reason": "stop", "message": {"content": json.dumps(
                     {"verdict": "clean", "evidence_id": choice})}}]}
             with patch.object(server, "request", side_effect=request):

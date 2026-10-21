@@ -33,6 +33,12 @@ def blocked_load_target(conn, model_path):
 def blocked_batch_target(conn, model_path):
     conn.send_bytes(json.dumps({"status": "ready"}).encode("utf-8"))
     request = json.loads(conn.recv_bytes())
+    if request['op'] == 'plan':
+        conn.send_bytes(json.dumps({'status': 'ok', 'plans': [
+            {'input_tokens': 1, 'token_limit': 1024, 'segments': [
+                {'start_char': 0, 'end_char': len(text), 'input_tokens': 1}]}
+            for text in request['texts']]}).encode('utf-8'))
+        request = json.loads(conn.recv_bytes())
     assert request["op"] == "predict"
     Path(model_path, "entered").write_text(str(os.getpid()))
     threading.Event().wait()  # 요청 수신 후의 동기 batch 모형

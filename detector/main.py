@@ -526,7 +526,7 @@ def link_farms(page_url, texts):
 def source_fields(row):
     """수집 원문은 점수용 context와 분리해 보존한다."""
     fields = ("source_id", "source_html", "source_context", "source_near_text",
-              "raw", "href", "tag", "cls", "attr")
+              "raw", "href", "tag", "cls", "attr", "inspection")
     result = {k: row[k] for k in fields if k in row}
     if isinstance(row.get("source_html"), str):
         value = {"html": row["source_html"], "context": row.get("source_context", "")}

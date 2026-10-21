@@ -437,7 +437,7 @@ class LocalServer:
         calls, candidates, unresolved, failed = [], [], [], []
         bindings={}
         for block in clean_input["blocks"]:
-            call = self.infer("verify", {"candidate_id": block["block_id"], "html": block["html"], "context": block["context"]}, version)
+            call = self.infer("verify", {**block, "candidate_id": block["block_id"]}, version)
             calls.append(call)
             if call["status"] != "ok":
                 failed.append(block["block_id"])

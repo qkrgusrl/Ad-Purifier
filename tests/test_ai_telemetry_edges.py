@@ -120,7 +120,8 @@ class AITelemetryEdgeTests(unittest.TestCase):
         def request(path, payload=None, **kwargs):
             if path == '/apply-template':
                 data = json.loads(payload['messages'][1]['content'])
-                if any(u['text'] == rows[0]['source_html'] for u in data['source_units']):
+                # 공통 target_spans 이후 모델 입력 단위는 전체 태그가 아닌 본문 범위다.
+                if any(u['text'] == rows[0]['text'] for u in data['source_units']):
                     raise OSError('fixture-first-block-preflight-failure')
             if path == '/v1/chat/completions':
                 data = json.loads(payload['messages'][1]['content'])
@@ -134,7 +135,7 @@ class AITelemetryEdgeTests(unittest.TestCase):
 
         self.assertEqual(len(boundary), 1)
         model_input, events = boundary[0]
-        self.assertTrue(any(u['text'] == rows[1]['source_html'] for u in model_input['source_units']))
+        self.assertTrue(any(u['text'] == rows[1]['text'] for u in model_input['source_units']))
         progress = [e['snapshot']['gemma'] for e in events if e['event'] == 'progress']
         self.assertTrue(progress)
         self.assertEqual(progress[-1]['preflight_failed'], 1,

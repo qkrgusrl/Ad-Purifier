@@ -10,6 +10,7 @@ from html.parser import HTMLParser
 
 from .textnorm import normalize
 from .laya_runtime import LayaCleanupError, LayaRunner
+from .inspection import project, split_row, matches as matches_inspection
 
 
 def digest(item):
@@ -106,6 +107,8 @@ class _OwnerText(HTMLParser):
 
 def matching_recovery_text(binding, row):
     """검증된 binding의 실제 범위를 현재 본문/속성 소유 단위에 결합한다."""
+    if 'inspection' in row:
+        return matches_inspection(binding, row)
     evidence = binding["evidence"]
     expected = normalize(row["evidence_text"] if "evidence_text" in row else row["text"])
     bare_match = normalize(html.unescape(evidence)) == expected
@@ -168,8 +171,36 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
 
     meter = AIProgress(telemetry)
     stats["telemetry"] = meter.snapshot
+    parent_groups = []
+
+    def combine_units():
+        for parent, units in parent_groups:
+            if len(units) == 1:
+                parent.update({k: v for k, v in units[0].items()
+                               if k not in ('source_id', 'evidence_text', 'text', 'raw', 'normalized')})
+                continue
+            parent['inspection_units'] = [{k: v for k, v in unit.items()
+                                           if k not in ('source_html', 'source_context', 'source_near_text')}
+                                          for unit in units]
+            ads = [u for u in units if u.get('verdict') == 'ad' and u.get('processing_status') == 'completed']
+            clean = all(u.get('verdict') == 'clean' and u.get('processing_status') == 'completed' for u in units)
+            parent.pop('ml_prob', None)  # 여러 조각의 확률을 원문 전체의 확률로 합성하지 않는다.
+            parent.pop('laya_confidence', None)
+            parent['laya_confidence_scope'] = 'inspection_units'
+            if ads or clean:
+                selected = ads[0] if ads else next((u for u in units if u.get('decided_by') == 'gemma'), units[0])
+                parent.update(verdict='ad' if ads else 'clean', decided_by=selected.get('decided_by', 'laya'),
+                              processing_status='completed',
+                              reason=f"분할 {len(units)}개: 광고 {len(ads)}개; " + ('전부 정상' if clean else '선택 근거는 inspection_units에 보존'))
+                if ads:
+                    for unit in units:
+                        if unit.get('processing_status') != 'completed':
+                            unresolved(unit, '광고 근거 외 나머지 조각 미판정: ' + unit.get('reason', '재검토'))
+            else:
+                review(parent, f"분할 {len(units)}개 중 미판정 조각 있음; 전체 정상 확정 금지")
 
     def finish():
+        combine_units()
         laya, gemma = meter.snapshot["laya"], meter.snapshot["gemma"]
         complete = (use_ml and check() and laya["completed"] + laya["failed"] == laya["total"]
                     and gemma["settled"] == gemma["eligible_verify"] + gemma["eligible_extract"])
@@ -190,7 +221,8 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
 
     def unresolved(row, reason, status="review"):
         stats["unresolved_sources"].append({**source_fields(row), "selector": row.get("selector"),
-                                            "url": row.get("url"), "reason": str(reason), "processing_status": status})
+                                            "url": row.get("url"), "text": row.get('evidence_text', row.get('text', '')),
+                                            "reason": str(reason), "processing_status": status})
 
     length_seen = set()
 
@@ -209,7 +241,10 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
         return any(n in ("page-context", "body-context") for n, _ in c.get("context", []))
 
     def input_for(row):
-        return {"html": row.get("source_html", ""), "context": row.get("source_context", "")}
+        item = {"html": row.get("source_html", ""), "context": row.get("source_context", "")}
+        if 'inspection' in row:
+            item['target_spans'] = row['inspection']['target_spans']
+        return item
 
     # 이 호출의 model/QUESTION은 고정. Laya 입력만 공유하고 Gemma 원문 결합은 owner별 유지.
     def key(row):
@@ -256,7 +291,68 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
         if rows_by_key and check():
             from training.make_dataset import QUESTION
             with LayaRunner(model_path, deadline=deadline, cancel=cancel) as runner:
-                keys = sorted(rows_by_key)
+                # 같은 child/tokenizer로 검사 계획만 만든다. 모델/수집 문구/규칙은 바꾸지 않는다.
+                projected, texts = {}, set()
+                for row in [c for c in border if not about(c)] + residual:
+                    try:
+                        projection = project(row)
+                        projected[id(row)] = projection
+                        texts.add(projection['text'])
+                    except (ValueError, TypeError) as exc:
+                        row['_inspection_error'] = str(exc)
+                planned = {}
+                ordered = sorted(texts)
+                for offset in range(0, len(ordered), 64):
+                    if not check():
+                        break
+                    batch = ordered[offset:offset + 64]
+                    # 기존 외부 테스트 seam에는 plan API가 없을 수 있다. 실제 runner는 항상 제공한다.
+                    planner = getattr(runner, 'plan_batch', None)
+                    plans = (planner(batch, QUESTION, max_chars=1024) if planner else
+                             [{'segments': [{'start_char': 0, 'end_char': len(t)}]} for t in batch])
+                    if len(plans) != len(batch):
+                        raise ValueError('Laya 검사 계획 개수 불일치')
+                    planned.update(zip(batch, plans))
+                inspection_stats = dict(parents=0, units=0, projected=0, split_parents=0, unmapped=0)
+
+                def expand(row, candidate=False):
+                    inspection_stats['parents'] += 1
+                    projection = projected.get(id(row))
+                    try:
+                        if projection is None:
+                            raise ValueError(row.get('_inspection_error', '원문 투영 없음'))
+                        plan = planned.get(projection['text'], {})
+                        if plan.get('error'):
+                            raise ValueError(plan['error'])
+                        units = split_row(row, projection, plan.get('segments'))
+                    except (ValueError, TypeError, KeyError) as exc:
+                        row['_inspection_error'] = str(exc)
+                        inspection_stats['unmapped'] += 1
+                        inspection_stats['units'] += 1
+                        return [row]
+                    inspection_stats['projected'] += 1
+                    inspection_stats['split_parents'] += int(len(units) > 1)
+                    inspection_stats['units'] += len(units)
+                    if candidate:
+                        parent_groups.append((row, units))
+                    return units
+
+                border = [unit for row in border for unit in ([row] if about(row) else expand(row, True))]
+                residual = [unit for row in residual for unit in expand(row)]
+                stats['inspection'] = inspection_stats
+                rows_by_key = {}
+                for row in [c for c in border if not about(c)] + residual:
+                    rows_by_key.setdefault(key(row), []).append(row)
+                stats['source_rows'] = sum(map(len, rows_by_key.values()))
+                stats['unique_count'] = len(rows_by_key)
+                stats['cache_reuse'] = stats['source_rows'] - stats['unique_count']
+                laya_counts['total'] = len(rows_by_key)
+                meter.progress('laya')
+                # 긴 조각 하나 때문에 같은 batch의 짧은 문구까지 padding하지 않도록 묶는다.
+                # 모델/질문/batch_size/확률 검증은 같고, 결과는 원문 key로 다시 연결한다.
+                keys = sorted(rows_by_key, key=lambda k: (max(
+                    (r.get('inspection', {}).get('planned_input_tokens') or len(k))
+                    for r in rows_by_key[k]), k))
                 for offset in range(0, len(keys), 64):
                     if not check():
                         break
@@ -322,7 +418,8 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
             review(c, str(exc), "error")
         for row in residual:
             unresolved(row, str(exc), "error")
-        meter.progress("incomplete")
+        combine_units()
+        stats['telemetry'] = meter.progress("incomplete")
         return stats
     except Exception as exc:
         check()
@@ -352,6 +449,9 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
             c.update(verdict="ad" if p >= .5 else "clean", decided_by="laya",
                      processing_status="completed", reason="Laya 정상 출력의 confidence가 운영 임계값 이상")
         else:
+            if c.get('_inspection_error'):
+                review(c, '공통 검사 범위 결합 불가: ' + c['_inspection_error'])
+                return
             pending.append(c)
             meter.snapshot["gemma"]["eligible_verify"] += 1
             meter.progress("gemma")
@@ -405,12 +505,17 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
         elif max(p, 1 - p) >= laya_confidence_threshold:
             if p < .5:
                 stats["residual_screened_clean"] += 1
-                stats["source_results"].append({"source_id": row["source_id"], "verdict": "clean", "decided_by": "laya"})
+                stats["source_results"].append({"source_id": row["source_id"], "verdict": "clean", "decided_by": "laya",
+                                                "ml_prob": round(p, 4), "laya_confidence": max(p, 1-p),
+                                                **({'inspection': row['inspection']} if 'inspection' in row else {})})
             else:
                 stats["source_results"].append({**source_fields(row), "verdict": "ad", "decided_by": "laya",
                                                 "ml_prob": round(p, 4), "laya_confidence": max(p, 1 - p)})
                 recover_row(row)
         else:
+            if row.get('_inspection_error'):
+                unresolved(row, '공통 검사 범위 결합 불가: ' + row['_inspection_error'])
+                continue
             extract_rows.append(row)
             meter.snapshot["gemma"]["eligible_extract"] += 1
             meter.progress("gemma")
@@ -608,7 +713,8 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                     elif sid in recovered:
                         recover_row(row, recovered[sid])
                     elif sid in cleaned:
-                        stats["source_results"].append({"source_id": sid, "verdict": "clean", "decided_by": "gemma", "binding": cleaned[sid]})
+                        stats["source_results"].append({"source_id": sid, "verdict": "clean", "decided_by": "gemma", "binding": cleaned[sid],
+                                                        **({'inspection': row['inspection']} if 'inspection' in row else {})})
                     else:
                         unresolved(row, "extract 출력 누락 또는 원문 결합 실패")
             except Exception as exc:

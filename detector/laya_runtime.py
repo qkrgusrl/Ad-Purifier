@@ -82,6 +82,115 @@ def _checked_predict(agent, texts, questions, batch_size):
     return merged
 
 
+_SENTENCE_END = ".!?。！？…\n"
+_MAX_VERIFY_STEPS = 256
+
+
+class _PlanError(ValueError):
+    def __init__(self, message, plan):
+        super().__init__(message)
+        self.plan = plan
+
+
+def _segment_tokens(agent, text, questions):
+    """정규화한 조각의 (token 수, room). 계획 불가면 ValueError."""
+    from .textnorm import normalize
+
+    limits = _preflight_limits(agent, [normalize(text)], questions)
+    if limits is None:
+        raise ValueError("token budget을 확정할 수 없음(hook 또는 미지원 tokenizer)")
+    counts, room, _, _ = limits
+    return counts[0], room
+
+
+def _plan_one(agent, text, questions, max_chars):
+    full_count, room = _segment_tokens(agent, text, questions)
+    plan = {"input_tokens": full_count, "token_limit": room, "segments": []}
+    if room <= 0:
+        raise _PlanError("token budget이 0 이하라 분할할 수 없음", plan)
+    size = len(text)
+    if full_count <= room and size <= max_chars:
+        plan["segments"].append({"start_char": 0, "end_char": size, "input_tokens": full_count})
+        return plan
+    start = 0
+    while start < size:
+        limit = min(size, start + max_chars)
+        # 이분 탐색은 후보 위치를 찾는 용도일 뿐이고, 채택 전 조각을 다시 검증한다.
+        low, high, best = start + 1, limit, start
+        while low <= high:
+            mid = (low + high) // 2
+            count, mid_room = _segment_tokens(agent, text[start:mid], questions)
+            if count <= mid_room:
+                best, low = mid, mid + 1
+            else:
+                high = mid - 1
+        candidates = []
+        if best > start:
+            floor = start + max(1, (best - start) // 2)
+            window = range(best, floor - 1, -1)
+            if best < size:
+                candidates += [i for i in window if text[i - 1] in _SENTENCE_END]
+                candidates += [i for i in window if text[i - 1].isspace() and i not in candidates]
+            candidates.append(best)
+        # 비단조 tokenization이면 best 아래로 내려가며 실제 통과하는 끝점을 찾는다.
+        candidates += range(best - 1, max(start, best - _MAX_VERIFY_STEPS), -1)
+        chosen = None
+        for end in candidates:
+            if end <= start:
+                continue
+            count, seg_room = _segment_tokens(agent, text[start:end], questions)
+            if count <= seg_room:
+                chosen = (end, count)
+                break
+        if chosen is None:
+            raise _PlanError(f"{start}번째 문자부터 token budget에 맞는 조각을 찾지 못함", plan)
+        plan["segments"].append({"start_char": start, "end_char": chosen[0],
+                                 "input_tokens": chosen[1]})
+        start = chosen[0]
+    return plan
+
+
+def _plan_texts(agent, texts, questions, max_chars):
+    """모델 추론 없이 tokenizer로만 원문별 분할 계획을 만든다. 실패 항목은 error로 남긴다."""
+    results = []
+    for text in texts:
+        try:
+            results.append(_plan_one(agent, text, questions, max_chars))
+        except _PlanError as exc:
+            results.append({"input_tokens": exc.plan["input_tokens"],
+                            "token_limit": exc.plan["token_limit"], "segments": [],
+                            "error": str(exc)})
+        except Exception as exc:
+            results.append({"input_tokens": None, "token_limit": None, "segments": [],
+                            "error": f"{type(exc).__name__}: {exc}"})
+    return results
+
+
+def _valid_plans(plans, texts, max_chars):
+    if not isinstance(plans, list) or len(plans) != len(texts):
+        return False
+    for text, plan in zip(texts, plans):
+        if not isinstance(plan, dict) or not isinstance(plan.get("segments"), list):
+            return False
+        if "error" in plan:
+            if not isinstance(plan["error"], str) or plan["segments"]:
+                return False
+            continue
+        position = 0
+        for seg in plan["segments"]:
+            if not isinstance(seg, dict) or seg.get("start_char") != position:
+                return False
+            end = seg.get("end_char")
+            if not isinstance(end, int) or isinstance(end, bool) or end - position > max_chars:
+                return False
+            if end <= position and text:
+                return False
+            position = end
+        if position != len(text) or (not plan["segments"] and text):
+            return False
+    return True
+
+
 def _model_worker(conn, model_path):
     from laya.agent import Agent
 
@@ -89,7 +198,13 @@ def _model_worker(conn, model_path):
     _send_message(conn, {"status": "ready"})
     while True:
         request = _receive_message(conn)
-        if request.get("op") != "predict":
+        op = request.get("op")
+        if op == "plan":
+            plans = _plan_texts(agent, request["texts"], request["questions"],
+                                request["max_chars"])
+            _send_message(conn, {"status": "ok", "plans": plans})
+            continue
+        if op != "predict":
             raise RuntimeError("알 수 없는 Laya 요청")
         outputs = _checked_predict(agent, request["texts"], request["questions"],
                                    request["batch_size"])
@@ -226,6 +341,20 @@ class LayaRunner:
             raise RuntimeError("잘못된 Laya 예측 응답")
         # answers와 usage를 포함한 원본 출력은 호출부의 검증을 위해 그대로 유지한다.
         return response["outputs"]
+
+    def plan_batch(self, texts, questions, *, max_chars=1024):
+        """모델 추론 없이 각 원문을 token budget에 맞는 char 범위 조각으로 계획한다."""
+        if not isinstance(max_chars, int) or isinstance(max_chars, bool) or max_chars <= 0:
+            raise ValueError("max_chars는 양의 정수여야 함")
+        if not isinstance(texts, list) or not all(isinstance(text, str) for text in texts):
+            raise ValueError("texts는 문자열 목록이어야 함")
+        response = self._exchange({"op": "plan", "texts": texts, "questions": questions,
+                                   "max_chars": max_chars})
+        plans = response.get("plans")
+        if response.get("status") != "ok" or not _valid_plans(plans, texts, max_chars):
+            self.close()
+            raise RuntimeError("잘못된 Laya 계획 응답")
+        return plans
 
     def close(self):
         if self._cleanup_error is not None:

@@ -23,9 +23,14 @@ def schema_for(task, data, version=DEFAULT_VERSION):
 def input_only(task, data):
     """평가 레이블/주석/메타데이터가 모델 입력으로 들어갈 수 없도록 허용 목록만 복사."""
     if task == "verify":
-        return {"candidate_id": data["candidate_id"], "html": data["html"], "context": data.get("context", "")}
+        clean = {"candidate_id": data["candidate_id"], "html": data["html"], "context": data.get("context", "")}
+        if 'target_spans' in data:
+            clean['target_spans'] = data['target_spans']
+        return clean
     if task == "extract":
-        return {"blocks": [{"block_id": b["block_id"], "html": b["html"], "context": b.get("context", "")} for b in data["blocks"]]}
+        return {"blocks": [{"block_id": b["block_id"], **{k: v for k, v in
+                           input_only('verify', {**b, 'candidate_id': b['block_id']}).items()
+                           if k != 'candidate_id'}} for b in data["blocks"]]}
     raise ValueError("지원하지 않는 작업")
 
 
@@ -76,6 +81,22 @@ def _raw_spans(raw):
 
 def source_units(data):
     """원문을 정규화하거나 HTML을 실행하지 않고 모든 raw span의 순서를 보존한다."""
+    if 'target_spans' in data:
+        spans, units, previous = data['target_spans'], [], -1
+        if not isinstance(spans, list) or not spans:
+            raise ValueError('target_spans: 비어 있지 않은 원문 범위 필요')
+        raw = data.get('html', '')
+        for index, span in enumerate(spans, 1):
+            if not isinstance(span, (list, tuple)) or len(span) != 2:
+                raise ValueError('target_spans: 범위 형식 오류')
+            start, end = span
+            if (type(start) is not int or type(end) is not int or start < previous
+                    or not 0 <= start < end <= len(raw)):
+                raise ValueError('target_spans: 잘못된 원문 위치')
+            previous = end
+            units.append({'id': f'h{index:04}', 'source_field': 'html', 'text': raw[start:end],
+                          'start_char': start, 'end_char': end, 'selectable': bool(raw[start:end].strip())})
+        return units
     units=[]
     for field,prefix in (("html","h"),("context","c")):
         raw=data.get(field,"")
@@ -175,7 +196,15 @@ def _context_window(data):
         return '', '', 'no_raw_anchor'
     if raw.find(target, start + 1) >= 0:
         return '', '', 'duplicate_raw_anchor'
-    parser = _VisibleContext(raw, start, start + len(target))
+    spans = data.get('target_spans')
+    # 범위를 먼저 검증한다. 동일 HTML 안의 긴 문구 조각도 앞뒤 각 50자만 제공한다.
+    if spans is not None:
+        source_units(data)
+        end = start + spans[-1][1]
+        start += spans[0][0]
+    else:
+        end = start + len(target)
+    parser = _VisibleContext(raw, start, end)
     parser.feed(raw)
     parser.close()
     before, after = ''.join(parser.before), ''.join(parser.after)

@@ -9,7 +9,7 @@ def plan_chunks(server, blocks, version, max_tokens=512, preflight_errors=None):
     chunks, oversized = [], []
     for block in blocks:
         try:
-            inp = {'candidate_id': block['block_id'], 'html': block['html'], 'context': block.get('context', '')}
+            inp = input_only('verify', {**block, 'candidate_id': block['block_id']})
             if server.prompt_size('verify', inp, version) + verification_token_limit(version) + 64 <= server.ctx_size:
                 chunks.append([block])
             else:
@@ -35,7 +35,7 @@ def bind_candidates(blocks, candidates, bindings=None):
         source, binding = sources.get(owner), (bindings or {}).get(owner)
         if source is None or not binding:
             raise ValueError('missing_source_binding: v15 근거 ID 필요')
-        expected = resolve_sentence_choice({'candidate_id': owner, 'html': source['html'], 'context': source.get('context', '')},
+        expected = resolve_sentence_choice(input_only('verify', {**source, 'candidate_id': owner}),
                                            {'verdict': 'ad', 'evidence_id': binding.get('evidence_id')}, 'v15')
         if any(binding.get(key) != expected[key] for key in fields) or candidate.get('evidence') != expected['evidence']:
             raise ValueError('stale_source_binding: 원문 참조 불일치')

@@ -86,9 +86,12 @@ class EvidenceIntegrationTests(unittest.TestCase):
         raw = call["raw_response"]["choices"][0]
         self.assertEqual(raw["finish_reason"], "stop")
         self.assertEqual(json.loads(raw["message"]["content"]), call["model_output"])
-        self.assertEqual(set(call["input"]), {"candidate_id", "html", "context"})
+        # 공통 검사 단위: input_only가 target_spans를 그대로 전달하고 모델 owner는 target이다.
+        self.assertEqual(set(call["input"]), {"candidate_id", "html", "context", "target_spans"})
         self.assertEqual(call["input"], {"candidate_id": owner, "html": item["html"],
-                                          "context": item["context"]})
+                                          "context": item["context"],
+                                          "target_spans": item["target_spans"]})
+        self.assertEqual(call["model_input"]["candidate_id"], "target")
         self.assertEqual(set(call["model_input"]), {"candidate_id", "source_units",
                                                           "context_before", "context_after", "context_status"})
         choice = next(u for u in call["model_input"]["source_units"] if u["id"] == evidence_id)
@@ -100,6 +103,8 @@ class EvidenceIntegrationTests(unittest.TestCase):
             self.assertEqual((result["source_field"], result["evidence_id"]), (field, evidence_id))
             self.assertEqual(result["evidence"], item[field][result["start_char"]:result["end_char"]])
             self.assertEqual(result["evidence"], choice["text"])
+        spans = item["target_spans"]
+        self.assertTrue(any(s <= binding["start_char"] < binding["end_char"] <= e for s, e in spans))
         chats = [r["payload"] for r in trace["requests"] if r["path"] == "/v1/chat/completions"]
         self.assertEqual(len(chats), 1)
         self.assertEqual(json.loads(chats[0]["messages"][1]["content"]), call["model_input"])
@@ -119,11 +124,15 @@ class EvidenceIntegrationTests(unittest.TestCase):
                              extract=lambda data: self.protocol("extract", data, "ad", "h0001"))
         report = self.run_case(harness, detect_posted=True)
         self.assertEqual(harness.laya_inputs, [main.normalize(text)])
+        # 공통 검사 단위는 태그를 제외한 본문 범위만 target_spans로 전달한다.
         self.assertEqual(harness.extract_requests, [{"blocks": [{"block_id": row["source_id"],
-            "html": original, "context": row["source_context"]}]}])
+            "html": original, "context": row["source_context"],
+            "target_spans": [[len("<p>"), len("<p>") + len(text)]]}]}])
         self.assert_protocol(self.trace[0], harness.extract_requests[0]["blocks"][0], "ad", "h0001", "html")
-        self.assertEqual(self.trace[0]["reply"]["candidates"][0]["evidence"], original,
-                         "태그를 제거한 가짜 binding으로 계약 차이를 숨기면 안 됨")
+        binding = self.trace[0]["reply"]["candidates"][0]
+        self.assertEqual((binding["evidence"], binding["start_char"], binding["end_char"]),
+                         (text, len("<p>"), len("<p>") + len(text)),
+                         "target_spans 본문 범위의 실제 원문 binding이어야 함")
         self.assertEqual(len(report["candidates"]), 1,
                          "실제 v15의 태그 포함 근거를 회수 거부함: POSTED 재합류 필요")
         candidate = report["candidates"][0]
@@ -229,6 +238,7 @@ class EvidenceIntegrationTests(unittest.TestCase):
                 self.assertEqual({c["source_id"]: c["verdict"] for c in initial},
                                  {parent["source_id"]: "borderline", child["source_id"]: child_initial})
                 units = source_units({"html": original, "context": parent["source_context"]})
+                # units는 예전 전체 HTML 분할이다. evidence_id는 그 시절 자식 위치를 가리키는 적대적 값이다.
                 child_start = original.index(child_html)
                 # span은 태그와 본문이 별도 unit이므로 두 번째 동일 문구의 bare span을 선택한다.
                 selected_start = child_start + len(f"<{tag}>") if tag == "span" else child_start
@@ -238,6 +248,13 @@ class EvidenceIntegrationTests(unittest.TestCase):
                               and u["end_char"] == selected_start + len(evidence))
                 self.assertEqual((chosen["id"], chosen["text"], chosen["selectable"]),
                                  (evidence_id, evidence, True))
+                parent_span = [[len("<div>"), len("<div>") + len(parent["text"])]]
+                common = source_units({"html": original, "context": parent["source_context"],
+                                       "target_spans": parent_span})
+                # 현재 공통 단위는 부모 본문 하나뿐이어서 자식 ID는 선택 불가(가짜 값)다.
+                self.assertEqual([(u["id"], u["text"], u["selectable"]) for u in common],
+                                 [("h0001", parent["text"], True)])
+                self.assertNotIn(evidence_id, [u["id"] for u in common])
                 parser = TextOwners()
                 parser.feed(original)
                 parser.close()
@@ -260,7 +277,7 @@ class EvidenceIntegrationTests(unittest.TestCase):
                     if item["html"] == original:
                         return self.protocol("verify", item, "ad", evidence_id)
                     # 동일 텍스트의 자식도 경계 후보다. 자기 본문 ID의 clean으로 분리한다.
-                    return self.protocol("verify", item, "clean", "h0002")
+                    return self.protocol("verify", item, "clean", "h0001")
 
                 trace_start = len(self.trace)
                 harness = OfflineRun(page_data=page_data,
@@ -276,17 +293,20 @@ class EvidenceIntegrationTests(unittest.TestCase):
                 self.assertEqual(len(harness.verify_inputs), 2 if tag == "span" else 1)
                 item = next(i for i in harness.verify_inputs if i["html"] == original)
                 self.assertEqual(item, {"candidate_id": parent["source_id"] + ":0",
-                                        "html": original, "context": parent["source_context"]})
+                                        "html": original, "context": parent["source_context"],
+                                        "target_spans": parent_span})
                 traces = [t for t in self.trace[trace_start:] if t.get("task") == "verify"]
                 trace = next(t for t in traces if t["input"] == item)
-                self.assert_protocol(trace, item, "ad", evidence_id, "html")
+                # 선택 불가 자식 ID는 소유 검증 단계에서 거절되어 부모를 확정하지 못한다.
+                self.assertNotEqual(trace["reply"]["status"], "ok")
                 binding = trace["reply"]["results"][0]
-                self.assertEqual((binding["start_char"], binding["end_char"]),
-                                 (chosen["start_char"], chosen["end_char"]))
-                self.assertEqual(binding["evidence"], evidence)
+                self.assertEqual((binding["status"], binding["verdict"], binding["needs_review"],
+                                  binding["evidence"]), ("error", "uncertain", True, None))
+                self.assertEqual(binding["call"]["model_output"], {"verdict": "ad", "evidence_id": evidence_id})
+                self.assertIn("unbound_sentence_id", binding["call"]["error"])
                 if tag == "span":
                     child_trace = next(t for t in traces if t["input"]["html"] == child_html)
-                    self.assert_protocol(child_trace, child_trace["input"], "clean", "h0002", "html")
+                    self.assert_protocol(child_trace, child_trace["input"], "clean", "h0001", "html")
                 candidates = {c["source_id"]: c for c in report["candidates"]}
                 self.assertEqual(set(candidates), {parent["source_id"], child["source_id"]})
                 candidate = candidates[parent["source_id"]]
@@ -303,6 +323,13 @@ class EvidenceIntegrationTests(unittest.TestCase):
                 self.assertEqual(report["unresolved_count"], 1)
                 self.assertTrue(any(f.get("source_id") == parent["source_id"]
                                     for f in report["ai"]["failures"]))
+                # 정상 본문 전용 기대값: 부모 본문 h0001은 부모 owner의 본문 범위에만 결합된다.
+                self.protocol("verify", item, "ad", "h0001")
+                self.assert_protocol(self.trace[-1], item, "ad", "h0001", "html")
+                accepted = self.trace[-1]["reply"]["results"][0]
+                self.assertEqual((accepted["evidence"], accepted["start_char"], accepted["end_char"]),
+                                 (parent["text"], parent_span[0][0], parent_span[0][1]))
+                self.assertLess(accepted["end_char"], child_start + 1)
 
     def test_extract_child_bare_text_cannot_recover_parent_owner(self):
         from local_llm.prompts import source_units
@@ -325,10 +352,17 @@ class EvidenceIntegrationTests(unittest.TestCase):
         # 실제 수집 원문은 보존하고 이번 잔여 처리의 대상 owner만 부모로 제한한다.
         page_data = copy.deepcopy(captured)
         page_data[0][1][0][1]["source_blocks"] = [copy.deepcopy(parent)]
-        block = {"block_id": parent["source_id"], "html": original, "context": parent["source_context"]}
-        units = source_units(block)
+        block = {"block_id": parent["source_id"], "html": original, "context": parent["source_context"],
+                 "target_spans": [[len("<div>"), len("<div>") + len(text)]]}
+        # 예전 전체 HTML 분할의 h0004(자식 bare text)를 같은 위치의 증거로 재현한다.
+        units = source_units({"html": original, "context": parent["source_context"]})
         chosen = next(u for u in units if u["id"] == "h0004")
         direct = next(u for u in units if u["id"] == "h0002")
+        common = source_units(block)
+        # 현재 공통 단위에는 부모 자신의 본문 범위만 있고 자식 bare text ID는 선택 불가다.
+        self.assertEqual([(u["id"], u["text"], u["start_char"], u["end_char"], u["selectable"])
+                          for u in common], [("h0001", text, direct["start_char"], direct["end_char"], True)])
+        self.assertNotIn(chosen["id"], [u["id"] for u in common])
         self.assertEqual((chosen["source_field"], chosen["selectable"], chosen["text"]),
                          ("html", True, text))
         self.assertEqual(direct["text"], chosen["text"])
@@ -345,13 +379,18 @@ class EvidenceIntegrationTests(unittest.TestCase):
                            "parent_source_units": units, "chosen_child_unit": chosen})
         self.assertEqual(harness.laya_inputs, [main.normalize(text)])
         self.assertEqual(harness.extract_requests, [{"blocks": [block]}])
-        self.assert_protocol(self.trace[0], block, "ad", "h0004", "html")
-        binding = self.trace[0]["reply"]["candidates"][0]
-        self.assertEqual((binding["evidence"], binding["start_char"], binding["end_char"]),
-                         (text, chosen["start_char"], chosen["end_char"]))
+        # 선택 불가한 자식 ID는 가짜 값으로 계속 거절한다: 부모 후보/verify 회수 금지.
+        rejected = self.trace[0]["reply"]
+        self.assertEqual((rejected["status"], rejected["candidates"]), ("needs_review", []))
+        self.assertEqual(self.trace[0]["input"], {"blocks": [block]})
+        self.assertEqual(rejected["failures"][0]["block_ids"], [parent["source_id"]])
+        call = rejected["calls"][0]["block_calls"][0]
+        self.assertEqual((call["status"], call["input"]), ("error", {
+            "candidate_id": parent["source_id"], **{k: v for k, v in block.items() if k != "block_id"}}))
+        self.assertEqual(call["model_output"], {"verdict": "ad", "evidence_id": "h0004"})
+        self.assertIn("unbound_sentence_id", call["error"])
         for trace in self.trace:
-            if trace.get("task") == "verify":
-                self.assert_protocol(trace, trace["input"], "ad", "h0004", "html")
+            self.assertNotEqual(trace.get("task"), "verify")
         self.assertIs(report["needs_review"], True)
         self.assertEqual(report["unresolved_count"], 1)
         self.assertEqual([c["source_id"] for c in report["candidates"]], [],
@@ -362,6 +401,14 @@ class EvidenceIntegrationTests(unittest.TestCase):
         self.assertEqual((unresolved["source_id"], unresolved["processing_status"]),
                          (parent["source_id"], "review"))
         self.assertTrue(unresolved["reason"])
+
+        # 정상 본문 전용 기대값: 같은 block에서 부모 본문 h0001만 선택하면 부모 owner 범위에 결합된다.
+        self.protocol("extract", {"blocks": [block]}, "ad", "h0001")
+        self.assert_protocol(self.trace[-1], block, "ad", "h0001", "html")
+        accepted = self.trace[-1]["reply"]["candidates"][0]
+        self.assertEqual((accepted["evidence"], accepted["start_char"], accepted["end_char"]),
+                         (text, direct["start_char"], direct["end_char"]))
+        self.assertNotEqual(accepted["start_char"], chosen["start_char"])
 
     def test_whole_root_with_separate_text_attribute_cannot_complete_body_as_ad(self):
         from local_llm.prompts import source_units
@@ -390,6 +437,7 @@ class EvidenceIntegrationTests(unittest.TestCase):
                                      "NONEXISTENT_TEST_WEIGHTS", False)
                 self.assertEqual({c["source_id"]: c["verdict"] for c in initial}, expected_initial)
                 units = source_units({"html": original, "context": body["source_context"]})
+                # units는 예전 전체 HTML 분할의 whole-root h0001이다.
                 chosen = next(u for u in units if u["id"] == "h0001")
                 self.assertEqual((chosen["source_field"], chosen["selectable"], chosen["text"],
                                   chosen["start_char"], chosen["end_char"]),
@@ -399,11 +447,22 @@ class EvidenceIntegrationTests(unittest.TestCase):
                     self.assertLess(attr_start + len(attr_text), original.index(">"))
                     self.assertLess(chosen["start_char"], attr_start)
                     self.assertGreater(chosen["end_char"], attr_start + len(attr_text))
+                body_start = original.index(body_text, original.index(">"))
+                body_span = [[body_start, body_start + len(body_text)]]
+                common = source_units({"html": original, "context": body["source_context"],
+                                       "target_spans": body_span})
+                # 현재 공통 단위는 본문 범위뿐이다. whole-root 선택은 더 이상 표현할 수 없다.
+                self.assertEqual([(u["id"], u["text"], u["selectable"]) for u in common],
+                                 [("h0001", body_text, True)])
+                # 속성 소유 텍스트가 있는 root만 적대적 whole-root 선택을 가짜 값 h0002로 재현해 거절을 유지한다.
+                # 속성이 없는 root는 정상 본문 h0001 선택이다.
+                model_id = "h0002" if text_attr else "h0001"
+                self.assertEqual(model_id in [u["id"] for u in common], not text_attr)
 
                 trace_start = len(self.trace)
                 harness = OfflineRun(page_data=page_data,
                                      predict=lambda ts: [prediction(.55) for _ in ts],
-                                     verify=lambda item: self.protocol("verify", item, "ad", "h0001"))
+                                     verify=lambda item: self.protocol("verify", item, "ad", model_id))
                 report = self.run_case(harness, detect_posted=True)
                 self.trace.append({"shape": shape, "page_data": page_data,
                                    "initial_candidates": initial, "source_units": units})
@@ -412,9 +471,19 @@ class EvidenceIntegrationTests(unittest.TestCase):
                 self.assertEqual(len(harness.verify_inputs), 1)
                 item = harness.verify_inputs[0]
                 self.assertEqual(item, {"candidate_id": body["source_id"] + ":0",
-                                        "html": original, "context": body["source_context"]})
-                self.assert_protocol(self.trace[trace_start], item, "ad", "h0001", "html")
-                self.assertEqual(self.trace[trace_start]["reply"]["results"][0]["evidence"], original)
+                                        "html": original, "context": body["source_context"],
+                                        "target_spans": body_span})
+                reply = self.trace[trace_start]["reply"]
+                if text_attr:
+                    binding = reply["results"][0]
+                    self.assertNotEqual(reply["status"], "ok")
+                    self.assertEqual((binding["status"], binding["verdict"], binding["needs_review"],
+                                      binding["evidence"]), ("error", "uncertain", True, None))
+                    self.assertEqual(binding["call"]["model_output"], {"verdict": "ad", "evidence_id": model_id})
+                    self.assertIn("unbound_sentence_id", binding["call"]["error"])
+                else:
+                    self.assert_protocol(self.trace[trace_start], item, "ad", model_id, "html")
+                    self.assertEqual(reply["results"][0]["evidence"], body_text)
                 candidates = {c["source_id"]: c for c in report["candidates"]}
                 self.assertEqual(set(candidates), set(expected_initial))
                 candidate = candidates[body["source_id"]]
@@ -435,6 +504,14 @@ class EvidenceIntegrationTests(unittest.TestCase):
                                       candidate["decided_by"]), ("ad", "completed", "gemma"))
                     self.assertIs(report["needs_review"], False)
                     self.assertEqual(report["unresolved_count"], 0)
+                if text_attr:
+                    # 정상 본문 전용 기대값: h0001은 본문 범위만 가리키며 속성 텍스트를 포함하지 않는다.
+                    self.protocol("verify", item, "ad", "h0001")
+                    self.assert_protocol(self.trace[-1], item, "ad", "h0001", "html")
+                    accepted = self.trace[-1]["reply"]["results"][0]
+                    self.assertEqual((accepted["evidence"], accepted["start_char"], accepted["end_char"]),
+                                     (body_text, body_span[0][0], body_span[0][1]))
+                    self.assertNotIn(attr_text, accepted["evidence"])
 
     def test_prevention_context_with_target_html_clean_id_remains_allowed(self):
         # context는 역할 판단에 사용하고 최종 근거는 대상 HTML에 결합한다.
