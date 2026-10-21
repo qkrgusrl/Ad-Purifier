@@ -1,4 +1,4 @@
-"""Laya가 정상으로 확신해 놓치던 유형(찌라시 SEO·문서 위조·게임 핵·도박 Q&A·업소 은어)의 규칙 보강. 모델은 실행하지 않는다."""
+"""Laya가 정상으로 확신해 놓치던 유형(찌라시 SEO·문서 위조·게임 핵·도박 Q&A·업소 은어)의 규칙 보강과 페이지 맥락 감점. 모델은 실행하지 않는다."""
 import unittest
 
 from detector import adscore
@@ -52,3 +52,22 @@ class RuleKeywordTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PageContextTests(unittest.TestCase):
+    """경고·보도 글 제목은 페이지 맥락 감점, 감점 단어를 섞은 스팸 글 제목은 감점하지 않는다 (counselpsy·hanyanglaw 10-22)."""
+    def ctx(self, title):
+        return adscore.page_context(normalize(title))
+
+    def test_spam_titles_are_not_warning_context(self):
+        for title in ("산타먹튀신고 【HONGBO8288】 이태원역보도방",
+                      "신용카드 현금화 처벌 010_5772-5293 휴대폰 소액 결제 현금화 루트 디시",
+                      "광주 거제op → 오피나비.com ← 장점 룸살롱 처음"):
+            with self.subTest(title=title):
+                self.assertEqual(self.ctx(title), [])
+
+    def test_warning_and_news_titles_keep_context(self):
+        for title in ("카지노 바카라 불법 사이트 적발", "불법 도박 예방교육 안내", "가짜 비아그라 적발 주의보",
+                      "먹튀 피해 신고 접수", "음식점 먹튀 신고 방법 안내"):
+            with self.subTest(title=title):
+                self.assertTrue(self.ctx(title))
