@@ -224,7 +224,7 @@ input[type=number] { width: 84px; }
 .ring .pct { margin-top: 4px; font-size: 17px; font-weight: 800; color: color-mix(in srgb, var(--c) 80%, #0f2f2a); }
 .ring .cap { margin-top: 4px; max-width: 150px; font-size: 12px; color: var(--muted); }
 /* 미확인 범위·AI 보류 참고: 링 안에 넣으면 선과 겹쳐 원 아래에 따로 둔다 */
-.gauge .gauge-ref { margin: 12px 0 0; max-width: 320px; font-size: 12px; line-height: 1.5; color: var(--muted); }
+.gauge .gauge-ref { margin: 28px 0 0; max-width: 320px; font-size: 12px; line-height: 1.5; color: var(--muted); }
 .gauge .gauge-why { list-style: none; margin: 16px 0 0; padding: 0; width: 100%; max-width: 320px; display: grid; gap: 7px; text-align: left; }
 .gauge .gauge-why:empty { display: none; }
 .gauge .gauge-why li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 8px; font-size: 12px; color: var(--muted); }
@@ -663,6 +663,17 @@ function levelOf(pct) {
 // 진입 페이지에 접속하지 못한 점검: 0건이어도 '청정'이 아니라 판단 불가
 const LEVEL_NA = { key: "na", word: "확인 불가", name: "확인 불가", color: "var(--dim)", weak: "#eef2f1" };
 const isPending = c => c.verdict === "ad" && (c.review === "new" || c.review === "confirmed");
+/* 예상 소요 '19~29분'(점검 시작부터 끝까지): 앞은 지금 속도로 본 탐색 종료까지, 뒤는 시간 한도로 보장되는 최대 소요.
+   판정 중엔 '~29분'만 (Gemma 판정 시간은 미리 알 수 없어 앞쪽 값을 지어내지 않는다) */
+function finishText(s, crawl) {
+  if (!s.time_budget) return "";  // 시간 한도를 알려 주지 않는 이전 서버
+  const most = Math.ceil(s.time_budget / 60);
+  const rate = s.pages_done / Math.max(1, s.elapsed);  // 초당 페이지
+  if (!crawl || s.pages_done < 10 || !rate) return ` · 예상 소요 ~${most}분`;
+  const left = Math.min((s.pages_found - s.pages_done) / rate, Math.max(0, s.crawl_limit - s.elapsed));
+  const least = Math.min(most, Math.ceil((s.elapsed + left) / 60));
+  return least >= most ? ` · 예상 소요 ~${most}분` : ` · 예상 소요 ${least}~${most}분`;
+}
 const mmss = sec => { const t = Math.round(sec); return t < 60 ? `${t}초` : `${Math.floor(t / 60)}분 ${String(t % 60).padStart(2, "0")}초`; };
 const pathOf = url => { try { const u = new URL(url); return (u.pathname + u.search) || "/"; } catch { return url; } };
 
@@ -848,7 +859,7 @@ function render() {
   $("dashboard").hidden = false;
   $("resultPanel").hidden = false;
   $("resultTitle").textContent = `${r.meta.entry_url}, ${r.meta.started_at.replace("T", " ").slice(0, 16)} 점검`
-    + (r.model ? `, 판정 모델 ${r.model}` : "");
+    + `, 총 소요 ${mmss(r.meta.elapsed_sec)}` + (r.model ? `, 판정 모델 ${r.model}` : "");
   const ads = r.candidates.filter(c => c.verdict === "ad");
   const pendingList = ads.filter(isPending);
   const pending = pendingList.length;
@@ -883,11 +894,11 @@ function render() {
   $("tiles").innerHTML = na ? `
     <div class="card tile t-found"><div><small>탐지된 불법광고</small><b>-</b></div><div class="ico">${icon("search")}</div></div>
     <div class="card tile t-pending zero" style="--c:var(--dim)"><div><small>처리 필요</small><b style="color:var(--dim)">-</b></div><div class="ico" style="background:#eef2f1;color:var(--dim)">${icon("alert")}</div></div>
-    <div class="card tile t-pages"><div><small>점검 페이지 (${mmss(r.meta.elapsed_sec)})</small><b>0<u>개</u></b></div><div class="ico">${icon("pages")}</div></div>
+    <div class="card tile t-pages"><div><small>점검 페이지 · 총 소요 ${mmss(r.meta.elapsed_sec)}</small><b>0<u>개</u></b></div><div class="ico">${icon("pages")}</div></div>
     <div class="card tile t-grade"><div><small>청정 등급</small><b style="color:var(--dim)">확인 불가</b></div><div class="ico" style="background:#eef2f1;color:var(--dim)">${icon("shield")}</div></div>` : `
     <div class="card tile t-found"><div><small>탐지된 불법광고</small><b>${ads.length}<u>건</u></b></div><div class="ico">${icon("search")}</div></div>
     <div class="card tile t-pending ${pending ? "" : "zero"}"><div><small>처리 필요</small><b>${pending}<u>건</u></b></div><div class="ico">${icon(pending ? "alert" : "shield")}</div></div>
-    <div class="card tile t-pages"><div><small>점검 페이지 (${mmss(r.meta.elapsed_sec)})</small><b>${r.pages}<u>개</u></b></div><div class="ico">${icon("pages")}</div></div>
+    <div class="card tile t-pages"><div><small>점검 페이지 · 총 소요 ${mmss(r.meta.elapsed_sec)}</small><b>${r.pages}<u>개</u></b></div><div class="ico">${icon("pages")}</div></div>
     <div class="card tile t-grade" style="--c:${lv.color}"><div><small>청정 등급</small><b style="color:${lv.color}">${lv.name}</b></div><div class="ico" style="background:${lv.weak};color:${lv.color}">${icon("shield")}</div></div>`;
 
   // 오염원 분석
@@ -1307,7 +1318,7 @@ async function pollStatus() {
     // 페이지 수 제한이 없으면 발견 페이지가 계속 늘어나므로, 시간 한도 대비 경과도 함께 본다
     const ratio = Math.max(s.pages_done / Math.max(1, s.pages_found), s.crawl_limit ? s.elapsed / s.crawl_limit : 0);
     $("bar").firstElementChild.style.width = crawl ? `${Math.min(100, ratio * 100)}%` : "";
-    const limit = !crawl ? "" : s.crawl_limit ? ` / 최대 ${Math.round(s.crawl_limit / 60)}분` : ", 시간 제한 없음(실험)";  // 크롤링 시간 한도
+    const limit = finishText(s, crawl);
     // 페이지 수 제한이 없으므로 '전체 중 몇 쪽'이 아니라 '본 페이지 · 아직 볼 주소'로 보여 준다
     const waiting = Math.max(0, s.pages_found - s.pages_done);
     const validation = s.validation_mode === "complete" ? ", 완료 우선 · AI 시간 제한 없음" : "";
