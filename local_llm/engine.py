@@ -21,7 +21,7 @@ from pathlib import Path
 
 import psutil
 from app_paths import data_root, gemma_model, llama_server
-from .prompts import (DEFAULT_VERSION, PROMPTS, SENTENCE_ID_VERSIONS,
+from .prompts import (DEFAULT_VERSION, PROMPTS, SENTENCE_ID_VERSIONS, DECISION_POLICY, FINAL_DECISION_PROMPT,
                       input_only, prepare_input, source_units, schema_for, verification_token_limit)
 
 
@@ -250,9 +250,9 @@ class LocalServer:
                 'backend': 'CPU', 'gpu_layers': 0, 'startup_seconds': self.startup_seconds,
                 'peak_server_rss_bytes': self.peak_rss, **self.paths}
 
-    def prompt_size(self, task, data, version):
+    def prompt_size(self, task, data, version, *, system=None):
         clean_input = prepare_input(task, data, version)
-        messages = [{"role": "system", "content": PROMPTS[version][task]},
+        messages = [{"role": "system", "content": PROMPTS[version][task] if system is None else system},
                     {"role": "user", "content": json.dumps(clean_input, ensure_ascii=False)}]
         template = self.request("/apply-template", {"messages": messages, "chat_template_kwargs": {"enable_thinking": False}, "reasoning_effort": "none"})
         return len(self.request("/tokenize", {"content": template["prompt"], "add_special": False, "parse_special": True})["tokens"])
@@ -280,6 +280,8 @@ class LocalServer:
         except OSError:
             identity = [model, None, None]
         payload = {"cache_schema": 1, "version": version, "system_sha256": hashlib.sha256(system.encode()).hexdigest(),
+                   "decision_policy": DECISION_POLICY,
+                   "final_prompt_sha256": hashlib.sha256(FINAL_DECISION_PROMPT.encode()).hexdigest(),
                    "model": identity, "ctx_size": getattr(self, "ctx_size", None), "request": request,
                    "raw_source_sha256": source_digest(clean_input)}
         return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
@@ -330,16 +332,18 @@ class LocalServer:
         use_cache = version in SENTENCE_ID_VERSIONS if cache_setting is None else cache_setting
         result = {"task": task, "version": version, "input": clean_input,
                   "prompt_sha256": hashlib.sha256(system.encode()).hexdigest(), "max_tokens": limit,
-                  "temperature": 0, "seed": 42, "thinking": False, "cache_prompt": use_cache, "request_count":0}
+                  "temperature": 0, "seed": 42, "thinking": False, "cache_prompt": use_cache, "request_count":0,
+                  "decision_policy": DECISION_POLICY, "request_attempts": []}
         request_id = uuid.uuid4().hex
         overflow_preflight = False
         event_extra = {}
+        dispatched = False
         def emit(name):
             self._emit_event({"event": name, "request_id": request_id,
                               "candidate_id": clean_input.get("candidate_id"), "task": task,
                               "status": result.get("status", "started"),
                               "completion_received": bool(result.get("completion_received", False)),
-                              "request_count": result["request_count"],
+                              "request_count": 1 if name in ("request_start", "request_end") else result["request_count"],
                               "preflight_failed": int(bool(result.get("preflight_failed") or overflow_preflight or
                                   result.get("decision_rule") == "empty_source_needs_review")), **event_extra})
         try:
@@ -347,13 +351,8 @@ class LocalServer:
             if version in SENTENCE_ID_VERSIONS:
                 result['model_input']=model_input
                 if not any(u['selectable'] for u in model_input['source_units']):
-                    result.update({'status':'ok','parsed':{'verdict':'uncertain','evidence':None,'evidence_id':None,
-                                                         'source_field':None,'start_char':None,'end_char':None,
-                                                         'source_sha256':source_digest(clean_input),'evidence_scope':'no_source'},
-                                   'validation':{'errors':[],'accepted':[],'rejected_count':0},
-                                   'decision_rule':'empty_source_needs_review','request_count':0,'inference_seconds':0,
-                                   'wall_seconds':time.perf_counter()-started})
-                    return result
+                    result['preflight_failed'] = 1
+                    raise ValueError('empty_source: 판정할 원문이 없음')
             messages = [{"role": "system", "content": system}, {"role": "user", "content": json.dumps(model_input, ensure_ascii=False)}]
             request = {"messages": messages, "temperature": 0, "seed": 42, "max_tokens": limit,
                        "cache_prompt": use_cache, "chat_template_kwargs": {"enable_thinking": False},
@@ -372,6 +371,8 @@ class LocalServer:
                         choice = {"verdict": entry.get("verdict"), "evidence_id": entry.get("evidence_id")}
                         if set(entry) != {"verdict", "evidence_id"}:
                             raise ValueError("cache_entry_schema")
+                        if choice["verdict"] not in ("ad", "clean"):
+                            raise ValueError("binary_final_required")
                         parsed = resolve_sentence_choice(clean_input, choice, version)
                         checked = {key: parsed[key] for key in ("verdict", "evidence")}
                         validation = validate_output(task, clean_input, checked)
@@ -398,25 +399,59 @@ class LocalServer:
             if prompt_tokens + limit + 64 > self.ctx_size:
                 overflow_preflight = True
                 raise ValueError(f"input_overflow: 원문을 자르지 않고 입력을 분할해야 함 ({prompt_tokens}+{limit}+64 > {self.ctx_size}토큰)")
-            inference_start = time.perf_counter()
-            def on_dispatch():
-                result['request_count'] = 1
-                emit('request_start')
-            response = self.request("/v1/chat/completions", request, on_dispatch=on_dispatch)
-            result['completion_received'] = True
-            result["inference_seconds"] = time.perf_counter() - inference_start
-            result["raw_response"] = response
-            choice = response["choices"][0]
-            if choice["finish_reason"] != "stop":
-                raise ValueError("generation_incomplete:" + str(choice["finish_reason"]))
-            parsed = json.loads(choice["message"]["content"])
-            if task=='verify' and version in SENTENCE_ID_VERSIONS:
-                result['model_output']=parsed
-                parsed=resolve_sentence_choice(clean_input,parsed,version)
-            result["parsed"] = parsed
-            checked = {key: parsed[key] for key in ("verdict", "evidence")} if task == "verify" and version in SENTENCE_ID_VERSIONS else parsed
-            result["validation"] = validate_output(task, clean_input, checked)
-            result["status"] = "ok" if not result["validation"]["errors"] else "invalid_output"
+            result["inference_seconds"] = 0
+            for final in (False, True):
+                if final:
+                    result["initial_model_output"] = result["model_output"]
+                    result["initial_raw_response"] = result["raw_response"]
+                    result["final_prompt_sha256"] = hashlib.sha256(FINAL_DECISION_PROMPT.encode()).hexdigest()
+                    request = {**request, "messages": [{"role": "system", "content": FINAL_DECISION_PROMPT}, messages[1]],
+                               "response_format": {"type": "json_object", "schema": schema_for(task, model_input, version)}}
+                    request["response_format"]["schema"]["properties"]["verdict"]["enum"] = ["ad", "clean"]
+                    try:
+                        final_tokens = self.prompt_size(task, clean_input, version, system=FINAL_DECISION_PROMPT)
+                    except Exception:
+                        result['preflight_failed'] = 1
+                        raise
+                    result["final_preflight_prompt_tokens"] = final_tokens
+                    if final_tokens + limit + 64 > self.ctx_size:
+                        overflow_preflight = True
+                        raise ValueError("input_overflow: 최종 이진 판정 입력 예산 초과")
+                request_id = uuid.uuid4().hex
+                event_extra["decision_retry"] = final
+                result["completion_received"] = False
+                result["status"] = "started"
+                dispatched = False
+                inference_start = time.perf_counter()
+                def on_dispatch():
+                    nonlocal dispatched
+                    dispatched = True
+                    result['request_count'] += 1
+                    emit('request_start')
+                try:
+                    response = self.request("/v1/chat/completions", request, on_dispatch=on_dispatch)
+                    result['completion_received'] = True
+                    result["raw_response"] = response
+                    choice = response["choices"][0]
+                    if choice["finish_reason"] != "stop":
+                        raise ValueError("generation_incomplete:" + str(choice["finish_reason"]))
+                    result['model_output'] = json.loads(choice["message"]["content"])
+                    if final and result['model_output'].get('verdict') not in ('ad', 'clean'):
+                        raise ValueError('binary_final_required')
+                    parsed = resolve_sentence_choice(clean_input, result['model_output'], version)
+                    result["parsed"] = parsed
+                    result["validation"] = validate_output(task, clean_input, {key: parsed[key] for key in ("verdict", "evidence")})
+                    result["status"] = "ok" if not result["validation"]["errors"] else "invalid_output"
+                except BaseException:
+                    result["status"] = "error"
+                    raise
+                finally:
+                    result["inference_seconds"] += time.perf_counter() - inference_start
+                    if dispatched:
+                        result["request_attempts"].append({"completion_received": result["completion_received"], "status": result["status"]})
+                        emit('request_end')
+                if result['status'] != 'ok' or parsed['verdict'] != 'uncertain':
+                    break
             if cache_key and result["status"] == "ok":
                 self._semantic_cache_put(cache_key, result.get("model_output"))
         except Exception as exc:
@@ -425,8 +460,6 @@ class LocalServer:
         finally:
             if "status" not in result:
                 result["status"] = "cancelled"
-            if result["request_count"]:
-                emit("request_end")
             emit("item_end")
         result["wall_seconds"] = time.perf_counter() - started
         return result

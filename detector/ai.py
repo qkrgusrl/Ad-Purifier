@@ -156,11 +156,13 @@ def matching_recovery_text(binding, row):
 def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_confidence_threshold=.8, cancel_error=None, detect_posted=True, telemetry=None):
     from .ai_telemetry import AIProgress, context_conflict
     from .main import ScanCancelled, candidates_from, judge, source_fields
+    from local_llm.prompts import DECISION_POLICY
     ScanCancelled = cancel_error or ScanCancelled
     if not .5 <= laya_confidence_threshold <= 1:
         raise ValueError("laya_confidence_threshold는 0.5~1 범위여야 합니다")
     stats = {"mode": "policy" if use_ml else "diagnostic", "laya_confidence_threshold": laya_confidence_threshold,
              "policy": "laya_low_confidence_or_context_conflict",
+             "gemma_decision_policy": DECISION_POLICY,
              "laya_inputs": 0, "laya_preflight_rejected": 0,
              "length_skipped": [], "length_skipped_count": 0, "length_skipped_laya": 0, "length_skipped_gemma": 0,
              "gemma_verify": 0, "gemma_extract": 0, "residual_screened_clean": 0,
@@ -243,9 +245,6 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
             "source_id": row.get("source_id"), "stage": stage, "url": row.get("url"), "selector": row.get("selector"),
             "chars": len(row.get("evidence_text") or row.get("text") or ""),
             "input_tokens": tokens, "token_limit": limit, "reason": str(reason)})
-
-    def about(c):
-        return any(n in ("page-context", "body-context") for n, _ in c.get("context", []))
 
     def input_for(row):
         item = {"html": row.get("source_html", ""), "context": row.get("source_context", "")}
@@ -455,17 +454,13 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
         c["laya_confidence"] = max(p, 1 - p)
         c.pop('review_code', None)
         if max(p, 1 - p) >= laya_confidence_threshold:
-            if about(c):
-                if context_conflict(c, p, laya_confidence_threshold):
-                    if c.get('_inspection_error'):
-                        review(c, '공통 검사 범위 결합 불가: ' + c['_inspection_error'], code='source_binding_unavailable')
-                        return
-                    pending.append(c)
-                    meter.snapshot['gemma']['eligible_verify'] += 1
-                    meter.progress('gemma')
+            if context_conflict(c, p, laya_confidence_threshold):
+                if c.get('_inspection_error'):
+                    review(c, '공통 검사 범위 결합 불가: ' + c['_inspection_error'], code='source_binding_unavailable')
                     return
-                review(c, "유효 Laya 판정은 있으나 문맥 검토 신호와 함께 재검토 필요; 고신뢰 Gemma 호출 금지",
-                       code='laya_context_review')
+                pending.append(c)
+                meter.snapshot['gemma']['eligible_verify'] += 1
+                meter.progress('gemma')
                 return
             c.update(verdict="ad" if p >= .5 else "clean", decided_by="laya",
                      processing_status="completed", reason="Laya 정상 출력의 confidence가 운영 임계값 이상")
@@ -563,7 +558,12 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                 counts["attempted"] += attempted
                 counts["reused"] += int(bool(response.get("cache_hit")))
                 counts["preflight_failed"] += response.get("preflight_failed", 0)
-                if attempted:
+                if response.get('request_attempts'):
+                    for attempt in response['request_attempts']:
+                        kind = ('succeeded' if attempt['status'] == 'ok' else
+                                'output_failed' if attempt['completion_received'] else 'transport_failed')
+                        counts[kind] += 1
+                elif attempted:
                     kind = ("succeeded" if response.get("status") == "ok" else
                             "output_failed" if response.get("completion_received") or "raw_response" in response else
                             "transport_failed")

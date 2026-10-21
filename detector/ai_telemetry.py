@@ -83,7 +83,9 @@ class AIProgress:
         if not isinstance(request_id, str) or not request_id:
             invalid = True
         if name == "request_start":
-            invalid = invalid or request is not None or event.get("request_count") != 1
+            retry = (request is not None and request[1] == "ended" and request[0] != request_id
+                     and event.get("decision_retry") is True and not (meta or {}).get("decision_retry_used"))
+            invalid = invalid or (request is not None and not retry) or event.get("request_count") != 1
         elif name == "request_end":
             invalid = invalid or request != (request_id, "started") or event.get("request_count") != 1
         elif name == "item_end":
@@ -99,6 +101,8 @@ class AIProgress:
             return
         gemma = self.snapshot["gemma"]
         if name == "request_start":
+            if request is not None:
+                meta["decision_retry_used"] = True
             self.requests[owner] = (request_id, "started")
             gemma["requests_started"] += 1
             gemma["in_flight"] += 1
@@ -142,7 +146,7 @@ class AuditPublisher:
         allowed = ("event", "request_id", "candidate_id", "task", "status", "completion_received",
                    "request_count", "preflight_failed", "p", "confidence", "threshold", "source_id",
                    "owner_id", "route_path", "source_sha256", "input_sha256", "cache_hit", "cache_key", "reuse_kind",
-                   "eligibility", "context_weight")
+                   "eligibility", "context_weight", "decision_retry")
         record = {key: copy.deepcopy(event[key]) for key in allowed if key in event}
         record.update(run_id=self.run_id, time=datetime.now(timezone.utc).isoformat())
         if event.get("event") == "progress":

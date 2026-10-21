@@ -158,6 +158,9 @@ class InspectionUnitTests(unittest.TestCase):
     def test_high_confidence_clean_is_not_a_context_conflict_exception(self):
         r, stats, traces = self.run_flow('일반 약관', {'일반 약관': .01}, context=[['page-context', -4]])
         self.assertEqual(traces['gemma'], [])
+        self.assertEqual(r['verdict'], 'clean')
+        self.assertEqual(r['processing_status'], 'completed')
+        self.assertEqual(stats['review_types'], {})
 
     def test_audit_rejects_high_confidence_without_real_context_conflict(self):
         from detector.ai_telemetry import AIProgress

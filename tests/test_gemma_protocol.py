@@ -62,6 +62,7 @@ class GemmaProtocolTests(unittest.TestCase):
             state["servers"].append(server)
             server.ctx_size = kwargs.get("ctx_size", 4096)
             server.cache_prompt = None
+            server.on_event = kwargs.get('on_event')
 
         def enter(server):
             state["entered"] += 1
@@ -106,6 +107,55 @@ class GemmaProtocolTests(unittest.TestCase):
         for task, expected in V15_SHA.items():
             with self.subTest(task=task):
                 self.assertEqual(hashlib.sha256(prompts.PROMPTS["v15"][task].encode()).hexdigest(), expected)
+
+    def test_uncertain_gets_one_binary_decision_and_two_counted_requests(self):
+        answers = iter(({'verdict': 'uncertain', 'evidence_id': 'h0002'},
+                        {'verdict': 'ad', 'evidence_id': 'h0002'}))
+        Client, state, _ = self.fake_transport(lambda payload: next(answers))
+        from detector.ai_telemetry import AIProgress
+        meter = AIProgress()
+        meter.register('c1', {'source_id': 'source'}, 'verify', .55, .8, 'raw', 'input')
+        meter.snapshot['gemma']['eligible_verify'] = 1
+        with Client(on_event=meter.event) as client:
+            result = client.verify(self.data())
+        row = result['results'][0]
+        self.assertEqual((row['status'], row['verdict'], row['needs_review']), ('ok', 'ad', False))
+        self.assertEqual(row['call']['initial_model_output']['verdict'], 'uncertain')
+        self.assertEqual(row['call']['request_count'], 2)
+        requests = [payload for path, payload in state['requests'] if path == '/v1/chat/completions']
+        self.assertEqual(requests[-1]['response_format']['schema']['properties']['verdict']['enum'], ['ad', 'clean'])
+        self.assertEqual(meter.snapshot['gemma']['requests_started'], 2)
+        self.assertEqual(meter.snapshot['gemma']['responses_completed'], 2)
+        self.assertEqual(meter.snapshot['gemma']['settled'], 1)
+        self.assertFalse(meter.snapshot['audit_degraded'])
+
+    def test_existing_clean_is_not_sent_to_binary_decision(self):
+        Client, state, _ = self.fake_transport({'verdict': 'clean', 'evidence_id': 'h0002'})
+        with Client() as client:
+            result = client.verify(self.data())
+        call = result['results'][0]['call']
+        self.assertEqual(call['request_count'], 1)
+        self.assertNotIn('initial_model_output', call)
+
+    def test_final_uncertain_is_output_error_not_a_successful_decision(self):
+        Client, state, _ = self.fake_transport({'verdict': 'uncertain', 'evidence_id': 'h0002'})
+        with Client() as client:
+            result = client.verify(self.data())
+        call = result['results'][0]['call']
+        self.assertEqual(call['request_count'], 2)
+        self.assertEqual(call['status'], 'error')
+        self.assertIn('binary_final_required', call['error'])
+        self.assertEqual([a['status'] for a in call['request_attempts']], ['ok', 'error'])
+
+    def test_binary_retry_transport_error_is_preserved_without_third_request(self):
+        answers = iter(({'verdict': 'uncertain', 'evidence_id': 'h0002'}, RuntimeError('offline')))
+        Client, state, _ = self.fake_transport(lambda payload: next(answers))
+        with Client() as client:
+            result = client.verify(self.data())
+        call = result['results'][0]['call']
+        self.assertEqual(call['status'], 'error')
+        self.assertEqual(call['request_count'], 2)
+        self.assertFalse(call['request_attempts'][-1]['completion_received'])
 
     def test_verify_restores_second_duplicate_and_excludes_labels(self):
         def choose_second(payload):
