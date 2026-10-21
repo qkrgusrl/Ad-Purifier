@@ -424,7 +424,7 @@ async def crawl(entry, concurrency, timeout_ms, progress=None, user_agent=DEFAUL
                     results.append((final_url, frames))
                     visit_log.append([round(time.perf_counter() - t_start, 1), final_url, url])
                     if status and status >= 400:  # 오류 응답이어도 본문은 검사하되 기록은 남김
-                        http_errors.append({"url": url, "status": status})
+                        http_errors.append({"url": url, "status": status, "final_url": final_url})
                     frame_urls.update(norm_url(d["frame_url"]) for pre, d in frames if pre)
                     frontier.add_links(crawlable(lt for _, data in frames for lt in data["links"]), depth + 1)
                     recent.append(False)
@@ -744,8 +744,16 @@ def run(entry_url, out, concurrency=4, timeout=15000, model=DEFAULT_MODEL, use_m
     phase("judge")
     from .ai import analyze
     cands = judge(candidates_from(pages, detect_posted), str(model), False)
+    # 404 등 오류 응답 페이지는 대부분 공통 메뉴만 남은 빈 페이지 — 규칙으로만 판정하고 Laya·Gemma로 넘기지 않는다
+    # (hanyanglaw: 404 263페이지의 '관련 사이트' 메뉴 등이 잔여 선별로 AI에 들어감). 규칙 확정 광고는 그대로 보고한다
+    error_pages = {norm_url(u) for e in issues["http_errors"] for u in (e["url"], e.get("final_url") or e["url"])}
+    for c in cands:
+        if c["verdict"] == "borderline" and norm_url(c["url"]) in error_pages:
+            c["verdict"] = "clean"
+            c["hits"].append("-error-page")
+    ai_pages = [(u, f) for u, f in pages if norm_url(u) not in error_pages]
     try:
-        ai = analyze(cands, pages, str(model), use_ml, judge_deadline, cancel,
+        ai = analyze(cands, ai_pages, str(model), use_ml, judge_deadline, cancel,
                      laya_confidence_threshold=laya_confidence_threshold, cancel_error=ScanCancelled,
                      detect_posted=detect_posted, telemetry=publisher, laya_deadline=laya_deadline,
                      residual_needs_rule_clue=residual_needs_rule_clue)
