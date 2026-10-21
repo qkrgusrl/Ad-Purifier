@@ -819,9 +819,10 @@ def run(entry_url, out, max_pages=0, concurrency=4, timeout=15000, model=DEFAULT
     (out / "result.json").write_text(json.dumps({"meta": meta, "findings": findings}, ensure_ascii=False, indent=2),
                                      encoding="utf-8")
     (out / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-    # result_extra.json: 추가 유형이 있을 때만 생성 (적격평가 제출물과 섞이지 않도록 별도 파일)
+    # result_extra.json: 추가 탐지(detect_posted)를 켜면 0건이어도 빈 findings로 생성 (요강 붙임4 0건 예시).
+    # 끄면 만들지 않고 지난 실행 파일도 지운다. 적격평가 제출물(result.json)과는 별도 파일.
     extra_path = out / "result_extra.json"
-    if extra_findings:
+    if detect_posted:
         extra_path.write_text(json.dumps({"meta": meta, "findings": extra_findings}, ensure_ascii=False, indent=2),
                               encoding="utf-8")
     elif extra_path.exists():
