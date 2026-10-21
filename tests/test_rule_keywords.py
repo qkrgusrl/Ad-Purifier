@@ -23,7 +23,14 @@ class RuleKeywordTests(unittest.TestCase):
                      # hanyanglaw 게시판 도배: 사전을 피한 도박 표기 (단서 0이면 잔여 선별에서 빠지므로 규칙이 잡아야 함)
                      "1, 첫입금플러스",
                      "파워삿횰덤 (비타민게임) 웹바둑이",
-                     "펀치바둑이 타워game 츄쳔인 ; 복단지 010,7364,8213"):
+                     "펀치바둑이 타워game 츄쳔인 ; 복단지 010,7364,8213",
+                     # counselpsy·hanyanglaw 게시판 도배 (10-22): 업소 정보 사이트·테더 환전·현금화·가품·홀덤 변형
+                     "보령 op 나라 ◆ 오피나비.com ◆ 평점",
+                     "마닐라테더환전 | 상품권코인교환",
+                     "컨텐츠이용료현금화 소액결제티켓",
+                     "슈가통신 선불유심내구제 급전문의",
+                     "@SV공장워치 @레플리카지존급 @이미테이션신발",
+                     "#현찰횰덤 badugi횰덤 솔로몬흘덤제작"):
             with self.subTest(text=text):
                 self.assertGreaterEqual(score(text), adscore.HIGH)
 
@@ -33,7 +40,12 @@ class RuleKeywordTests(unittest.TestCase):
                      "구글찌라시 피해 신고 및 예방 안내",
                      "롤링페이퍼 만들기 체험",
                      "카지노 실습실",  # '카지'(잘린 표기) 패턴이 '카지노'에 겹쳐 붙지 않아야 함
-                     "바둑이와 철수"):
+                     "바둑이와 철수",
+                     "보름달토끼 만들기",
+                     "제주대학교 주대 앞 버스",
+                     "모빌리언스 휴대폰 결제 안내",
+                     "이미테이션 게임 상영",
+                     "강남 노래방"):
             with self.subTest(text=text):
                 self.assertLess(score(text), adscore.HIGH)
 
