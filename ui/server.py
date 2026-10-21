@@ -5,8 +5,7 @@
 점검 이력은 history/<실행시각>/ 에 report.json, result.json, review.json(검토 상태·메모)으로 쌓는다.
 이력 삭제는 history/ 아래 실행 ID 형식 폴더만 지운다 (구동 폴더의 제출용 result.json은 그대로).
 
-사용: python -m ui.server [--port 8780] [--no-browser] [--no-time-limit]
-      --no-time-limit: 실험용. 시간 한도 없이 대기열이 빌 때까지 사이트 전체를 탐색한다(제출 시간 30분을 넘길 수 있음).
+사용: python -m ui.server [--port 8780] [--no-browser]
 """
 import argparse
 import csv
@@ -32,8 +31,7 @@ from app_paths import bootstrap, resource_root, gemma_model, llama_server
 from detector.main import DEFAULT_MODEL, DOWNLOAD_ERROR, JUDGE_RESERVE, KST, LLM_RESERVE, TIME_BUDGET, ScanCancelled, app_dir, run
 
 CRAWL_LIMIT = TIME_BUDGET - LLM_RESERVE - JUDGE_RESERVE  # 화면 진행률에 쓰는 크롤링 최대 시간(초)
-NO_LIMIT_BUDGET = 7 * 24 * 3600  # --no-time-limit: 사실상 무제한(대기열이 비면 끝난다)
-options = {"time_limit": True, "complete_validation": False}
+options = {"complete_validation": False}
 
 STATIC = resource_root() / "ui" / "static"
 HISTORY = app_dir() / "history"
@@ -123,9 +121,8 @@ def scan_job(entry_url, use_ml):
 
     run_id = datetime.now(KST).strftime("%Y%m%d-%H%M%S")
     try:
-        budget = {} if options["time_limit"] else {"time_budget": NO_LIMIT_BUDGET}
         report = run(entry_url, app_dir(), use_ml=use_ml, progress=progress, phase=phase,
-            cancel=cancel_event, complete_validation=options["complete_validation"], telemetry=observer, **budget)
+            cancel=cancel_event, complete_validation=options["complete_validation"], telemetry=observer)
         dest = HISTORY / run_id
         dest.mkdir(parents=True, exist_ok=True)
         for name in ("result.json", "report.json"):
@@ -370,7 +367,8 @@ class Handler(BaseHTTPRequestHandler):
             s["elapsed"] = round(time.time() - s["started"], 1) if s["started"] else 0
             s["model_readiness"] = model_readiness()
             s["model_available"] = s["model_readiness"]["files_present"]
-            s["crawl_limit"] = CRAWL_LIMIT if options["time_limit"] else 0  # 0 = 시간 제한 없음(실험)
+            s["crawl_limit"] = CRAWL_LIMIT  # 화면 진행률·탐색 종료 예상 계산용
+            s["time_budget"] = TIME_BUDGET  # 화면의 '예상 소요 19~29분' 계산용
             s["validation_mode"] = "complete" if options["complete_validation"] else "bounded"
             s["out_dir"] = str(app_dir())
             return self.send(200, s)
@@ -477,11 +475,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8780)
     ap.add_argument("--no-browser", action="store_true")
-    ap.add_argument("--no-time-limit", action="store_true", help="실험용: 시간 한도 없이 사이트 전체 탐색")
     ap.add_argument("--complete-validation", action=argparse.BooleanOptionalAction, default=False,
                     help="기본: 전체 30분 안에 끝나도록 AI 판정에도 시간 상한 적용; --complete-validation이면 수집된 항목의 AI 판정을 시간 제한 없이 완료(실험)")
     args = ap.parse_args()
-    options["time_limit"] = not args.no_time_limit
     options["complete_validation"] = args.complete_validation
     try:
         httpd = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
@@ -491,8 +487,6 @@ def main():
     url = f"http://127.0.0.1:{httpd.server_address[1]}/"
     print(f"광고청정기 실행 중: {url}  (종료: Ctrl+C)")
     print(f"결과 파일 위치: {app_dir()}")
-    if args.no_time_limit:
-        print("[실험] 시간 한도 없이 탐색합니다 — 제출 시간(30분)을 넘길 수 있습니다.")
     if args.complete_validation:
         print("[완료 우선] 수집된 항목의 AI 판정에는 시간 제한이 없습니다.")
     if not args.no_browser:

@@ -67,7 +67,7 @@ class StandardEntryTests(unittest.TestCase):
             with self.subTest(flags=flags):
                 actual = self.ui_main(flags)
                 self.assertIs(actual["complete_validation"], expected)
-                self.assertIs(actual["time_limit"], True)
+                self.assertNotIn("time_limit", actual, "시간 한도 해제 옵션은 없앴다(항상 29분 한도)")
 
     def test_ui_main_calls_common_bootstrap_before_server_creation(self):
         events = []

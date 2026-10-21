@@ -16,7 +16,6 @@ def main(argv=None):
     parser.add_argument('--self-test-output', type=Path)
     parser.add_argument('--no-browser', action='store_true')
     parser.add_argument('--port', type=int, default=8780)
-    parser.add_argument('--no-time-limit', action='store_true')
     parser.add_argument('--complete-validation', action=argparse.BooleanOptionalAction, default=False)
     args = parser.parse_args(argv)
     ensure_writable_output()
@@ -29,8 +28,6 @@ def main(argv=None):
     ui_args = ['--port', str(args.port)]
     if args.no_browser:
         ui_args.append('--no-browser')
-    if args.no_time_limit:
-        ui_args.append('--no-time-limit')
     ui_args.append('--complete-validation' if args.complete_validation else '--no-complete-validation')
     previous = sys.argv
     try:
