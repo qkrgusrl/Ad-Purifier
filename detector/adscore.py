@@ -106,6 +106,9 @@ KO_KEYWORDS = [
 ]
 # 키워드를 품고 있지만 광고와 무관한 단어 — 키워드 비교 전에 지운다 ('오피' ⊂ '오피니언', '토토' ⊂ '토토로')
 # 광고주의 → '주의' 감점 오인 / 유흥주점업·사행업은 지원사업 공고의 '제외 업종' 표준 분류명
+# 세 글자 이상이지만 띄어 쓴 두 단어에서 흔히 생기는 키워드 — 단어 경계를 지키는 ct에서만 찾는다
+# ('페널티구역내 구제방법' ⊃ 내구제: kjga 골프 규칙 글 오탐 2026-10-22)
+BOUNDED_KEYWORDS = {"내구제"}
 KO_EXCLUDE = re.compile("달토끼|오피니언|오피스|오피셜|에티오피아|토토로|포토토|작대기|광고주|유흥주점업|유흥주점영업|포커스|채팅상담|머니상품")  # 진흥원포커스(focus) ⊃ 포커, 민원 메뉴 "온라인 화상·채팅상담" ⊃ 화상채팅
 EN_KEYWORDS = [  # 단어 앞 경계 필수 ('better'의 bet, 'timeslots'의 slot 같은 부분일치 방지)
     (r"\bcasino", 3), (r"\bbaccarat", 3), (r"\bslots?\b", 3), (r"\btoto\b", 3), (r"\bbet(s|ting)?\b", 3),
@@ -201,7 +204,7 @@ def explain(norm_text, site=None):
     c = KO_EXCLUDE.sub("", compact(plain))
     ct = KO_EXCLUDE.sub("", joined(plain))
     # 두 글자 키워드는 단어 경계를 넘지 않게(ct), 세 글자 이상은 '출장 안마'처럼 나눠 쓴 것도 잡도록 완전 압축(c)에서 찾는다
-    detail = [(kw, w) for kw, w in KO_KEYWORDS if kw in (c if len(kw) >= 3 else ct)]
+    detail = [(kw, w) for kw, w in KO_KEYWORDS if kw in (c if len(kw) >= 3 and kw not in BOUNDED_KEYWORDS else ct)]
     if NINETEEN.search(ct):
         detail.append(("19금", 2))
     words = norm_text + " " + plain + " " + " ".join(leet_words(norm_text))  # 원문도 함께 ('casino777'이 복원으로 깨지지 않게)
