@@ -7,9 +7,23 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
+def context_weight(row):
+    weights = [signal[1] for signal in (row.get('context') or [])
+               if isinstance(signal, (tuple, list)) and len(signal) == 2
+               and signal[0] in ('page-context', 'body-context')
+               and type(signal[1]) in (int, float) and math.isfinite(signal[1]) and signal[1] < 0]
+    return min(weights) if weights else None
+
+
+def context_conflict(row, p, threshold):
+    return (context_weight(row) is not None and math.isfinite(p)
+            and .5 <= p <= 1 and max(p, 1-p) >= threshold)
+
+
 class AIProgress:
-    def __init__(self, observer=None):
+    def __init__(self, observer=None, *, allow_context_conflict=False):
         self.observer = observer
+        self.allow_context_conflict = allow_context_conflict
         self.snapshot = {
             "stage": "laya", "laya": dict.fromkeys(
                 ("total", "attempted", "completed", "failed", "preflight_rejected", "in_flight", "remaining"), 0),
@@ -44,7 +58,9 @@ class AIProgress:
         # 진행 중 owner의 판정 메타데이터만 보관한다. 종료 이벤트에서 제거한다.
         self.owners[owner] = {"p": p, "confidence": max(p, 1-p), "threshold": threshold,
                               "source_id": row.get("source_id"), "owner_id": owner, "route_path": route,
-                              "source_sha256": source_sha256, "input_sha256": input_sha256}
+                              "source_sha256": source_sha256, "input_sha256": input_sha256,
+                              "eligibility": 'context_conflict' if route == 'verify_context_conflict' else 'low_confidence',
+                              "context_weight": context_weight(row)}
 
     def event(self, event):
         name = event.get("event")
@@ -56,7 +72,11 @@ class AIProgress:
         meta = self.owners.get(owner)
         invalid = (meta is None or not meta.get("source_id")
                 or not (.5 <= meta["threshold"] <= 1 and math.isfinite(meta["p"])
-                        and 0 <= meta["p"] <= 1 and meta["confidence"] < meta["threshold"])
+                        and 0 <= meta["p"] <= 1 and (meta["confidence"] < meta["threshold"]
+                        or (self.allow_context_conflict and meta.get('route_path') == 'verify_context_conflict'
+                            and meta.get('eligibility') == 'context_conflict' and meta['p'] >= .5
+                            and type(meta.get('context_weight')) in (int, float)
+                            and math.isfinite(meta['context_weight']) and meta['context_weight'] < 0)))
                 or any(key in event and event[key] != value for key, value in (meta or {}).items()))
         request_id = event.get("request_id")
         request = self.requests.get(owner)
@@ -121,7 +141,8 @@ class AuditPublisher:
         # 고정 허용 필드만 기록한다. 예외 문구·입력·모델 응답은 기록하지 않는다.
         allowed = ("event", "request_id", "candidate_id", "task", "status", "completion_received",
                    "request_count", "preflight_failed", "p", "confidence", "threshold", "source_id",
-                   "owner_id", "route_path", "source_sha256", "input_sha256", "cache_hit", "cache_key", "reuse_kind")
+                   "owner_id", "route_path", "source_sha256", "input_sha256", "cache_hit", "cache_key", "reuse_kind",
+                   "eligibility", "context_weight")
         record = {key: copy.deepcopy(event[key]) for key in allowed if key in event}
         record.update(run_id=self.run_id, time=datetime.now(timezone.utc).isoformat())
         if event.get("event") == "progress":

@@ -173,7 +173,7 @@ class AITelemetryTests(unittest.TestCase):
                                         preflight_rejected=0, in_flight=0, remaining=0))
         self.assertTrue(report['needs_review'])
         _, records = self.audit(t)
-        failed_text = sorted(set(r['text'] for r in rows))[1]
+        failed_text = h.laya_inputs[1]  # 실제 요청 순서 기준: 토큰 길이 묶음은 사전순과 다를 수 있다.
         failed_ids = {r['source_id'] for r in rows if r['text'] == failed_text}
         self.assertFalse(any(r['event'] == 'request_start' and r.get('source_id') in failed_ids for r in records))
 

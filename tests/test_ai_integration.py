@@ -311,7 +311,7 @@ class AIIntegrationTests(unittest.TestCase):
         self.assertEqual(report["candidates"][0]["verdict"], "uncertain")
         self.assert_review(report)
 
-    def test_educational_borderline_without_laya_stays_review(self):
+    def test_educational_high_confidence_conflict_can_be_cleared_by_bound_gemma(self):
         row = source(text="카지노 바카라 가입코드")
         row["signals"] = []
         data = {"frame_url": URL, "hidden": [], "texts": [row], "links": [],
@@ -320,13 +320,16 @@ class AIIntegrationTests(unittest.TestCase):
         # 9점 - page-context 4점 = 5점은 확정이므로, 6점 - 4점 = 2점 경계 문구를 사용한다.
         row.update(text="카지노 바카라", raw="카지노 바카라",
                    source_html='<a href="/lesson">카지노 바카라</a>')
-        h = OfflineRun(page_data=[(URL, [("", data)])], verify=lambda x: bound_reply(x, "clean"))
+        h = OfflineRun(page_data=[(URL, [("", data)])], predict=lambda ts: [prediction(.99) for _ in ts],
+                       verify=lambda x: bound_reply(x, "clean"))
         report = self.run_case(h, detect_posted=True)
-        self.assertEqual(h.laya_inputs, [], "기존 예방 문맥 Laya 우회가 바뀜")
-        self.assertEqual(h.verify_inputs + h.extract_inputs, [])
-        self.assertEqual(h.entered, 0)
-        self.assertEqual(report["candidates"][0]["verdict"], "uncertain")
-        self.assert_review(report)
+        self.assertEqual(h.laya_inputs, [main.normalize(row['text'])])
+        self.assertEqual(len(h.verify_inputs), 1)
+        self.assertEqual(h.extract_inputs, [])
+        self.assertEqual(h.entered, 1)
+        self.assertEqual(report["candidates"][0]["verdict"], "clean")
+        self.assertEqual(report['candidates'][0]['ml_prob'], .99)
+        self.assertEqual(report['candidates'][0]['decided_by'], 'gemma')
 
     def test_gemma_error_keeps_uncertain_and_out_of_result(self):
         def fail(item):

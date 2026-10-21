@@ -107,9 +107,9 @@ class GemmaLowConfidenceTests(unittest.TestCase):
         data = {"frame_url": URL, "hidden": [], "texts": [row], "links": [],
                 "head": [{"selector": "head > title", "text": "도박 예방 안내", "raw": "도박 예방 안내"}],
                 "source_blocks": [row]}
-        h = OfflineRun(page_data=[(URL, [("", data)])])
+        h = OfflineRun(page_data=[(URL, [("", data)])], predict=lambda ts: [{} for _ in ts])
         report = self.execute(h, detect_posted=True)
-        self.assertEqual(h.laya_inputs, [])
+        self.assertEqual(h.laya_inputs, [main.normalize(row['text'])])
         self.assert_no_gemma(h)
         self.assertTrue(report["needs_review"])
         self.assertEqual(report["candidates"][0]["verdict"], "uncertain")

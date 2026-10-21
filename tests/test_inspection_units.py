@@ -84,8 +84,10 @@ class InspectionUnitTests(unittest.TestCase):
         self.assertEqual(units[0]['text'], '본문')
         self.assertEqual(units[0]['inspection']['normalization_empty_ranges'], [[0, 2], [4, 6]])
 
-    def run_flow(self, text, probabilities, verdicts=None, split=None):
+    def run_flow(self, text, probabilities, verdicts=None, split=None, context=None):
         r = row('<p>' + html.escape(text) + '</p>', text)
+        if context is not None:
+            r['context'] = context
         traces = {'laya': [], 'gemma': []}
         class Runner:
             def __init__(self, *args, **kwargs): pass
@@ -138,6 +140,40 @@ class InspectionUnitTests(unittest.TestCase):
         r, stats, traces = self.run_flow('첫 정상. 둘 정상.', {'첫 정상.': .02, '둘 정상.': .01}, split=6)
         self.assertEqual(traces['gemma'], [])
         self.assertEqual(r['verdict'], 'clean')
+
+    def test_context_candidate_is_screened_and_low_confidence_reaches_gemma(self):
+        r, stats, traces = self.run_flow('환전 안내', {'환전 안내': .55}, context=[['page-context', -2]])
+        self.assertEqual(traces['laya'], ['환전 안내'])
+        self.assertEqual(len(traces['gemma']), 1)
+        self.assertEqual(r['verdict'], 'clean')
+
+    def test_high_confidence_ad_context_exception_preserves_probability_and_verifies(self):
+        r, stats, traces = self.run_flow('일반 약관', {'일반 약관': .8988}, context=[['page-context', -4]])
+        self.assertEqual(r['verdict'], 'clean')
+        self.assertEqual(r['ml_prob'], .8988)
+        self.assertEqual(stats['review_types'], {})
+        self.assertEqual(len(traces['gemma']), 1)
+        self.assertFalse(stats['telemetry']['audit_degraded'])
+
+    def test_high_confidence_clean_is_not_a_context_conflict_exception(self):
+        r, stats, traces = self.run_flow('일반 약관', {'일반 약관': .01}, context=[['page-context', -4]])
+        self.assertEqual(traces['gemma'], [])
+
+    def test_audit_rejects_high_confidence_without_real_context_conflict(self):
+        from detector.ai_telemetry import AIProgress
+        for allow, context, route in ((False, [['page-context', -4]], 'verify_context_conflict'),
+                                      (True, [], 'verify_context_conflict'),
+                                      (True, [['page-context', -4]], 'verify')):
+            meter = AIProgress(allow_context_conflict=allow)
+            meter.register('x', {'source_id': 's', 'context': context}, route, .9, .8, 's', 'i')
+            meter.event({'event': 'request_start', 'candidate_id': 'x', 'request_id': 'r', 'request_count': 1})
+            self.assertTrue(meter.snapshot['audit_degraded'])
+            self.assertEqual(meter.snapshot['gemma']['requests_started'], 0)
+
+    def test_model_uncertainty_is_distinguished_from_binding_failure(self):
+        r, stats, traces = self.run_flow('정보 부족', {'정보 부족': .55}, {'정보 부족': 'uncertain'})
+        self.assertEqual(r['review_code'], 'gemma_uncertain')
+        self.assertEqual(stats['review_types'], {'gemma_uncertain': 1})
 
     def test_length_grouping_preserves_probability_owner_after_reordering(self):
         text = 'a long phrase. z.'

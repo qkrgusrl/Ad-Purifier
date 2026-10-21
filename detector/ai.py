@@ -5,6 +5,7 @@ import json
 import math
 import re
 import time
+from collections import Counter
 from contextlib import ExitStack
 from html.parser import HTMLParser
 
@@ -153,13 +154,13 @@ def matching_recovery_text(binding, row):
 
 
 def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_confidence_threshold=.8, cancel_error=None, detect_posted=True, telemetry=None):
-    from .ai_telemetry import AIProgress
+    from .ai_telemetry import AIProgress, context_conflict
     from .main import ScanCancelled, candidates_from, judge, source_fields
     ScanCancelled = cancel_error or ScanCancelled
     if not .5 <= laya_confidence_threshold <= 1:
         raise ValueError("laya_confidence_threshold는 0.5~1 범위여야 합니다")
     stats = {"mode": "policy" if use_ml else "diagnostic", "laya_confidence_threshold": laya_confidence_threshold,
-             "policy": "laya_low_confidence_only",
+             "policy": "laya_low_confidence_or_context_conflict",
              "laya_inputs": 0, "laya_preflight_rejected": 0,
              "length_skipped": [], "length_skipped_count": 0, "length_skipped_laya": 0, "length_skipped_gemma": 0,
              "gemma_verify": 0, "gemma_extract": 0, "residual_screened_clean": 0,
@@ -169,7 +170,7 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
              "unresolved_sources": [], "failures": [], "source_results": [],
              "scope": "수집된 DOM 텍스트 소유 단위; 전체 HTTP 원문 및 이미지 검사는 포함하지 않음"}
 
-    meter = AIProgress(telemetry)
+    meter = AIProgress(telemetry, allow_context_conflict=True)
     stats["telemetry"] = meter.snapshot
     parent_groups = []
 
@@ -209,6 +210,9 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
         for stage in ("laya", "gemma"):
             stats[f"length_skipped_{stage}"] = sum(x["stage"] == stage for x in stats["length_skipped"])
         stats["length_skipped_count"] = len(stats["length_skipped"])
+        stats['review_types'] = dict(Counter(
+            row.get('review_code', 'other_review') for row in
+            [c for c in cands if c.get('verdict') == 'uncertain'] + stats['unresolved_sources']))
         return stats
 
     def check():
@@ -216,13 +220,16 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
             raise ScanCancelled()
         return deadline is None or time.perf_counter() < deadline
 
-    def review(c, reason, status="review"):
+    def review(c, reason, status="review", code=None):
         c.update(verdict="uncertain", processing_status=status, reason=reason)
+        if code is not None:
+            c['review_code'] = code
 
-    def unresolved(row, reason, status="review"):
+    def unresolved(row, reason, status="review", code=None):
         stats["unresolved_sources"].append({**source_fields(row), "selector": row.get("selector"),
                                             "url": row.get("url"), "text": row.get('evidence_text', row.get('text', '')),
-                                            "reason": str(reason), "processing_status": status})
+                                            "reason": str(reason), "processing_status": status,
+                                            **({'review_code': code} if code else {})})
 
     length_seen = set()
 
@@ -271,7 +278,7 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
     predictions = {}
     rejections = {}
     rows_by_key = {}
-    for row in [c for c in border if not about(c)] + residual:
+    for row in border + residual:
         rows_by_key.setdefault(key(row), []).append(row)
     stats["source_rows"] = sum(len(owners) for owners in rows_by_key.values())
     stats["unique_count"] = len(rows_by_key)
@@ -293,7 +300,7 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
             with LayaRunner(model_path, deadline=deadline, cancel=cancel) as runner:
                 # 같은 child/tokenizer로 검사 계획만 만든다. 모델/수집 문구/규칙은 바꾸지 않는다.
                 projected, texts = {}, set()
-                for row in [c for c in border if not about(c)] + residual:
+                for row in border + residual:
                     try:
                         projection = project(row)
                         projected[id(row)] = projection
@@ -337,11 +344,11 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                         parent_groups.append((row, units))
                     return units
 
-                border = [unit for row in border for unit in ([row] if about(row) else expand(row, True))]
+                border = [unit for row in border for unit in expand(row, True)]
                 residual = [unit for row in residual for unit in expand(row)]
                 stats['inspection'] = inspection_stats
                 rows_by_key = {}
-                for row in [c for c in border if not about(c)] + residual:
+                for row in border + residual:
                     rows_by_key.setdefault(key(row), []).append(row)
                 stats['source_rows'] = sum(map(len, rows_by_key.values()))
                 stats['unique_count'] = len(rows_by_key)
@@ -434,18 +441,32 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
             review(c, "원본 HTML 없음: 재합성하지 않음")
             stats["failures"].append({"source_id": c.get("source_id"), "stage": "source", "reason": c["reason"]})
             return
-        p = None if about(c) else predictions.get(key(c))
+        p = predictions.get(key(c))
         if p is None:
-            rejection = None if about(c) else rejections.get(key(c))
+            rejection = rejections.get(key(c))
             if rejection:
                 c["laya_preflight"] = dict(rejection)
                 length_skip("laya", c, rejection["reason"], rejection["input_tokens"], rejection["token_limit"])
             review(c, rejection["reason"] if rejection else
-                   "문맥 검토 대상 또는 유효 Laya 확률 없음: Gemma 대체 판정 금지")
+                   "Laya 출력 누락/잘림/오류: 유효 확률 없이 Gemma 대체 판정 금지",
+                   code='laya_input_length' if rejection else 'laya_output_unavailable')
             return
         c["ml_prob"] = round(p, 4)
         c["laya_confidence"] = max(p, 1 - p)
+        c.pop('review_code', None)
         if max(p, 1 - p) >= laya_confidence_threshold:
+            if about(c):
+                if context_conflict(c, p, laya_confidence_threshold):
+                    if c.get('_inspection_error'):
+                        review(c, '공통 검사 범위 결합 불가: ' + c['_inspection_error'], code='source_binding_unavailable')
+                        return
+                    pending.append(c)
+                    meter.snapshot['gemma']['eligible_verify'] += 1
+                    meter.progress('gemma')
+                    return
+                review(c, "유효 Laya 판정은 있으나 문맥 검토 신호와 함께 재검토 필요; 고신뢰 Gemma 호출 금지",
+                       code='laya_context_review')
+                return
             c.update(verdict="ad" if p >= .5 else "clean", decided_by="laya",
                      processing_status="completed", reason="Laya 정상 출력의 confidence가 운영 임계값 이상")
         else:
@@ -484,8 +505,6 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                 c.update(processing_status="completed", reason="회수 후 기존 규칙 확정")
             elif key(c) != key(row):
                 review(c, "회수 문구와 선별 문구가 다름: Laya 확률 재사용 및 Gemma 판정 금지")
-            elif about(c):
-                review(c, "문맥 검토 대상: 유효 Laya 확률 없음")
             else:
                 route(c)
         cands.extend(new)
@@ -584,6 +603,8 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
 
         def register(owner, row, route):
             p = predictions[key(row)]
+            if route == 'verify' and context_conflict(row, p, laya_confidence_threshold):
+                route = 'verify_context_conflict'
             meter.register(owner, row, route, p, laya_confidence_threshold,
                            digest(input_for(row)), hashlib.sha256(key(row).encode()).hexdigest())
 
@@ -632,7 +653,12 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                     c["gemma"] = response
                     rows = response.get("results", [])
                     row = rows[0] if len(rows) == 1 else {}
-                    if (response.get("status") != "ok" or row.get("status") != "ok" or row.get("needs_review")
+                    if (row.get('status') == 'ok' and row.get('verdict') == 'uncertain'
+                            and row.get('candidate_id') == item['candidate_id']
+                            and valid_binding(row, item, item['candidate_id'])
+                            and matching_recovery_text(row, c)):
+                        review(c, 'Gemma 정상 응답: 판단 불확실(uncertain)', code='gemma_uncertain')
+                    elif (response.get("status") != "ok" or row.get("status") != "ok" or row.get("needs_review")
                             or row.get("candidate_id") != item["candidate_id"]
                             or row.get("verdict") not in ("ad", "clean")
                             or not valid_binding(row, item, item["candidate_id"])):
@@ -642,7 +668,9 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                             length_skip("gemma", c, call["error"], call.get("preflight_prompt_tokens"),
                                         ctx - call.get("max_tokens", 0) - 64 if ctx else None)
                         review(c, "Gemma 입력 길이 초과: 판정 보류" if "input_overflow" in str(call.get("error", ""))
-                               else "Gemma 보류/누락/원문 결합 실패")
+                               else "Gemma 오류/출력 누락/원문 결합 실패",
+                               code='gemma_input_length' if 'input_overflow' in str(call.get('error', ''))
+                               else 'gemma_response_error' if row.get('status') != 'ok' else 'gemma_binding_error')
                     elif row["verdict"] == "ad" and row.get("source_field") != "html":
                         review(c, "광고 근거가 source_html에 없음: 주변 문맥만으로 현재 위치를 확정할 수 없음")
                     elif row["verdict"] == "ad" and not matching_recovery_text(row, c):
@@ -707,7 +735,14 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                                 cleaned[sid] = parsed
                 for sid, row in by_id.items():
                     if sid in failed:
-                        unresolved(row, failed[sid])
+                        proof = inner_proofs.get(sid, {})
+                        parsed = proof.get('parsed', {})
+                        uncertain = (failed[sid] == 'uncertain' and proof.get('status') == 'ok'
+                                     and parsed.get('verdict') == 'uncertain'
+                                     and valid_binding(parsed, input_for(row), sid)
+                                     and matching_recovery_text(parsed, row))
+                        unresolved(row, 'Gemma 정상 응답: 판단 불확실(uncertain)' if uncertain else failed[sid],
+                                   code='gemma_uncertain' if uncertain else 'gemma_extraction_error')
                         if "input_overflow" in str(failed[sid]):
                             length_skip("gemma", row, failed[sid])
                     elif sid in recovered:

@@ -152,6 +152,8 @@ def restore_review_state(rep):
             if c.get("processing_status") in (None, "completed"):
                 c["processing_status"] = "review"
             c.setdefault("reason", "이전 보고서의 미판정 항목: 재검토 필요")
+    from detector.review import annotate_reviews
+    annotate_reviews(rep)
     pending = sum(c.get("verdict") == "uncertain" for c in rep.get("candidates", []))
     pending += len(rep.get("ai", {}).get("unresolved_sources", []))
     rep["unresolved_count"] = max(rep.get("unresolved_count", 0), pending)
