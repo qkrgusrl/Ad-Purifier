@@ -171,11 +171,14 @@ def run_self_test(output):
             # 생성이 끝나도 context 안에서는 자식이 살아 있다. Windows 실제 로드 모듈을 검사한다.
             if sys.platform == 'win32':
                 raw['module_audit'] = verify_child_runtime_modules(owned.proc.pid, Path(owned.paths['server']).parent)
-            # uncertain은 정확도 문제가 아니라 유효한 프로토콜 결과다. 호출 자체 실패는 통과시키지 않는다.
+            # 최종 이진 판정과 원문 결합을 검사한다. 같은 원문의 추출은 판정 캐시를 재사용할 수 있다.
             result['phases']['gemma_load_infer']['raw'] = raw
             save()
             calls = [r['call'] for r in verify['results']] + [bc for c in extract['calls'] for bc in c.get('block_calls', [c])]
-            if len(calls) < 2 or any(c['status'] != 'ok' or c.get('request_count', 0) != 1 for c in calls):
+            if (len(calls) < 2 or sum(c.get('request_count', 0) for c in calls) < 1
+                    or any(c['status'] != 'ok' or c.get('parsed', {}).get('verdict') not in ('ad', 'clean')
+                           or c.get('request_count') not in (0, 1, 2)
+                           or (c.get('request_count') == 0 and not c.get('cache_hit')) for c in calls)):
                 raise ValueError('Gemma 실제 생성/원문 결합 검사 실패')
         raw['cleanup'] = {'process_running': owned.proc.poll() is None, 'key_removed': not owned.key_file.exists()}
         if raw['cleanup']['process_running'] or not raw['cleanup']['key_removed']:
