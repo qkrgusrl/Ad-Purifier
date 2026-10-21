@@ -242,7 +242,8 @@ class AITelemetryTests(unittest.TestCase):
         for p in (.2, .20000000000001, .79999999999999, .8):
             with self.subTest(p=p):
                 self.chats.clear()
-                rows = [source('s1'), source('s2', context='두 번째 원문')]
+                # 같은 문구·같은 기법은 Gemma를 한 번만 돌리므로, owner별 감사 기록을 보려면 기법을 다르게 둔다.
+                rows = [source('s1'), source('s2', context='두 번째 원문', signals=[['OFFSCREEN', 'left:-9999px']])]
                 h = OfflineRun(rows, predict=lambda ts: [prediction(p) for _ in ts])
                 t = self.telemetry(self.execute(h))
                 _, records = self.audit(t)

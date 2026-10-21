@@ -614,13 +614,14 @@ def candidates_from(pages, detect_posted=True, *, recover_posted=False):
 def dedupe(cands):
     """같은 페이지에서 같은 광고를 여러 번 보고하는 것을 하나로 합친다. (남길 후보, 합친 후보 목록)
 
-    중복 기준(팀 결정 2026-10-15): **문구가 같고 페이지가 같을 때만** 하나로 본다. 다른 페이지(다른 글)의 같은 문구는 각각 센다.
     '같은 페이지'는 page_key — 목록 몇 쪽에서 들어왔는지(startPage 등)만 다른 주소는 같은 글이다.
     불법광고 판정(ad)만 대상이며, 아래 경우 하나만 남긴다.
-    1) 같은 페이지에서 문구가 같으면 위치가 달라도 (글 제목과 아래 목록 링크, 목록에 같은 링크 두 번)
+    1) 은닉 4종(result.json): 요강 집계 단위 (url + location + technique)가 같을 때만 (2026-10-21 변경).
+       같은 요소·같은 기법이면 문구가 달라도 1건(요강: 동일 요소 내 같은 기법 문자열은 1건).
+       같은 문구라도 위치가 다르면 각각 남긴다. 같은 요소의 서로 다른 은닉 기법도 각각 남긴다.
+    2) 게시형(result_extra.json): 같은 페이지에서 문구가 같으면 위치가 달라도 (글 제목과 아래 목록 링크 등)
        → 은닉 기법이 게시형보다 우선, 그다음 바깥 요소·앞 형제
-       단, 같은 요소에 서로 다른 은닉 기법이 함께 잡힌 경우는 둘 다 남긴다 (채점이 기법까지 본다)
-    2) 숨김 블록(은닉 4종) 안의 요소가 게시형으로 따로 잡힌 경우 — 숨김 블록 한 건으로 보고
+    3) 숨김 블록(은닉 4종) 안의 요소가 게시형으로 따로 잡힌 경우 — 숨김 블록 한 건으로 보고
     """
     def rank(c):  # 남길 우선순위: 은닉 기법 > 게시형, 바깥 요소 > 안쪽, 앞 형제 > 뒤 형제
         return (c["technique"] not in CORE_TECHNIQUES, c["location"].count(" > "), c["location"])
@@ -633,9 +634,14 @@ def dedupe(cands):
         page = by_page.setdefault(page_key(c["url"]), [])
         for k in page:
             k_text = " ".join(k["evidence_text"].split())
-            if c["location"] == k["location"] and c["technique"] != k["technique"] \
-                    and {c["technique"], k["technique"]} <= CORE_TECHNIQUES:
-                continue  # 한 요소에 은닉 기법이 둘(예: 투명+화면 밖) — 채점이 기법까지 보므로 둘 다 남긴다
+            if {c["technique"], k["technique"]} <= CORE_TECHNIQUES:
+                # 은닉 4종은 요강의 집계 단위 (url + location + technique)로만 합친다.
+                # 같은 요소·같은 기법이면 문구가 달라도 1건, 위치나 기법이 다르면 같은 문구라도 각각 남긴다.
+                if c["location"] == k["location"] and c["technique"] == k["technique"]:
+                    c["duplicate_of"] = {"location": k["location"], "technique": k["technique"]}
+                    dups.append(c)
+                    break
+                continue
             nested = (c["location"] == k["location"] or c["location"].startswith(k["location"] + " > ")
                       or k["location"].startswith(c["location"] + " > "))
             # 숨김 블록 안의 요소는 글자가 조금 달라도(링크 글자 제외 등) 그 블록의 일부 — 블록 한 건으로 본다
