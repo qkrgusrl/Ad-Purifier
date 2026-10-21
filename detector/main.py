@@ -716,12 +716,14 @@ EXTRA_LABEL = {"POSTED": "게시형 불법광고(은닉 없음)"}
 TIME_BUDGET = 29 * 60   # 전체 목표: 30분 상한에서 1분 여유
 JUDGE_RESERVE = 2 * 60  # 크롤링 뒤 Laya 판정 몫. 실사이트 11곳 측정 시 판정은 0.4~11초
 LLM_RESERVE = 8 * 60    # Laya 판정 뒤 Gemma 검증 몫 (크롤링+Laya는 time_budget - llm_reserve = 21분까지)
+GEMMA_SEC_PER_ITEM = 10 # Gemma 1건에 넉넉잡아 10초 → Gemma에 보내는 건수 = 남은 시간 ÷ 10초 (8분이면 약 48건)
 
 
 def run(entry_url, out, concurrency=4, timeout=15000, model=DEFAULT_MODEL, use_ml=True,
         progress=None, phase=None, user_agent=DEFAULT_UA, detect_posted=True,
         time_budget=TIME_BUDGET, llm_reserve=LLM_RESERVE, collapse=False, cancel=None,
-        laya_confidence_threshold=0.8, complete_validation=False, telemetry=None, residual_needs_rule_clue=True):
+        laya_confidence_threshold=0.8, complete_validation=False, telemetry=None, residual_needs_rule_clue=True,
+        gemma_sec_per_item=GEMMA_SEC_PER_ITEM):
     """크롤링 → 판정 → result.json/report.json 저장. report 딕셔너리를 돌려준다.
 
     phase(단계명): UI에 현재 단계(crawl/judge/save)를 알리는 콜백.
@@ -730,6 +732,8 @@ def run(entry_url, out, concurrency=4, timeout=15000, model=DEFAULT_MODEL, use_m
     Laya 판정은 time_budget - llm_reserve까지, Gemma는 time_budget - 30초까지 한다.
     complete_validation: 수집 시간 상한을 유지하고 수집된 항목의 AI 판정은 시간 상한 없이 완료.
     residual_needs_rule_clue: 규칙 후보가 아닌 잔여 원문 중 규칙 단서가 하나도 없는 문구는 Laya·Gemma에 보내지 않음(기본).
+    gemma_sec_per_item: Gemma 1건 예상 시간(초). 판단 곤란 점수가 높은 것부터 남은 시간 ÷ 이 값만큼만 Gemma로 보내고
+        나머지·마감 후 남은 것은 Laya 판정으로 확정. None이면 넘김 제한 없이 기존 동작(마감 후 보류).
     cancel: threading.Event. 켜지면 ScanCancelled를 일으키고 결과 파일은 건드리지 않는다(지난 제출용 result.json 보존).
     """
     from .ai_telemetry import AuditPublisher
@@ -743,6 +747,8 @@ def run(entry_url, out, concurrency=4, timeout=15000, model=DEFAULT_MODEL, use_m
     crawl_deadline = t0 + max(60, time_budget - llm_reserve - JUDGE_RESERVE)
     laya_deadline = None if complete_validation else t0 + max(60, time_budget - llm_reserve)
     judge_deadline = None if complete_validation else t0 + max(0, time_budget - 30)
+    if complete_validation:  # 시간 상한 없이 끝까지 판정하는 모드는 Gemma 넘김도 제한하지 않는다
+        gemma_sec_per_item = None
     phase("crawl")
     pages, issues = asyncio.run(crawl(entry_url, concurrency, timeout, progress, user_agent, deadline=crawl_deadline, cancel=cancel))
     cancelled = lambda: cancel is not None and cancel.is_set()
@@ -764,7 +770,7 @@ def run(entry_url, out, concurrency=4, timeout=15000, model=DEFAULT_MODEL, use_m
         ai = analyze(cands, ai_pages, str(model), use_ml, judge_deadline, cancel,
                      laya_confidence_threshold=laya_confidence_threshold, cancel_error=ScanCancelled,
                      detect_posted=detect_posted, telemetry=publisher, laya_deadline=laya_deadline,
-                     residual_needs_rule_clue=residual_needs_rule_clue)
+                     residual_needs_rule_clue=residual_needs_rule_clue, gemma_sec_per_item=gemma_sec_per_item)
         ai["telemetry"] = publisher.enrich(ai["telemetry"])
     except BaseException as exc:
         if publisher.snapshot is not None:

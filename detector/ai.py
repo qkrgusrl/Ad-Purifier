@@ -16,6 +16,27 @@ from .laya_runtime import LayaCleanupError, LayaRunner
 from .inspection import project, split_row, matches as matches_inspection
 
 
+# Gemma 넘김 최소화 — Gemma는 1건에 5~10초라 마감까지 남는 몇 분에 수십 건만 볼 수 있다.
+# counselpsy(1,089페이지): 대기 2,500건 중 327건만 처리, 96%가 20자 미만 링크 문구('강남 달토')라
+# Gemma가 판단할 내용 없이 정상으로 뒤집었다. 세부 점수로 정말 판단할 수 없는 것만 골라
+# 남은 시간 ÷ 건당 시간(main.GEMMA_SEC_PER_ITEM)만큼만 보낸다.
+GEMMA_MIN_CHARS = 20         # 이보다 짧은 문구(링크 글자·메뉴)는 Gemma도 근거가 없어 Laya 판정을 그대로 쓴다
+GEMMA_MIN_AMBIGUITY = .6     # 판단 곤란 점수(0~1)가 이 이상인 것만 Gemma 후보
+
+
+def ambiguity(text, score, p, conflict=False):
+    """(판단 곤란 점수, 제외 이유). Laya 확률이 0.5에 가까울수록, 규칙 점수가 경계 구간(LOW~HIGH) 가운데일수록,
+    규칙과 Laya가 서로 반대쪽으로 강하게 기울수록 높다. 점수가 None이면 Gemma로 보내지 않는다 ('short' 짧은 문구, 'clear' 판단 가능).
+    예: 규칙 점수가 경계 가운데면 Laya 0.34~0.66, 경계 끝(LOW·HIGH)이면 Laya 0.5 언저리만 후보."""
+    if len(" ".join(str(text).split())) < GEMMA_MIN_CHARS:
+        return None, "short"
+    r = min(1, max(0, (score - adscore.LOW) / (adscore.HIGH - adscore.LOW)))
+    a = .6 * (1 - abs(2 * p - 1)) + .2 * (1 - abs(2 * r - 1)) + .2 * max(0, -(2 * p - 1) * (2 * r - 1))
+    if conflict:  # Laya는 광고라고 확신하지만 페이지가 교육·보도 글 — 확신도와 별개로 판단 곤란
+        a = max(a, GEMMA_MIN_AMBIGUITY)
+    return (round(a, 3), None) if a >= GEMMA_MIN_AMBIGUITY else (None, "clear")
+
+
 def digest(item):
     return hashlib.sha256(json.dumps({k: item.get(k, "") for k in ("html", "context")},
                                     ensure_ascii=False, sort_keys=True).encode()).hexdigest()
@@ -155,7 +176,8 @@ def matching_recovery_text(binding, row):
             and parser.body_start <= binding["start_char"] < binding["end_char"] <= parser.body_end)
 
 
-def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_confidence_threshold=.8, cancel_error=None, detect_posted=True, telemetry=None, laya_deadline=None, residual_needs_rule_clue=False):
+def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_confidence_threshold=.8, cancel_error=None, detect_posted=True, telemetry=None, laya_deadline=None, residual_needs_rule_clue=False,
+            gemma_sec_per_item=None):
     from .ai_telemetry import AIProgress, context_conflict
     from .main import ScanCancelled, candidates_from, judge, source_fields
     from local_llm.prompts import DECISION_POLICY
@@ -228,6 +250,16 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
         c.update(verdict="uncertain", processing_status=status, reason=reason)
         if code is not None:
             c['review_code'] = code
+
+    def laya_fallback(c, why):
+        """Gemma로 보내지 않거나 Gemma 시간이 끝난 항목은 보류 대신 Laya 판정으로 확정 (gemma_sec_per_item를 줄 때만)."""
+        p = c.get("ml_prob")
+        if gemma_sec_per_item is None or p is None:
+            return False
+        c.pop("review_code", None)
+        c.update(verdict="ad" if p >= .5 else "clean", decided_by="laya", processing_status="completed",
+                 reason=f"Laya 판정 ({why})")
+        return True
 
     def unresolved(row, reason, status="review", code=None):
         stats["unresolved_sources"].append({**source_fields(row), "selector": row.get("selector"),
@@ -547,6 +579,52 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
             meter.snapshot["gemma"]["eligible_extract"] += 1
             meter.progress("gemma")
 
+    stats["gemma_skipped"] = {"short": 0, "clear": 0, "budget": 0}
+
+    def select_for_gemma(items, rows):
+        """Gemma 대기열(검증 items·추출 rows)을 판단 곤란 점수로 줄 세워 남은 시간 ÷ GEMMA_SEC_PER_ITEM 건만 남기고
+        나머지는 Laya 판정으로 확정한다. gemma_sec_per_item가 없으면 그대로(기존 동작)."""
+        if gemma_sec_per_item is None:
+            return items, rows
+        ranked = []
+        for c in items:
+            p = c["ml_prob"]
+            a, why = ambiguity(c.get("evidence_text", ""), c.get("score", 0), p,
+                               context_conflict(c, p, laya_confidence_threshold))
+            ranked.append((a, why, "verify", c))
+        for row in rows:
+            p = predictions[key(row)]
+            score = adscore.explain(key(row), urlparse(row["url"]).netloc)[0]
+            a, why = ambiguity(row.get("evidence_text", row.get("text", "")), score, p)
+            ranked.append((a, why, "extract", row))
+        budget = None if deadline is None else max(0, int((deadline - time.perf_counter()) // gemma_sec_per_item))
+        chosen = sorted((x for x in ranked if x[0] is not None), key=lambda x: -x[0])
+        keep = {id(x[3]) for x in (chosen if budget is None else chosen[:budget])}
+        kept_items, kept_rows = [], []
+        for a, why, kind, obj in sorted(ranked, key=lambda x: -(x[0] or 0)):
+            if id(obj) in keep:
+                obj["gemma_ambiguity"] = a
+                (kept_items if kind == "verify" else kept_rows).append(obj)
+                continue
+            why = why or "budget"
+            stats["gemma_skipped"][why] += 1
+            label = {"short": "짧은 문구라 Gemma 대상 아님", "clear": "규칙·Laya로 판단 가능",
+                     "budget": "Gemma 시간 한도"}[why]
+            if kind == "verify":
+                laya_fallback(obj, label)
+                obj["gemma_skip"] = why
+            else:  # 잔여 원문(규칙 확정 미만)은 Gemma가 광고 근거를 확인하지 않으면 정상으로 둔다
+                stats["residual_screened_clean"] += 1
+                stats["source_results"].append({"source_id": obj["source_id"], "verdict": "clean", "decided_by": "laya",
+                                                "ml_prob": round(predictions[key(obj)], 4), "gemma_skip": why})
+        meter.snapshot["gemma"]["eligible_verify"] -= len(items) - len(kept_items)
+        meter.snapshot["gemma"]["eligible_extract"] -= len(rows) - len(kept_rows)
+        meter.progress("gemma")
+        return kept_items, kept_rows
+
+    kept, extract_rows = select_for_gemma(list(pending), extract_rows)
+    pending[:] = kept
+
     with ExitStack() as stack:
         client = None
         client_error = None
@@ -635,7 +713,8 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
             for index in range(start, end):
                 c = pending[index]
                 if not check():
-                    review(c, "공유 점검 시간 예산 초과", "timeout")
+                    if not laya_fallback(c, "Gemma 시간 한도"):
+                        review(c, "공유 점검 시간 예산 초과", "timeout")
                     continue
                 owner = f"{c.get('source_id', 'source')}:{index}"
                 register(owner, c, "verify")
@@ -697,7 +776,8 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                 except Exception as exc:
                     check()
                     item_end(item["candidate_id"], "preflight_failed", 1)
-                    review(c, f"{type(exc).__name__}: {exc}", "timeout" if isinstance(exc, TimeoutError) else "error")
+                    if not (isinstance(exc, TimeoutError) and laya_fallback(c, "Gemma 시간 한도")):
+                        review(c, f"{type(exc).__name__}: {exc}", "timeout" if isinstance(exc, TimeoutError) else "error")
             stats["gemma_verify_sec"] = round(stats["gemma_verify_sec"] + time.perf_counter() - verify_started, 3)
 
         initial_pending = len(pending)
@@ -773,6 +853,9 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
             finally:
                 stats["gemma_extract_sec"] = round(time.perf_counter() - extract_started, 3)
 
+        # 추출에서 회수돼 새로 들어온 검증 후보도 같은 기준·남은 시간으로 고른다
+        tail, _ = select_for_gemma(pending[initial_pending:], [])
+        pending[initial_pending:] = tail
         verify_pending(initial_pending, len(pending))
     check()
     stats["failures"].extend({"source_id": c.get("source_id"), "stage": "verify", "reason": c["reason"]}
