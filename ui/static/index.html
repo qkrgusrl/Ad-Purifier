@@ -473,7 +473,6 @@ tr.row.in-page td:first-child { padding-left: 28px; }
     <div class="topbar">
       <div><h2>Dashboard</h2><p>공공 웹사이트에 숨어 있는 불법광고를 찾아 깨끗하게 정화합니다.</p></div>
       <span class="status-pill"><i></i><span id="sysText">대기 중</span></span>
-      <button type="button" class="small" id="exitBtn">프로그램 종료</button>
     </div>
 
     <section class="card">
@@ -1216,7 +1215,6 @@ async function saveReview(c, status, memo, okMsg) {
 /* ---------- 탐지 실행 ---------- */
 // 탐지 중지: 탐지 중에는 시작 버튼이 '탐지 중지'로 바뀐다 → 한 번 더 확인 → 중지 요청.
 // 서버가 브라우저를 닫고 멈출 때까지 '중지하는 중…'
-let exiting = false;
 let stopMode = "idle";  // idle | confirm | stopping
 
 // 경과 시간: 서버 값으로만 바꾸면 응답이 늦을 때 몇 초씩 건너뛰므로, 시작 시각만 맞추고 화면 시계는 1초씩 흘려 보낸다
@@ -1239,7 +1237,6 @@ function stopClock() {
 }
 
 function setRunning(running) {
-  if (exiting) return;
   if (!running) { stopMode = "idle"; stopClock(); }
   document.body.classList.toggle("running", running);
   $("sysText").textContent = running ? "정화 중…" : "대기 중";
@@ -1252,24 +1249,6 @@ function setRunning(running) {
   $("url").disabled = running;
   $("progress").style.display = running ? "block" : "none";
 }
-$("exitBtn").onclick = async () => {
-  if (exiting) return;
-  exiting = true;
-  clearInterval(polling);
-  $("exitBtn").disabled = true;
-  $("startBtn").disabled = true;
-  $("sysText").textContent = "종료 요청 중…";
-  try {
-    await api("/api/shutdown", { method: "POST", headers: JSON_HEADERS, body: "{}" });
-    $("sysText").textContent = "종료 요청됨";
-    $("scanError").textContent = "진행 중인 점검과 모델을 정리한 뒤 프로그램이 종료됩니다. 이 탭은 닫아도 됩니다.";
-  } catch (err) {
-    exiting = false;
-    $("exitBtn").disabled = false;
-    $("scanError").textContent = `종료 요청 실패: ${err.message}`;
-    startPolling();
-  }
-};
 $("stopNo").onclick = () => { stopMode = "idle"; setRunning(true); $("startBtn").focus(); };
 $("stopYes").onclick = async () => {
   $("stopYes").disabled = true;
