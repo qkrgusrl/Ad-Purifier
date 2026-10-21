@@ -41,3 +41,16 @@ class GemmaSelectionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BareUrlTests(unittest.TestCase):
+    """URL만 있는 문구는 Laya로 보내지 않는다 (djbokji 10-22: 부고·청첩장 링크를 0.78~0.94로 광고 판정)."""
+    def test_bare_url(self):
+        from detector.ai import bare_url
+        for text in ("https://www.wooribugo4.com/page/funeral/view.php?uri=P189", "http://pf.kakao.com/_lGzxkn",
+                     "https://www.xn--299av1t05d.com/v/jr9qetn", "m.site.naver.com/1Xp75", "[창티켓.kr]"):
+            with self.subTest(text=text):
+                self.assertTrue(bare_url(text))
+        for text in ("2022.08.16", "1.2.3", "0505-310-9093", "카지노 https://a.com", "● 매.충전 ●", ""):
+            with self.subTest(text=text):
+                self.assertFalse(bare_url(text))

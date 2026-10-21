@@ -46,6 +46,19 @@ def ambiguity(text, score, p, conflict=False, text_score=None):
     return (round(a, 3), None) if a >= GEMMA_MIN_AMBIGUITY else (None, "clear")
 
 
+# URL만 있는 문구 ('https://www.wooribugo4.com/page/funeral/view.php?…', 'pf.kakao.com/_lGzxkn')
+BARE_URL = re.compile(r"(?:https?://|www\.)?[a-z0-9가-힣-]+(?:\.[a-z0-9가-힣-]+)*\.(?:[a-z]{2,}|xn--[a-z0-9-]+|[가-힣]{2,})(?::\d+)?(?:[/?#]\S*)?", re.I)
+RULE_CLUE_MIN = 1  # 잔여 선별 단서 최소 점수: '바로가기'(0.3)·'중계'(0.5)·'주소'(0.5) 같은 약한 말만 있으면 단서로 치지 않는다
+
+
+def bare_url(text):
+    """문구가 URL 하나뿐인가. Laya는 URL만 보고는 판단할 근거가 없다 — djbokji(10-22) 게시글 속 부고·청첩장·카카오 채널
+    링크 15건을 0.78~0.94로 광고 판정했고, hanyanglaw 스팸 URL('www.bbs7757.com')은 0.07로 정상 판정했다.
+    URL만 있는 문구는 규칙(도메인 속 키워드·메신저 ID 등)으로만 판정한다."""
+    t = " ".join(str(text).split()).strip("<>()[]【】'\" ")
+    return bool(t) and " " not in t and BARE_URL.fullmatch(t) is not None
+
+
 def digest(item):
     return hashlib.sha256(json.dumps({k: item.get(k, "") for k in ("html", "context")},
                                     ensure_ascii=False, sort_keys=True).encode()).hexdigest()
@@ -198,7 +211,7 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
              "gemma_decision_policy": DECISION_POLICY,
              "laya_inputs": 0, "laya_preflight_rejected": 0,
              "length_skipped": [], "length_skipped_count": 0, "length_skipped_laya": 0, "length_skipped_gemma": 0,
-             "gemma_verify": 0, "gemma_extract": 0, "residual_screened_clean": 0, "residual_no_rule_clue": 0,
+             "gemma_verify": 0, "gemma_extract": 0, "residual_screened_clean": 0, "residual_no_rule_clue": 0, "residual_bare_url": 0, "border_bare_url": 0,
              "gemma_requests": dict.fromkeys(("attempted", "succeeded", "transport_failed", "output_failed", "preflight_failed", "reused"), 0),
              "source_rows": 0, "unique_count": 0, "cache_reuse": 0,
              "laya_sec": 0.0, "gemma_verify_sec": 0.0, "gemma_extract_sec": 0.0,
@@ -306,9 +319,9 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
 
     def rule_clue(row, url):
         """규칙 사전의 가산 단서(키워드·연락처·도메인 등)가 하나라도 있는가.
-        단서가 하나도 없는 문구('패밀리 사이트'·기사 제목·주소)를 Laya가 광고로 확신하는 오탐이 많고
+        단서가 하나도 없거나 약한 말뿐인 문구('패밀리 사이트'·기사 제목·주소·'… 바로가기')를 Laya가 광고로 확신하는 오탐이 많고
         (jnbburi 190건 전부), 애매한 것은 Gemma 추출로 넘어가 시간을 잡아먹어(hanyanglaw 2,414건) 잔여 선별에서 뺀다."""
-        return any(w > 0 for _, w in adscore.explain(key(row), urlparse(url).netloc)[1])
+        return sum(w for _, w in adscore.explain(key(row), urlparse(url).netloc)[1] if w > 0) >= RULE_CLUE_MIN
 
     check()
     used = {c.get("source_id") for c in cands}
@@ -322,10 +335,17 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                     if residual_needs_rule_clue and not rule_clue(row, url):
                         stats["residual_no_rule_clue"] += 1
                         continue
+                    if residual_needs_rule_clue and bare_url(key(row)):  # 규칙 확정 미만인 URL만 있는 문구는 정상
+                        stats["residual_bare_url"] += 1
+                        continue
                     residual.append({**row, "url": url, "prefix": prefix})
     border = []
     for c in cands:
-        if c["verdict"] == "borderline":
+        if c["verdict"] == "borderline" and bare_url(c.get("evidence_text", "")):
+            stats["border_bare_url"] += 1
+            c.update(verdict="clean", processing_status="completed",
+                     reason="URL만 있는 문구: 규칙 점수로만 판정(확정 점수 미만이라 정상)")
+        elif c["verdict"] == "borderline":
             border.append(c)
             review(c, "AI 판정 대기")
         else:
