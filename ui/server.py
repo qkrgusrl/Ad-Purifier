@@ -178,11 +178,41 @@ def restore_review_state(rep):
     return rep
 
 
+SUMMARY_VERSION = 1  # 요약 항목·복원 규칙이 바뀌면 올려서 기존 summary.json을 다시 만든다
+
+
+def run_summary(report_path):
+    """목록용 요약. report.json은 정상 문구 문맥까지 담아 수백 MB가 되므로 한 번만 읽고 summary.json에 둔다."""
+    st = report_path.stat()
+    stamp = [SUMMARY_VERSION, st.st_mtime_ns, st.st_size]
+    cache = report_path.parent / "summary.json"
+    try:
+        cached = json.loads(cache.read_text(encoding="utf-8"))
+        if cached.get("stamp") == stamp:
+            return cached
+    except (OSError, json.JSONDecodeError):
+        pass
+    rep = restore_review_state(json.loads(report_path.read_text(encoding="utf-8")))
+    summary = {"stamp": stamp, "entry_url": rep["meta"]["entry_url"], "started_at": rep["meta"]["started_at"],
+               "elapsed_sec": rep["meta"]["elapsed_sec"], "pages": rep["pages"],
+               # 검토 상태(review.json)는 수시로 바뀌므로 광고 판정 문구만 남겨 두고 목록 조회 때마다 대조한다
+               "ads": [{"key": cand_key(c), "url": c["url"], "also_on": [x["url"] for x in c.get("also_on", [])],
+                        "technique": c["technique"], "evidence_text": c["evidence_text"]}
+                       for c in rep["candidates"] if c["verdict"] == "ad"],
+               "entry_failed": rep.get("entry_failed", False), "needs_review": rep.get("needs_review", False),
+               "unresolved_count": rep.get("unresolved_count", 0), "coverage": rep.get("coverage", {})}
+    try:
+        cache.write_text(json.dumps(summary, ensure_ascii=False), encoding="utf-8")
+    except OSError:
+        pass
+    return summary
+
+
 def list_runs():
     runs = []
     for d in sorted(HISTORY.glob("*/report.json"), reverse=True):
         try:
-            rep = restore_review_state(json.loads(d.read_text(encoding="utf-8")))
+            s = run_summary(d)
         except (OSError, json.JSONDecodeError):
             continue
         review_path = d.parent / "review.json"
@@ -190,18 +220,18 @@ def list_runs():
             review = json.loads(review_path.read_text(encoding="utf-8")) if review_path.is_file() else {}
         except (OSError, json.JSONDecodeError):
             review = {}
-        ads = [c for c in rep["candidates"] if c["verdict"] == "ad"]
+        ads = s["ads"]
         # 처리 필요 = 미검토 + 불법광고 확인 (화면의 광고 청정도 계산용 — 오염 페이지 비율·오염 페이지 수·문구 수·숨김형 건수)
-        pending_ads = [c for c in ads if review.get(cand_key(c), {}).get("status", "new") in ("new", "confirmed")]
-        runs.append({"id": d.parent.name, "entry_url": rep["meta"]["entry_url"],
-                     "started_at": rep["meta"]["started_at"], "elapsed_sec": rep["meta"]["elapsed_sec"],
-                     "pages": rep["pages"], "findings": len(ads), "pending": len(pending_ads),
+        pending_ads = [c for c in ads if review.get(c["key"], {}).get("status", "new") in ("new", "confirmed")]
+        runs.append({"id": d.parent.name, "entry_url": s["entry_url"],
+                     "started_at": s["started_at"], "elapsed_sec": s["elapsed_sec"],
+                     "pages": s["pages"], "findings": len(ads), "pending": len(pending_ads),
                      # 여러 페이지 반복으로 대표에 합친 페이지(also_on)도 오염 페이지로 센다
-                     "dirty_pages": len({u for c in pending_ads for u in [c["url"]] + [x["url"] for x in c.get("also_on", [])]}),
+                     "dirty_pages": len({u for c in pending_ads for u in [c["url"]] + c["also_on"]}),
                      "pending_hidden": sum(c["technique"] != "POSTED" for c in pending_ads),
                      "pending_unique": len({" ".join(c["evidence_text"].split()) for c in pending_ads}),
-                     "entry_failed": rep.get("entry_failed", False), "needs_review": rep.get("needs_review", False),
-                     "unresolved_count": rep.get("unresolved_count", 0), "coverage": rep.get("coverage", {})})
+                     "entry_failed": s["entry_failed"], "needs_review": s["needs_review"],
+                     "unresolved_count": s["unresolved_count"], "coverage": s["coverage"]})
     return runs
 
 
