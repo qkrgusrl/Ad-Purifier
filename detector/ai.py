@@ -24,16 +24,25 @@ GEMMA_MIN_CHARS = 20         # 이보다 짧은 문구(링크 글자·메뉴)는
 GEMMA_MIN_AMBIGUITY = .6     # 판단 곤란 점수(0~1)가 이 이상인 것만 Gemma 후보
 
 
-def ambiguity(text, score, p, conflict=False):
+def ambiguity(text, score, p, conflict=False, text_score=None):
     """(판단 곤란 점수, 제외 이유). Laya 확률이 0.5에 가까울수록, 규칙 점수가 경계 구간(LOW~HIGH) 가운데일수록,
-    규칙과 Laya가 서로 반대쪽으로 강하게 기울수록 높다. 점수가 None이면 Gemma로 보내지 않는다 ('short' 짧은 문구, 'clear' 판단 가능).
-    예: 규칙 점수가 경계 가운데면 Laya 0.34~0.66, 경계 끝(LOW·HIGH)이면 Laya 0.5 언저리만 후보."""
-    if len(" ".join(str(text).split())) < GEMMA_MIN_CHARS:
+    규칙과 Laya가 서로 반대쪽으로 강하게 기울수록 높다. 점수가 None이면 Gemma로 보내지 않는다
+    ('short' 짧은 문구, 'clear' 판단 가능, 'context' 교육·보도 페이지의 짧은 문구라 맥락대로 정상).
+    예: 규칙 점수가 경계 가운데면 Laya 0.34~0.66, 경계 끝(LOW·HIGH)이면 Laya 0.5 언저리만 후보.
+    conflict(Laya는 광고 확신, 페이지는 교육·보도 글): text_score(맥락 감점을 뺀 문구 자체 점수)로 나눈다 —
+    문구에 광고 단서가 충분하면(HIGH 이상) 끼어든 스팸이라 Laya를 따르고('clear'), 짧으면 '카지노' 메뉴·시설명 같은
+    맥락 속 단어라 정상('context'), 그 사이만 Gemma 후보. (hanyanglaw·counselpsy 10-22: 이 경로의 스팸 32건을 Gemma가 정상으로 뒤집음)"""
+    short = len(" ".join(str(text).split())) < GEMMA_MIN_CHARS
+    if conflict:
+        if text_score is not None and text_score >= adscore.HIGH:
+            return None, "clear"
+        if short:
+            return None, "context"
+        return max(GEMMA_MIN_AMBIGUITY, ambiguity(text, score, p)[0] or 0), None
+    if short:
         return None, "short"
     r = min(1, max(0, (score - adscore.LOW) / (adscore.HIGH - adscore.LOW)))
     a = .6 * (1 - abs(2 * p - 1)) + .2 * (1 - abs(2 * r - 1)) + .2 * max(0, -(2 * p - 1) * (2 * r - 1))
-    if conflict:  # Laya는 광고라고 확신하지만 페이지가 교육·보도 글 — 확신도와 별개로 판단 곤란
-        a = max(a, GEMMA_MIN_AMBIGUITY)
     return (round(a, 3), None) if a >= GEMMA_MIN_AMBIGUITY else (None, "clear")
 
 
@@ -579,7 +588,8 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
             meter.snapshot["gemma"]["eligible_extract"] += 1
             meter.progress("gemma")
 
-    stats["gemma_skipped"] = {"short": 0, "clear": 0, "budget": 0}
+    stats["gemma_skipped"] = {"short": 0, "clear": 0, "context": 0, "budget": 0}
+    CONTEXT_SIGNALS = ("page-context", "body-context")
 
     def select_for_gemma(items, rows):
         """Gemma 대기열(검증 items·추출 rows)을 판단 곤란 점수로 줄 세워 남은 시간 ÷ GEMMA_SEC_PER_ITEM 건만 남기고
@@ -589,8 +599,10 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
         ranked = []
         for c in items:
             p = c["ml_prob"]
+            detail = c.get("score_detail") or []
+            text_score = sum(w for n, w in detail if n not in CONTEXT_SIGNALS) if detail else None
             a, why = ambiguity(c.get("evidence_text", ""), c.get("score", 0), p,
-                               context_conflict(c, p, laya_confidence_threshold))
+                               context_conflict(c, p, laya_confidence_threshold), text_score)
             ranked.append((a, why, "verify", c))
         for row in rows:
             p = predictions[key(row)]
@@ -609,8 +621,13 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
             why = why or "budget"
             stats["gemma_skipped"][why] += 1
             label = {"short": "짧은 문구라 Gemma 대상 아님", "clear": "규칙·Laya로 판단 가능",
-                     "budget": "Gemma 시간 한도"}[why]
-            if kind == "verify":
+                     "context": "교육·보도 페이지의 짧은 문구", "budget": "Gemma 시간 한도"}[why]
+            if kind == "verify" and why == "context":
+                obj.pop("review_code", None)
+                obj.update(verdict="clean", decided_by="rules", processing_status="completed",
+                           reason=f"맥락 정상 ({label}: Laya 광고 확신이지만 문구 자체 단서가 약함)")
+                obj["gemma_skip"] = why
+            elif kind == "verify":
                 laya_fallback(obj, label)
                 obj["gemma_skip"] = why
             else:  # 잔여 원문(규칙 확정 미만)은 Gemma가 광고 근거를 확인하지 않으면 정상으로 둔다

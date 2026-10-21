@@ -11,7 +11,6 @@ MID = (adscore.LOW + adscore.HIGH) / 2
 class GemmaSelectionTests(unittest.TestCase):
     def test_short_text_never_goes_to_gemma(self):
         self.assertEqual(ambiguity("강남 달토", MID, .5), (None, "short"))
-        self.assertEqual(ambiguity("강남 달토", MID, .99, conflict=True), (None, "short"))
 
     def test_rule_and_laya_agree_is_decidable(self):
         self.assertEqual(ambiguity(LONG, adscore.HIGH, .95)[1], "clear")
@@ -29,8 +28,15 @@ class GemmaSelectionTests(unittest.TestCase):
     def test_more_ambiguous_ranks_higher(self):
         self.assertGreater(ambiguity(LONG, MID, .5)[0], ambiguity(LONG, MID, .4)[0])
 
-    def test_context_conflict_keeps_long_text_as_candidate(self):
-        self.assertIsNotNone(ambiguity(LONG, adscore.HIGH, .97, conflict=True)[0])
+    def test_context_conflict_splits_by_text_own_score(self):
+        # Laya 광고 확신 + 교육·보도 페이지: 문구 자체 단서가 충분하면 끼어든 스팸 → Laya를 따른다
+        self.assertEqual(ambiguity(LONG, MID, .95, conflict=True, text_score=6), (None, "clear"))
+        # 짧은 문구('카지노' 메뉴·시설명)는 맥락대로 정상
+        self.assertEqual(ambiguity("카지노 실습실", MID, .95, conflict=True, text_score=3), (None, "context"))
+        # 긴 문구인데 단서가 약하면 Gemma 후보 (약관 문장 등 Laya 오탐)
+        a, why = ambiguity(LONG, -3.5, .91, conflict=True, text_score=-3.5)
+        self.assertIsNone(why)
+        self.assertGreaterEqual(a, GEMMA_MIN_AMBIGUITY)
 
 
 if __name__ == "__main__":
