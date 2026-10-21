@@ -29,7 +29,7 @@ from urllib.parse import parse_qs, urlparse
 
 from app_paths import bootstrap, resource_root, gemma_model, llama_server
 
-from detector.main import DEFAULT_MODEL, JUDGE_RESERVE, KST, LLM_RESERVE, TIME_BUDGET, ScanCancelled, app_dir, run
+from detector.main import DEFAULT_MODEL, DOWNLOAD_ERROR, JUDGE_RESERVE, KST, LLM_RESERVE, TIME_BUDGET, ScanCancelled, app_dir, run
 
 CRAWL_LIMIT = TIME_BUDGET - LLM_RESERVE - JUDGE_RESERVE  # 화면 진행률에 쓰는 크롤링 최대 시간(초)
 NO_LIMIT_BUDGET = 7 * 24 * 3600  # --no-time-limit: 사실상 무제한(대기열이 비면 끝난다)
@@ -157,6 +157,14 @@ def restore_review_state(rep):
     pending = sum(c.get("verdict") == "uncertain" for c in rep.get("candidates", []))
     pending += len(rep.get("ai", {}).get("unresolved_sources", []))
     rep["unresolved_count"] = max(rep.get("unresolved_count", 0), pending)
+    # 이전 점검에서 접속 실패로 기록된 파일 다운로드 주소(down.php 등)는 다운로드 링크로 다시 분류한다 (원본 파일은 그대로)
+    entry = rep.get("meta", {}).get("entry_url")
+    downloads = [f for f in rep.get("failed_pages", []) if DOWNLOAD_ERROR in str(f.get("reason", "")) and f.get("url") != entry]
+    if downloads:
+        rep["failed_pages"] = [f for f in rep["failed_pages"] if f not in downloads]
+        rep["download_links"] = rep.get("download_links", []) + [{"url": f["url"]} for f in downloads]
+        rep.pop("coverage", None)  # 저장된 접속 실패 수를 아래에서 다시 계산
+        rep["crawl_incomplete"] = rep["needs_review"] = False  # 남은 미확인 범위·보류로 아래에서 다시 판정
     failures = rep.get("failed_pages", [])
     frames = rep.get("failed_frames", [])
     queued = rep.get("left_in_queue", 0)

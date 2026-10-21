@@ -143,6 +143,11 @@ class ScanCancelled(Exception):
     """사용자가 탐지를 취소함. 결과 파일(result.json·report.json)은 쓰지 않는다."""
 
 
+# 접속하면 파일을 내려주는 주소(down.php 등): 다운로드를 막아 두어(accept_downloads=False) goto가 이 오류로 끝난다.
+# 웹페이지가 아니라 광고가 있을 수 없으므로 접속 실패가 아니라 '다운로드 링크(건너뜀)'으로 센다
+DOWNLOAD_ERROR = "Download is starting"
+
+
 class PageLoadError(Exception):
     """페이지에 접속하지 못함(연결 거부·DNS 실패·시간 초과 등). 브라우저 오류 화면을 '깨끗한 페이지'로 오판하지 않기 위해 구분한다."""
 
@@ -285,7 +290,7 @@ async def open_page(ctx, url, timeout_ms, on_site=None, blocked=None):
         except Exception as e:
             await close_page(page)
             first_err = first_err or e
-            if attempt == len(attempts):
+            if attempt == len(attempts) or DOWNLOAD_ERROR in str(e):  # 파일 응답은 다른 주소로 다시 시도하지 않는다
                 e = first_err  # 원래 주소의 실패 원인을 보고
                 raise PageLoadError(f"{type(e).__name__}: {str(e).splitlines()[0]}") from e
             await asyncio.sleep(1)
@@ -347,7 +352,7 @@ async def crawl(entry, concurrency, timeout_ms, progress=None, user_agent=DEFAUL
     페이지 수 제한은 없다. deadline: time.perf_counter() 기준 크롤링 마감 시각(None = 없음).
     마감이 되면 새 페이지는 열지 않고, 열어 둔 페이지만 마저 검사한 뒤 끝낸다.
     cancel: threading.Event. 켜지면 브라우저를 바로 닫아 열려 있던 페이지 대기까지 끊고 돌아온다(결과는 버림 — run이 처리).
-    문제 목록: {"failed": 접속 실패 [{url, reason}], "http_errors": 4xx/5xx 응답 [{url, status}],
+    문제 목록: {"failed": 접속 실패 [{url, reason}], "http_errors": 4xx/5xx 응답 [{url, status}], "downloads": 파일 다운로드 주소(건너뜀) [{url}],
                "external_skipped": 다른 사이트로 넘어가 제외한 페이지 [{url, final_url}],
                "stopped_by_time": 마감으로 멈췄는지, "left_in_queue": 못 본 대기 주소 수, "dropped_endless": 버린 검색·정렬 주소 수}
     점검 범위는 진입 사이트(www 유무 무시)뿐이다. 링크 주소뿐 아니라 리다이렉트 이후의 최종 주소도 검사한다.
@@ -358,7 +363,7 @@ async def crawl(entry, concurrency, timeout_ms, progress=None, user_agent=DEFAUL
         return site_key(urlparse(u).netloc) == site_key(site["host"])
 
     frontier, results = Frontier(), []
-    failed, http_errors, external = [], [], []
+    failed, http_errors, external, downloads = [], [], [], []
     frame_urls = set()  # iframe으로 삽입된 문서: 상위 페이지 기준으로 보고하므로 단독 페이지로 크롤링하지 않음
     frontier.add(entry, crawl_key(entry), depth=0)
 
@@ -429,6 +434,9 @@ async def crawl(entry, concurrency, timeout_ms, progress=None, user_agent=DEFAUL
                     frontier.add_links(crawlable(lt for _, data in frames for lt in data["links"]), depth + 1)
                     recent.append(False)
                 except Exception as e:  # 한 페이지 실패가 전체를 멈추지 않게 (점검 페이지 수에는 넣지 않음)
+                    if DOWNLOAD_ERROR in str(e) and url != entry:  # 파일 다운로드 링크: 접속 실패로 세지 않음
+                        downloads.append({"url": url})
+                        continue
                     timed_out = "Timeout" in str(e)
                     recent.append(timed_out)
                     if (not state["slow"] and len(recent) >= SLOW_WINDOW // 2
@@ -444,7 +452,7 @@ async def crawl(entry, concurrency, timeout_ms, progress=None, user_agent=DEFAUL
                 finally:
                     state["inflight"] -= 1
                     if progress:
-                        progress(len(results) + len(failed) + len(external), len(frontier.seen), url)
+                        progress(len(results) + len(failed) + len(external) + len(downloads), len(frontier.seen), url)
 
         async def watch_cancel():
             while not cancel.is_set():
@@ -458,7 +466,7 @@ async def crawl(entry, concurrency, timeout_ms, progress=None, user_agent=DEFAUL
         await browser.close()
     # 순서상 iframe 문서가 먼저 큐에 들어갔던 경우까지 정리
     pages = [(u, f) for u, f in results if norm_url(u) not in frame_urls]
-    return pages, {"failed": failed, "http_errors": http_errors, "stopped_by_time": state["stopped_by_time"],
+    return pages, {"failed": failed, "http_errors": http_errors, "downloads": downloads, "stopped_by_time": state["stopped_by_time"],
                    "left_in_queue": len(frontier), "dropped_endless": frontier.dropped_endless,
                    "skipped_utility": frontier.skipped_utility, "visit_log": visit_log,
                    "external_skipped": external, "slow_mode": state["slow"], "retried": len(retried)}
@@ -800,6 +808,7 @@ def run(entry_url, out, concurrency=4, timeout=15000, model=DEFAULT_MODEL, use_m
               "needs_review": bool(unresolved or crawl_incomplete or not use_ml), "crawl_incomplete": crawl_incomplete,
               "coverage": coverage, "failed_frames": frame_failures, "unresolved_count": unresolved, "ai": ai, "meta": meta, "pages": len(pages), "crawl_sec": round(t_crawl, 2), "entry_failed": entry_failed,
               "failed_pages": issues["failed"], "http_errors": issues["http_errors"],
+              "download_links": issues.get("downloads", []),  # 파일 다운로드 주소(건너뜀) — 접속 실패·미확인 범위가 아님
               "stopped_by_time": issues["stopped_by_time"], "left_in_queue": issues["left_in_queue"],
               "dropped_endless": issues["dropped_endless"], "skipped_utility": issues["skipped_utility"], "time_budget": time_budget, "llm_reserve": llm_reserve,
               "visit_log": issues["visit_log"], "external_skipped": issues["external_skipped"],

@@ -40,6 +40,8 @@ class CrawlRetryGlueTests(unittest.IsolatedAsyncioTestCase):
                 outcome = next(remaining)
             except StopIteration:
                 self.fail("예약 페이지 이외의 방문 또는 불필요한 추가 재시도")
+            if outcome == "download":
+                raise main.PageLoadError("Error: Page.goto: Download is starting")
             if outcome == "timeout":
                 if before_timeout is not None:
                     await before_timeout()
@@ -86,6 +88,21 @@ class CrawlRetryGlueTests(unittest.IsolatedAsyncioTestCase):
         pages, issues = await self.collect(["success"])
         self.assertEqual(self.calls, [ENTRY])
         self.assert_success(pages, issues, retried=0)
+
+    async def test_file_download_link_is_skipped_not_failed(self):
+        # down.php처럼 파일을 내려주는 주소: 다운로드를 막아 두어 goto가 실패하지만 접속 실패로 세지 않고 다시 시도하지도 않는다
+        pages, issues = await self.collect(["success", "download"], sitemap=[COMPETING])
+        self.assertEqual(self.calls, [ENTRY, COMPETING])
+        self.assertEqual([url for url, _ in pages], [ENTRY])
+        self.assertEqual(issues["failed"], [])
+        self.assertEqual(issues["downloads"], [{"url": COMPETING}])
+        self.assertEqual(issues["retried"], 0)
+
+    async def test_entry_download_stays_entry_failure(self):
+        pages, issues = await self.collect(["download"])
+        self.assertEqual(pages, [])
+        self.assertEqual([f["url"] for f in issues["failed"]], [ENTRY])
+        self.assertEqual(issues["downloads"], [])
 
     async def test_deadline_and_cancel_allow_stop_and_keep_retry_pending_visible(self):
         for mode in ("deadline", "cancel"):
