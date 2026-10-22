@@ -373,7 +373,7 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
     try:
         if rows_by_key and check():
             from training.make_dataset import QUESTION
-            # Laya는 laya_deadline(크롤링+Laya 21분)까지, 남은 시간은 Gemma 몫
+            # Laya는 laya_deadline(Gemma 최소 몫을 남긴 시각, 기본 26분 30초)까지, 남은 시간은 Gemma 몫
             laya_until = min((d for d in (deadline, laya_deadline) if d is not None), default=None)
             with LayaRunner(model_path, deadline=laya_until, cancel=cancel) as runner:
                 # 같은 child/tokenizer로 검사 계획만 만든다. 모델/수집 문구/규칙은 바꾸지 않는다.

@@ -713,11 +713,14 @@ EXTRA_LABEL = {"POSTED": "게시형 불법광고(은닉 없음)"}
 
 
 # 시간 예산(초). 적격평가 검출 시간 상한은 30분 — 넘기면 시간 점수 0점, result.json이 없으면 평가 제외될 수 있다.
-# 순서: 크롤링(19분) → Laya 판정(21분까지) → Gemma 검증(28분 30초까지) → 저장. 페이지 수 제한은 없다.
+# 순서: 크롤링(19분) → Laya 판정(26분 30초까지) → Gemma 검증(28분 30초까지) → 저장. 페이지 수 제한은 없다.
 TIME_BUDGET = 29 * 60   # 전체 목표: 30분 상한에서 1분 여유
 JUDGE_RESERVE = 2 * 60  # 크롤링 뒤 Laya 판정 몫. 실사이트 11곳 측정 시 판정은 0.4~11초
-LLM_RESERVE = 8 * 60    # Laya 판정 뒤 Gemma 검증 몫 (크롤링+Laya는 time_budget - llm_reserve = 21분까지)
+LLM_RESERVE = 8 * 60    # 크롤링 뒤 AI 판정(Laya·Gemma) 몫 — 크롤링은 time_budget - llm_reserve - JUDGE_RESERVE = 19분까지
 GEMMA_SEC_PER_ITEM = 10 # Gemma 1건에 넉넉잡아 10초 → Gemma에 보내는 건수 = 남은 시간 ÷ 10초 (8분이면 약 48건)
+# Laya는 Gemma 몫으로 최소 이만큼 남기고 판정 마감(28분 30초)까지 쓴다. Gemma는 남은 시간에 맞춰 건수를 줄이므로
+# Laya를 21분에 고정해 자를 필요가 없다 (10-22 counselpsy: Laya가 21분에 끊겨 794건 보류, 점검은 22분 반에 끝남)
+GEMMA_MIN = 2 * 60
 
 
 def run(entry_url, out, concurrency=4, timeout=15000, model=DEFAULT_MODEL, use_ml=True,
@@ -746,7 +749,7 @@ def run(entry_url, out, concurrency=4, timeout=15000, model=DEFAULT_MODEL, use_m
     started = datetime.now(KST)
     t0 = time.perf_counter()
     crawl_deadline = t0 + max(60, time_budget - llm_reserve - JUDGE_RESERVE)
-    laya_deadline = None if complete_validation else t0 + max(60, time_budget - llm_reserve)
+    laya_deadline = None if complete_validation else t0 + max(60, time_budget - 30 - GEMMA_MIN)
     judge_deadline = None if complete_validation else t0 + max(0, time_budget - 30)
     if complete_validation:  # 시간 상한 없이 끝까지 판정하는 모드는 Gemma 넘김도 제한하지 않는다
         gemma_sec_per_item = None
