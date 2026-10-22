@@ -46,8 +46,9 @@ def ambiguity(text, score, p, conflict=False, text_score=None):
     return (round(a, 3), None) if a >= GEMMA_MIN_AMBIGUITY else (None, "clear")
 
 
-# URL만 있는 문구 ('https://www.wooribugo4.com/page/funeral/view.php?…', 'pf.kakao.com/_lGzxkn')
-BARE_URL = re.compile(r"(?:https?://|www\.)?[a-z0-9가-힣-]+(?:\.[a-z0-9가-힣-]+)*\.(?:[a-z]{2,}|xn--[a-z0-9-]+|[가-힣]{2,})(?::\d+)?(?:[/?#]\S*)?", re.I)
+# URL만 있는 문구 ('https://www.wooribugo4.com/page/funeral/view.php?…', 'pf.kakao.com/_lGzxkn').
+# 게시판 '홈페이지' 칸에 스킴을 두 번 적은 'http://http://sgy1388.or.kr/'도 URL만 있는 문구다 (djbokji 10-22).
+BARE_URL = re.compile(r"(?:https?://)*(?:www\.)?[a-z0-9가-힣-]+(?:\.[a-z0-9가-힣-]+)*\.(?:[a-z]{2,}|xn--[a-z0-9-]+|[가-힣]{2,})(?::\d+)?(?:[/?#]\S*)?", re.I)
 RULE_CLUE_MIN = 1  # 잔여 선별 단서 최소 점수: '바로가기'(0.3)·'중계'(0.5)·'주소'(0.5) 같은 약한 말만 있으면 단서로 치지 않는다
 
 
