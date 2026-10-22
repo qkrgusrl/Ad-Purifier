@@ -30,7 +30,10 @@ class RuleKeywordTests(unittest.TestCase):
                      "컨텐츠이용료현금화 소액결제티켓",
                      "슈가통신 선불유심내구제 급전문의",
                      "@SV공장워치 @레플리카지존급 @이미테이션신발",
-                     "#현찰횰덤 badugi횰덤 솔로몬흘덤제작"):
+                     "#현찰횰덤 badugi횰덤 솔로몬흘덤제작",
+                     # hanyanglaw·counselpsy 재점검 (10-22): 변형 표기·쪼갠 홀덤·업소 은어·상품권 환전·가품 단독 문구
+                     "#광안리횰덤 #광주횰덤", "챔피언바두기", "vivebadukigame", "파워샷홀' 덤",
+                     "강남 하이퍼블릭", "♦ 셔츠룸 기본 시스템", "쩜오 가격", "상품권 → 테더(USDT)", "상품권 · 코인 교환", "@레플S급"):
             with self.subTest(text=text):
                 self.assertGreaterEqual(score(text), adscore.HIGH)
 
@@ -47,6 +50,8 @@ class RuleKeywordTests(unittest.TestCase):
                      "모빌리언스 휴대폰 결제 안내",
                      "이미테이션 게임 상영",
                      "강남 노래방",
+                     "홀덤 대회 안내",
+                     "1쩜오배 늘었다",
                      # 광고 관련 법률 Q&A 답변 (fresh F50)
                      "(답변) 광고의 특성상 미화나 홍보는 적법한 상행위로 민·형사상 책임을 지지 않으나 성인 무삭제 포르노 광고는 사기 처벌"):
             with self.subTest(text=text):
