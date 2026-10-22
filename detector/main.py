@@ -475,7 +475,8 @@ async def crawl(entry, concurrency, timeout_ms, progress=None, user_agent=DEFAUL
 BODY_CONTEXT = True  # 본문 맥락 감점 사용 (평가 비교용 스위치)
 LINK_FARM_MIN = 3      # 같은 외부 사이트로 가는 본문 링크가 이만큼 이상이고
 LINK_FARM_TEXT_MAX = 30  # 링크 글자가 짧은 키워드(이 글자 수 이하)이며
-LINK_FARM_BONUS = 3    # 그중 하나라도 광고 키워드면 → 그 사이트로 가는 링크 전부에 가산점
+LINK_FARM_BONUS = 4    # 그중 하나라도 광고 키워드면 → 그 사이트로 가는 링크 전부 확정 (10-22: 이력 40건에서 링크 농장은 스팸 글에만 있었고,
+                       #   3점일 땐 '강남'·'안마' 같은 짧은 링크 글자를 Laya가 정상으로 넘김 — counselpsy 수천 건 놓침)
 REDIRECT_BONUS = 2     # 페이지가 스크립트로 다른 사이트로 넘기려 함(기생 페이지) → 광고 근거가 있는 문구에 가산점
 HEAD_TEXT_MIN = 10     # 본문 글자 요소가 이보다 적은 페이지는 제목·메타 태그 문구도 검사
 UI_CONTROL = re.compile(r"신고하기|신고 하기|고객센터|관련\s*글|목록|이전\s*글|다음\s*글|댓글|로그인|회원가입|바로가기")
