@@ -50,11 +50,15 @@ def homoglyph_signals(raw):
             sig.append("lookalike-script:" + tok)
     if ZERO_WIDTH.search(raw):
         sig.append("zero-width")
+    # 한글 자음 뒤 모음 자리에 닮은 영문을 쓴 표기: 'ㅋr지노'(카지노), 'ㅅl트'(시트). 'ㅋㅋㅋlol'처럼 뒤가 영문이면 제외
+    sig.extend("hangul-latin:" + m.group(0) for m in HANGUL_LATIN.finditer(raw))
     # 숫자 자리에 닮은 글자('O'→0, 'l'→1)를 써서 전화번호·'19금'을 위장한 것도 닮은꼴 글자 위장이다 (요강: 숫자 또는 닮은 문자를 섞음)
     sig.extend("digit-disguise:" + d for d in dict.fromkeys(digit_disguise(raw)))
     return sig
 
 
+HANGUL_LATIN = re.compile(r"[ㄱ-ㅎ][rlI|](?=[가-힣ㄱ-ㅣ]|\s|$)")
+HANGUL_LATIN_VOWEL = {"r": "ㅏ", "l": "ㅣ", "I": "ㅣ", "|": "ㅣ"}
 DIGIT_LOOKALIKE = {"o": "0", "ㅇ": "0", "〇": "0", "l": "1", "i": "1", "|": "1"}
 _DIGIT_SEP = "-. "
 
@@ -167,11 +171,17 @@ def _is_jung(c):
     return c in JUNG
 
 
+JAMO_SEP = " .·-_"  # 'ㅌ ㅗ ㅌ ㅗ', 'ㅋ.ㅏ.ㅈ.ㅣ'처럼 자모 사이에 한 글자씩 끼운 우회
+JAMO_PAIR = re.compile(f"[{CHO}][{re.escape(JAMO_SEP)}]?[{JUNG}]")
+# 조합용 자모(U+1100~): 화면에는 완성형처럼 보이지만 음절이 자모로 쪼개진 문자열 (NFD 분해)
+CONJOINING_PAIR = re.compile("[\u1100-\u1112][\u1161-\u1175]")
+
+
 def jamo_signal(raw):
-    """분해된 음절(자음+모음 연속)이 2개 이상이면 자모 분해로 본다. ㅋㅋㅋ/ㅠㅠ 는 해당 없음."""
-    s = unicodedata.normalize("NFC", raw)
-    pairs = sum(1 for a, b in zip(s, s[1:]) if _is_cho(a) and _is_jung(b))
-    return pairs >= 2
+    """분해된 음절(자음+모음, 사이에 구분자 한 글자 허용)이 2개 이상이면 자모 분해로 본다. ㅋㅋㅋ/ㅠㅠ 는 해당 없음."""
+    if len(CONJOINING_PAIR.findall(raw)) >= 2:
+        return True
+    return len(JAMO_PAIR.findall(unicodedata.normalize("NFC", raw))) >= 2
 
 
 def compose_jamo(text):
@@ -180,9 +190,10 @@ def compose_jamo(text):
     out, i, n = [], 0, len(s)
     while i < n:
         c = s[i]
-        if _is_cho(c) and i + 1 < n and _is_jung(s[i + 1]):
-            cho, jung = c, s[i + 1]
-            i += 2
+        sep = 1 if _is_cho(c) and i + 2 < n and s[i + 1] in JAMO_SEP and _is_jung(s[i + 2]) else 0
+        if _is_cho(c) and i + 1 + sep < n and _is_jung(s[i + 1 + sep]):
+            cho, jung = c, s[i + 1 + sep]
+            i += 2 + sep
             if i < n and _is_jung(s[i]) and (jung + s[i]) in JUNG_PAIR:
                 jung = JUNG_PAIR[jung + s[i]]
                 i += 1
@@ -205,7 +216,8 @@ def compose_jamo(text):
 # ---------------------------------------------------------------- 공통
 def normalize(raw):
     """판정용 정규화 텍스트: NFKC(전각/수학문자) → confusables → 자모 재조합 → 소문자."""
-    t = compose_jamo(ZERO_WIDTH.sub("", raw))
+    t = HANGUL_LATIN.sub(lambda m: m.group(0)[0] + HANGUL_LATIN_VOWEL[m.group(0)[1]], ZERO_WIDTH.sub("", raw))
+    t = compose_jamo(t)
     # NFKC는 호환 자모(ㄱ~ㅣ)를 조합용 자모로 바꿔 버리므로 그 범위는 제외
     t = "".join(c if 0x3131 <= ord(c) <= 0x318E else unicodedata.normalize("NFKC", c) for c in t)
     t = "".join(CONFUSABLES.get(c, c) for c in t)
