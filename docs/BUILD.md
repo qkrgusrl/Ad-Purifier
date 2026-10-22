@@ -14,8 +14,9 @@
   공식 배포 ZIP을 실제 다운로드하여 계산한 파일별 size/SHA256을 `assets.lock.json`에 보존.
 - Python wheel: `requirements-windows.lock.txt`의 정확한 버전과 실제 SHA256.
   torch는 PyTorch 공식 CPU wheel URL을 직접 잠근다. CUDA 패키지를 설치하지 않는다.
-- CRT: VS 2022 설치의 최신 숫자 버전 `VC/Redist/MSVC/<version>/x64/Microsoft.VC143.CRT`
+- CRT: VS 2022 이상 설치에서 `VC/Redist/MSVC/<version>/x64/Microsoft.VC143.CRT`가 있는 최신 숫자 버전
   디렉터리 하나에서 release DLL 세트 전체를 복사한다. 다른 family나 System32에서 보충하지 않는다.
+  CI runner는 VS 2022, VS 2026은 VC145와 함께 VC143(14.44)도 설치하므로 같은 family를 고른다.
   CRT는 소스 버전/해시 고정 입력이 아니다. CI가 실제 선택한 family·파일 버전·크기·SHA256을
   `crt-manifest.json`에 기록하고, 최종 `installed-assets.json`에도 실제 설치 바이트를 포함한다.
   소스 `assets.lock.json`에는 미검증 CRT 행을 추가하지 않는다.
@@ -38,6 +39,24 @@ private 입력은 `GH_TOKEN` 환경변수를 사용하는 `gh release download`�
 빌드 시작 시 14 GiB 여유 공간을 검사한다. 코드부터 동결하고 큰 자산은 dist에 직접 기록한다.
 ZIP은 추출 직후 삭제한다. Inno 압축이 끝나면 dist를 삭제한 뒤 설치 시험을 진행한다.
 전체 Windows 실행 성공은 CI 진단과 설치 JSON으로 확인해야 한다. macOS 유닛 테스트는 그 증거가 아니다.
+
+## 로컬 Windows PC 빌드
+
+같은 스크립트를 Windows PowerShell 5.1(Windows 기본)이나 pwsh 7로 실행한다. 필요한 것은 Python 3.12(3.12.0 제외),
+VS 2022 이상의 C++ 도구(VC143 CRT), Inno Setup 6, private Laya 입력을 받을 수 있는 `gh auth login`, 14 GiB 여유 공간이다.
+스크립트가 `build/`를 삭제하므로 잠금 의존성 venv는 그 밖에 만든다.
+
+```powershell
+py -3.12 -m venv .venv-build
+.venv-build\Scripts\python.exe -m pip install --require-hashes -r requirements-windows.lock.txt
+powershell -ExecutionPolicy Bypass -File scripts\build_windows.ps1 -Python .venv-build\Scripts\python.exe
+```
+
+CI 전용 값은 로컬 값으로 채운다: `RUNNER_TEMP` → `%TEMP%\adpurifier-build`, `GITHUB_REPOSITORY` → `gh repo view`,
+`GITHUB_SHA` → `git rev-parse HEAD`(커밋 안 된 변경이 있으면 경고), `PYTHONUTF8` → `1`. CI에서는 기존 값을 그대로 쓴다.
+`-SkipUnitTests`는 로컬 전용이며 CI(`GITHUB_ACTIONS=true`)에서는 거부한다. 패키징 계약 테스트 일부는 pwsh 7을 요구한다.
+스크립트는 UTF-8 BOM으로 저장한다. BOM이 없으면 5.1이 한글을 시스템 코드페이지로 읽어 구문 분석부터 실패한다.
+로컬 실행도 dist 삭제, `%LOCALAPPDATA%\설치 시험\광고청정기` 실제 설치(제거 프로그램 등록 포함)를 CI와 같이 수행한다.
 
 ## 설치 시험과 증거
 
