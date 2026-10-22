@@ -127,6 +127,9 @@ def scan_job(entry_url, use_ml):
         dest.mkdir(parents=True, exist_ok=True)
         for name in ("result.json", "report.json"):
             shutil.copy2(app_dir() / name, dest / name)
+        # 추가 탐지(게시형) 결과는 있을 때만 생긴다 — 다음 점검이 구동 폴더 파일을 덮어써도 이력에서 받을 수 있게 보관
+        if (app_dir() / "result_extra.json").is_file():
+            shutil.copy2(app_dir() / "result_extra.json", dest / "result_extra.json")
         with state_lock:
             state.update(phase="review" if report.get("needs_review") else "done", run_id=run_id)
     except ScanCancelled:  # 결과 파일·이력은 만들지 않는다 (지난 점검의 result.json 그대로)
@@ -406,21 +409,23 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(200, list_runs())
         parts = path.strip("/").split("/")
         if len(parts) >= 3 and parts[:2] == ["api", "runs"]:
-            if parts[3:] == ["result.json"]:
+            if parts[3:] in (["result.json"], ["result_extra.json"]):
                 # 탐지 엔진이 저장한 요강 붙임4 형식 파일을 바이트 그대로 전달 (재생성하지 않음).
                 # report.json(대형 사이트 900MB)을 읽지 않는다 — counselpsy 10-22에서 2.4MB 내려받기에 6.8초
+                name = parts[3]
                 d = run_dir(parts[2])
                 if not d:
                     return self.send(404, {"error": "점검 이력을 찾을 수 없습니다."})
-                if not (d / "result.json").is_file():
-                    return self.send(404, {"error": "이 점검의 result.json이 없습니다."})
-                return self.send(200, (d / "result.json").read_bytes(), "application/json; charset=utf-8",
-                                 {"Content-Disposition": 'attachment; filename="result.json"'})
+                if not (d / name).is_file():
+                    return self.send(404, {"error": f"이 점검의 {name}이 없습니다."})
+                return self.send(200, (d / name).read_bytes(), "application/json; charset=utf-8",
+                                 {"Content-Disposition": f'attachment; filename="{name}"'})
             rep = load_run(parts[2])
             if rep is None:
                 return self.send(404, {"error": "점검 이력을 찾을 수 없습니다."})
             if len(parts) == 3:
                 view = parse_qs(urlparse(self.path).query).get("view", [])
+                rep["has_extra"] = (HISTORY / parts[2] / "result_extra.json").is_file()  # 화면의 result_extra.json 버튼 표시용
                 return self.send(200, ui_report(rep) if view == ["ui"] else rep)
             result_path = HISTORY / parts[2] / "result.json"
             if parts[3:] == ["export.csv"]:

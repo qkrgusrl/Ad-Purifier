@@ -564,6 +564,7 @@ tr.row.in-page td:first-child { padding-left: 28px; }
         <div><h3><svg class="i"><use href="#ic-list"/></svg>탐지 결과</h3><p id="resultTitle"></p></div>
         <div class="export-btns">
           <button id="jsonBtn" type="button" class="ghost" title="요강 붙임4 표준 형식 (실행 폴더에 저장된 제출용 파일과 같은 내용)"><svg class="i"><use href="#ic-pages"/></svg>result.json 다운로드</button>
+          <button id="extraBtn" type="button" class="ghost" hidden title="요강 붙임4 추가 탐지 결과 파일 — 숨기지 않은 게시형 불법광고 (technique=ETC, extra_finding에 유형명)"><svg class="i"><use href="#ic-pages"/></svg>result_extra.json 다운로드</button>
           <button id="csvBtn" type="button" class="ghost" title="검토와 조치 관리용 엑셀 파일 (앞 6열은 result.json과 같은 필드)"><svg class="i"><use href="#ic-download"/></svg>엑셀(CSV) 내보내기</button>
         </div>
       </div>
@@ -774,6 +775,7 @@ async function openRun(id) {
     }
     if (!current || current.id !== rep.id) { techFilter.clear(); openKey = null; }
     current = rep;
+    $("extraBtn").hidden = !rep.has_extra;  // 게시형 탐지가 없던 점검, 10-22 이전 이력에는 파일이 없다
   } catch (e) { toast(`이력을 열 수 없습니다: ${e.message}`, true); return; }
   document.querySelectorAll("#history li").forEach(li => li.classList.toggle("active", li.dataset.id === id));
   $("guidePanel").hidden = true;
@@ -1373,6 +1375,7 @@ const NEED_RUN = "먼저 점검을 실행하거나 점검 이력을 선택해 �
 const exportCsv = () => { if (current) location.href = `/api/runs/${encodeURIComponent(current.id)}/export.csv`; else toast(NEED_RUN, true); };
 $("csvBtn").onclick = exportCsv;
 $("jsonBtn").onclick = () => { if (current) location.href = `/api/runs/${encodeURIComponent(current.id)}/result.json`; };
+$("extraBtn").onclick = () => { if (current) location.href = `/api/runs/${encodeURIComponent(current.id)}/result_extra.json`; };
 $("navCsv").onclick = e => { e.preventDefault(); exportCsv(); };
 $("logMore").onclick = () => { techFilter.clear(); render(); $("resultPanel").scrollIntoView({ behavior: "smooth" }); };
 
@@ -1385,7 +1388,7 @@ document.querySelectorAll(".nav a[data-nav]").forEach(a => a.addEventListener("c
 (async () => {
   try {
     const s = await api("/api/status");
-    $("outHint").textContent = `결과 파일(result.json) 저장 위치: ${s.out_dir}`;
+    $("outHint").textContent = `결과 파일(result.json·result_extra.json) 저장 위치: ${s.out_dir}`;
     modelAvailable = s.model_available;
     if (!modelAvailable) {
       $("outHint").textContent += " · AI 자산(Laya·Gemma)이 준비되지 않아 탐지를 시작할 수 없습니다. 설치 상태를 확인하세요.";
