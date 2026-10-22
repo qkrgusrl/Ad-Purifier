@@ -18,7 +18,7 @@ from urllib.parse import parse_qsl, urlencode, urlparse
 TECHNIQUES = {"HOMOGLYPH", "JAMO", "TRANSPARENT", "OFFSCREEN"}
 META_REQUIRED = {"topic": str, "entry_url": str, "started_at": str, "finished_at": str}
 FINDING_REQUIRED = {"id": str, "url": str, "is_violation": bool, "location": str, "evidence_text": str, "technique": str}
-EXTRA_REQUIRED = {"id": str, "url": str, "location": str, "evidence_text": str, "technique": str, "extra_finding": str}
+EXTRA_REQUIRED = {"id": str, "url": str, "is_violation": bool, "location": str, "evidence_text": str, "technique": str, "extra_finding": str}
 
 
 def norm_url(url):

@@ -462,7 +462,7 @@ class AITelemetryTests(unittest.TestCase):
              patch.object(server, 'app_dir', return_value=self.out), \
              patch.object(server, 'run', side_effect=fake_run), \
              patch.object(server.shutil, 'copy2'):
-            server.scan_job('https://fixture.invalid', True, 1)
+            server.scan_job('https://fixture.invalid', True)
             self.assertEqual(len(saved), 1)
             server.state.update(started=222, running=True, ai_progress=None)
             saved[0](dict(event='progress', snapshot=snap, run_id='audit-id', time='late'))

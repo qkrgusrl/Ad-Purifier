@@ -71,7 +71,7 @@ class CompletionPolicyTests(unittest.TestCase):
         with h:
             report = h.run(self.out, complete_validation=True)
             crawl_call = main.crawl.call_args
-        crawl_deadline = crawl_call.kwargs.get("deadline", crawl_call.args[6] if len(crawl_call.args) > 6 else None)
+        crawl_deadline = crawl_call.kwargs.get("deadline", crawl_call.args[5] if len(crawl_call.args) > 5 else None)
         self.assertEqual(crawl_deadline, 100. + max(60, 600 - 60 - main.JUDGE_RESERVE),
                          "완료 우선이어도 수집 deadline은 기존 계산 유지")
         self.assertEqual(captured["laya"], [None])

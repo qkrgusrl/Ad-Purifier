@@ -2,11 +2,11 @@
 
 실행하면 127.0.0.1에 서버를 띄우고 기본 브라우저로 화면을 연다.
 탐지 결과는 요강대로 구동 폴더(app_dir)에 result.json/report.json으로 쓰고,
-점검 이력은 history/<실행시각>/ 에 report.json, result.json, review.json(검토 상태·메모)으로 쌓는다.
+점검 이력은 history/<실행시각>/ 에 report.json, result.json(+result_extra.json), review.json(검토 상태·메모)으로 쌓고,
+목록·화면용 캐시(summary.json, ui_view.json)를 함께 둔다.
 이력 삭제는 history/ 아래 실행 ID 형식 폴더만 지운다 (구동 폴더의 제출용 result.json은 그대로).
 
-사용: python -m ui.server [--port 8780] [--no-browser] [--no-time-limit]
-      --no-time-limit: 실험용. 시간 한도 없이 대기열이 빌 때까지 사이트 전체를 탐색한다(제출 시간 30분을 넘길 수 있음).
+사용: python -m ui.server [--port 8780] [--no-browser]
 """
 import argparse
 import csv
@@ -15,6 +15,7 @@ import hashlib
 import io
 import importlib.util
 import json
+import os
 import re
 import shutil
 import sys
@@ -29,11 +30,10 @@ from urllib.parse import parse_qs, urlparse
 
 from app_paths import bootstrap, resource_root, gemma_model, llama_server
 
-from detector.main import DEFAULT_MODEL, JUDGE_RESERVE, KST, LLM_RESERVE, TIME_BUDGET, ScanCancelled, app_dir, run
+from detector.main import DEFAULT_MODEL, DOWNLOAD_ERROR, JUDGE_RESERVE, KST, LLM_RESERVE, TIME_BUDGET, ScanCancelled, app_dir, run
 
 CRAWL_LIMIT = TIME_BUDGET - LLM_RESERVE - JUDGE_RESERVE  # 화면 진행률에 쓰는 크롤링 최대 시간(초)
-NO_LIMIT_BUDGET = 7 * 24 * 3600  # --no-time-limit: 사실상 무제한(대기열이 비면 끝난다)
-options = {"time_limit": True, "complete_validation": True}
+options = {"complete_validation": False}
 
 STATIC = resource_root() / "ui" / "static"
 HISTORY = app_dir() / "history"
@@ -43,7 +43,7 @@ REVIEW_STATES = {"new", "confirmed", "false_positive", "resolved"}
 
 state_lock = threading.Lock()
 state = {"running": False, "phase": "idle", "entry_url": "", "pages_done": 0, "pages_found": 0, "current_url": "",
-         "started": None, "run_id": None, "error": None, "cancelling": False, "max_pages": 0, "ai_progress": None}
+         "started": None, "run_id": None, "error": None, "cancelling": False, "ai_progress": None}
 cancel_event = threading.Event()  # 탐지 취소 신호 (진행 중인 점검 하나에만 쓰고, 새 점검을 시작할 때 비운다)
 
 
@@ -100,7 +100,7 @@ def cand_key(c):
     return hashlib.sha1(payload.encode()).hexdigest()[:12]
 
 
-def scan_job(entry_url, use_ml, max_pages):
+def scan_job(entry_url, use_ml):
     with state_lock:
         started = state["started"]
 
@@ -123,15 +123,19 @@ def scan_job(entry_url, use_ml, max_pages):
 
     run_id = datetime.now(KST).strftime("%Y%m%d-%H%M%S")
     try:
-        budget = {} if options["time_limit"] else {"time_budget": NO_LIMIT_BUDGET}
-        report = run(entry_url, app_dir(), max_pages=max_pages, use_ml=use_ml, progress=progress, phase=phase,
-            cancel=cancel_event, complete_validation=options["complete_validation"], telemetry=observer, **budget)
+        report = run(entry_url, app_dir(), use_ml=use_ml, progress=progress, phase=phase,
+            cancel=cancel_event, complete_validation=options["complete_validation"], telemetry=observer)
         dest = HISTORY / run_id
         dest.mkdir(parents=True, exist_ok=True)
         for name in ("result.json", "report.json"):
             shutil.copy2(app_dir() / name, dest / name)
+        # 추가 탐지(게시형) 결과는 있을 때만 생긴다 — 다음 점검이 구동 폴더 파일을 덮어써도 이력에서 받을 수 있게 보관
+        if (app_dir() / "result_extra.json").is_file():
+            shutil.copy2(app_dir() / "result_extra.json", dest / "result_extra.json")
         with state_lock:
             state.update(phase="review" if report.get("needs_review") else "done", run_id=run_id)
+        # 이력 목록 요약·화면용 결과를 미리 만들어 둔다 (대형 사이트는 report.json 파싱에 수 초 — 첫 클릭이 느려지지 않게)
+        threading.Thread(target=warm_run_caches, args=(run_id,), daemon=True).start()
     except ScanCancelled:  # 결과 파일·이력은 만들지 않는다 (지난 점검의 result.json 그대로)
         with state_lock:
             state.update(phase="cancelled")
@@ -157,6 +161,14 @@ def restore_review_state(rep):
     pending = sum(c.get("verdict") == "uncertain" for c in rep.get("candidates", []))
     pending += len(rep.get("ai", {}).get("unresolved_sources", []))
     rep["unresolved_count"] = max(rep.get("unresolved_count", 0), pending)
+    # 이전 점검에서 접속 실패로 기록된 파일 다운로드 주소(down.php 등)는 다운로드 링크로 다시 분류한다 (원본 파일은 그대로)
+    entry = rep.get("meta", {}).get("entry_url")
+    downloads = [f for f in rep.get("failed_pages", []) if DOWNLOAD_ERROR in str(f.get("reason", "")) and f.get("url") != entry]
+    if downloads:
+        rep["failed_pages"] = [f for f in rep["failed_pages"] if f not in downloads]
+        rep["download_links"] = rep.get("download_links", []) + [{"url": f["url"]} for f in downloads]
+        rep.pop("coverage", None)  # 저장된 접속 실패 수를 아래에서 다시 계산
+        rep["crawl_incomplete"] = rep["needs_review"] = False  # 남은 미확인 범위·보류로 아래에서 다시 판정
     failures = rep.get("failed_pages", [])
     frames = rep.get("failed_frames", [])
     queued = rep.get("left_in_queue", 0)
@@ -173,11 +185,41 @@ def restore_review_state(rep):
     return rep
 
 
+SUMMARY_VERSION = 1  # 요약 항목·복원 규칙이 바뀌면 올려서 기존 summary.json을 다시 만든다
+
+
+def run_summary(report_path):
+    """목록용 요약. report.json은 정상 문구 문맥까지 담아 수백 MB가 되므로 한 번만 읽고 summary.json에 둔다."""
+    st = report_path.stat()
+    stamp = [SUMMARY_VERSION, st.st_mtime_ns, st.st_size]
+    cache = report_path.parent / "summary.json"
+    try:
+        cached = json.loads(cache.read_text(encoding="utf-8"))
+        if cached.get("stamp") == stamp:
+            return cached
+    except (OSError, json.JSONDecodeError):
+        pass
+    rep = restore_review_state(json.loads(report_path.read_text(encoding="utf-8")))
+    summary = {"stamp": stamp, "entry_url": rep["meta"]["entry_url"], "started_at": rep["meta"]["started_at"],
+               "elapsed_sec": rep["meta"]["elapsed_sec"], "pages": rep["pages"],
+               # 검토 상태(review.json)는 수시로 바뀌므로 광고 판정 문구만 남겨 두고 목록 조회 때마다 대조한다
+               "ads": [{"key": cand_key(c), "url": c["url"], "also_on": [x["url"] for x in c.get("also_on", [])],
+                        "technique": c["technique"], "evidence_text": c["evidence_text"]}
+                       for c in rep["candidates"] if c["verdict"] == "ad"],
+               "entry_failed": rep.get("entry_failed", False), "needs_review": rep.get("needs_review", False),
+               "unresolved_count": rep.get("unresolved_count", 0), "coverage": rep.get("coverage", {})}
+    try:
+        cache.write_text(json.dumps(summary, ensure_ascii=False), encoding="utf-8")
+    except OSError:
+        pass
+    return summary
+
+
 def list_runs():
     runs = []
     for d in sorted(HISTORY.glob("*/report.json"), reverse=True):
         try:
-            rep = restore_review_state(json.loads(d.read_text(encoding="utf-8")))
+            s = run_summary(d)
         except (OSError, json.JSONDecodeError):
             continue
         review_path = d.parent / "review.json"
@@ -185,18 +227,18 @@ def list_runs():
             review = json.loads(review_path.read_text(encoding="utf-8")) if review_path.is_file() else {}
         except (OSError, json.JSONDecodeError):
             review = {}
-        ads = [c for c in rep["candidates"] if c["verdict"] == "ad"]
+        ads = s["ads"]
         # 처리 필요 = 미검토 + 불법광고 확인 (화면의 광고 청정도 계산용 — 오염 페이지 비율·오염 페이지 수·문구 수·숨김형 건수)
-        pending_ads = [c for c in ads if review.get(cand_key(c), {}).get("status", "new") in ("new", "confirmed")]
-        runs.append({"id": d.parent.name, "entry_url": rep["meta"]["entry_url"],
-                     "started_at": rep["meta"]["started_at"], "elapsed_sec": rep["meta"]["elapsed_sec"],
-                     "pages": rep["pages"], "findings": len(ads), "pending": len(pending_ads),
+        pending_ads = [c for c in ads if review.get(c["key"], {}).get("status", "new") in ("new", "confirmed")]
+        runs.append({"id": d.parent.name, "entry_url": s["entry_url"],
+                     "started_at": s["started_at"], "elapsed_sec": s["elapsed_sec"],
+                     "pages": s["pages"], "findings": len(ads), "pending": len(pending_ads),
                      # 여러 페이지 반복으로 대표에 합친 페이지(also_on)도 오염 페이지로 센다
-                     "dirty_pages": len({u for c in pending_ads for u in [c["url"]] + [x["url"] for x in c.get("also_on", [])]}),
+                     "dirty_pages": len({u for c in pending_ads for u in [c["url"]] + c["also_on"]}),
                      "pending_hidden": sum(c["technique"] != "POSTED" for c in pending_ads),
                      "pending_unique": len({" ".join(c["evidence_text"].split()) for c in pending_ads}),
-                     "entry_failed": rep.get("entry_failed", False), "needs_review": rep.get("needs_review", False),
-                     "unresolved_count": rep.get("unresolved_count", 0), "coverage": rep.get("coverage", {})})
+                     "entry_failed": s["entry_failed"], "needs_review": s["needs_review"],
+                     "unresolved_count": s["unresolved_count"], "coverage": s["coverage"]})
     return runs
 
 
@@ -227,9 +269,12 @@ def ui_report(rep):
     """UI 조회 전용 projection. 원문을 복제하거나 저장 객체를 변경하지 않는다."""
     heavy = {"source_html", "source_context", "source_near_text", "context", "raw",
              "gemma", "extraction", "visit_log", "external_skipped", "duplicates"}
+    # 화면이 쓰지 않는 후보 필드 (counselpsy 10-22: 6만 건에서 약 13MB)
+    unused = heavy | {"source_id", "source_sha256", "href", "inspection", "cls", "tag", "attr",
+                      "laya_confidence", "gemma_skip"}
     value = {key: item for key, item in rep.items() if key not in heavy}
     value["candidates"] = [
-        {key: item for key, item in candidate.items() if key not in heavy}
+        {key: item for key, item in candidate.items() if key not in unused}
         for candidate in rep.get("candidates", [])
     ]
     warning_fields = {"source_id", "reason", "processing_status", "url", "location",
@@ -257,6 +302,58 @@ def ui_report(rep):
                 {key: row.get(key) for key in fields if not isinstance(row.get(key), (dict, list))}
                 for row in ai["length_skipped"][:20] if isinstance(row, dict)]
     return value
+
+
+UI_VIEW_VERSION = 1  # ui_report 항목·복원 규칙이 바뀌면 올려서 기존 ui_view.json을 다시 만든다
+
+
+def ui_view(run_id):
+    """화면용 결과(JSON 바이트). report.json(대형 사이트 900MB)을 클릭마다 파싱하면 이력 열기에 2~8초가 걸리므로
+    ui_report 결과를 history/<id>/ui_view.json에 한 번 만들어 두고 그대로 보낸다.
+    검토 상태·메모는 수시로 바뀌므로 매번 review.json을 review_state로 붙이고, 화면이 후보에 덮어쓴다."""
+    d = run_dir(run_id)
+    if not d:
+        return None
+    st = (d / "report.json").stat()
+    stamp = f"{UI_VIEW_VERSION}:{st.st_mtime_ns}:{st.st_size}"
+    cache, stamp_path = d / "ui_view.json", d / "ui_view.stamp"
+    try:
+        body = cache.read_bytes() if stamp_path.read_text(encoding="utf-8") == stamp else None
+    except OSError:
+        body = None
+    if body is None:
+        rep = load_run(run_id)
+        if rep is None:
+            return None
+        body = json.dumps(ui_report(rep), ensure_ascii=False).encode("utf-8")
+        tmp = d / f"ui_view.{threading.get_ident()}.tmp"  # 동시 요청이 서로의 파일을 덮지 않게 스레드별 임시 파일
+        try:
+            tmp.write_bytes(body)
+            os.replace(tmp, cache)
+            stamp_path.write_text(stamp, encoding="utf-8")
+        except OSError:
+            pass
+    review_path = d / "review.json"
+    try:
+        review = json.loads(review_path.read_text(encoding="utf-8")) if review_path.is_file() else {}
+    except (OSError, json.JSONDecodeError):
+        review = {}
+    head = {"review_state": {k: {"status": v.get("status", "new"), "memo": v.get("memo", "")}
+                             for k, v in review.items() if isinstance(v, dict)},
+            "has_extra": (d / "result_extra.json").is_file()}  # 화면의 result_extra.json 버튼 표시용
+    return json.dumps(head, ensure_ascii=False).encode("utf-8")[:-1] + b", " + body[1:]
+
+
+def warm_run_caches(*run_ids):
+    """이력 요약·화면용 결과를 미리 만든다. 이미 있으면 stamp만 확인하고 넘어간다."""
+    for run_id in run_ids:
+        d = run_dir(run_id)
+        try:
+            if d:
+                run_summary(d / "report.json")
+                ui_view(run_id)
+        except Exception:
+            traceback.print_exc()
 
 
 def delete_runs(run_ids):
@@ -362,7 +459,8 @@ class Handler(BaseHTTPRequestHandler):
             s["elapsed"] = round(time.time() - s["started"], 1) if s["started"] else 0
             s["model_readiness"] = model_readiness()
             s["model_available"] = s["model_readiness"]["files_present"]
-            s["crawl_limit"] = CRAWL_LIMIT if options["time_limit"] else 0  # 0 = 시간 제한 없음(실험)
+            s["crawl_limit"] = CRAWL_LIMIT  # 화면 진행률·탐색 종료 예상 계산용
+            s["time_budget"] = TIME_BUDGET  # 화면의 '예상 소요 19~29분' 계산용
             s["validation_mode"] = "complete" if options["complete_validation"] else "bounded"
             s["out_dir"] = str(app_dir())
             return self.send(200, s)
@@ -370,23 +468,32 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(200, list_runs())
         parts = path.strip("/").split("/")
         if len(parts) >= 3 and parts[:2] == ["api", "runs"]:
+            if parts[3:] in (["result.json"], ["result_extra.json"]):
+                # 탐지 엔진이 저장한 요강 붙임4 형식 파일을 바이트 그대로 전달 (재생성하지 않음).
+                # report.json(대형 사이트 900MB)을 읽지 않는다 — counselpsy 10-22에서 2.4MB 내려받기에 6.8초
+                name = parts[3]
+                d = run_dir(parts[2])
+                if not d:
+                    return self.send(404, {"error": "점검 이력을 찾을 수 없습니다."})
+                if not (d / name).is_file():
+                    return self.send(404, {"error": f"이 점검의 {name}이 없습니다."})
+                return self.send(200, (d / name).read_bytes(), "application/json; charset=utf-8",
+                                 {"Content-Disposition": f'attachment; filename="{name}"'})
+            if len(parts) == 3 and parse_qs(urlparse(self.path).query).get("view", []) == ["ui"]:
+                body = ui_view(parts[2])
+                if body is None:
+                    return self.send(404, {"error": "점검 이력을 찾을 수 없습니다."})
+                return self.send(200, body)
             rep = load_run(parts[2])
             if rep is None:
                 return self.send(404, {"error": "점검 이력을 찾을 수 없습니다."})
             if len(parts) == 3:
-                view = parse_qs(urlparse(self.path).query).get("view", [])
-                return self.send(200, ui_report(rep) if view == ["ui"] else rep)
+                return self.send(200, rep)
             result_path = HISTORY / parts[2] / "result.json"
             if parts[3:] == ["export.csv"]:
                 result_doc = json.loads(result_path.read_text(encoding="utf-8")) if result_path.is_file() else {}
                 return self.send(200, export_csv(rep, result_doc), "text/csv; charset=utf-8",
                                  {"Content-Disposition": f'attachment; filename="ad-purifier-{parts[2]}.csv"'})
-            if parts[3:] == ["result.json"]:
-                # 탐지 엔진이 저장한 요강 붙임4 형식 파일을 바이트 그대로 전달 (재생성하지 않음)
-                if not result_path.is_file():
-                    return self.send(404, {"error": "이 점검의 result.json이 없습니다."})
-                return self.send(200, result_path.read_bytes(), "application/json; charset=utf-8",
-                                 {"Content-Disposition": 'attachment; filename="result.json"'})
         self.send(404, {"error": "not found"})
 
     def do_POST(self):
@@ -410,11 +517,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(400, {"error": "http:// 또는 https:// 로 시작하는 URL을 입력하세요."})
             use_ml = bool(req.get("use_ml", True))
             if use_ml and not model_readiness()["files_present"]:
-                return self.send(409, {"error": "AI 자산 또는 의존 파일이 없습니다. 설치 상태를 확인하거나 AI 체크를 직접 해제해 진단 모드를 선택하세요."})
-            try:
-                max_pages = max(0, min(int(req.get("max_pages") or 0), 20000))  # 0 = 제한 없음(시간 예산까지 전부)
-            except (TypeError, ValueError):
-                return self.send(400, {"error": "최대 페이지는 숫자로 입력하세요."})
+                return self.send(409, {"error": "AI 자산(Laya·Gemma) 또는 의존 파일이 없습니다. 설치 상태를 확인하세요."})
             with state_lock:
                 if getattr(self.server, "closing", False):
                     return self.send(409, {"error": "프로그램 종료 중입니다."})
@@ -422,10 +525,10 @@ class Handler(BaseHTTPRequestHandler):
                 if state["running"] or (previous_worker is not None and previous_worker.is_alive()):
                     return self.send(409, {"error": "이미 탐지가 진행 중입니다."})
                 state.update(running=True, phase="start", entry_url=url, pages_done=0, pages_found=1, current_url=url,
-                             started=time.time(), run_id=None, error=None, cancelling=False, max_pages=max_pages,
+                             started=time.time(), run_id=None, error=None, cancelling=False,
                              ai_progress=None)
                 cancel_event.clear()
-                self.server.scan_worker = threading.Thread(target=scan_job, args=(url, use_ml, max_pages),
+                self.server.scan_worker = threading.Thread(target=scan_job, args=(url, use_ml),
                                                            name="scan-worker")
                 self.server.scan_worker.start()
             return self.send(202, {"ok": True})
@@ -473,11 +576,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8780)
     ap.add_argument("--no-browser", action="store_true")
-    ap.add_argument("--no-time-limit", action="store_true", help="실험용: 시간 한도 없이 사이트 전체 탐색")
-    ap.add_argument("--complete-validation", action=argparse.BooleanOptionalAction, default=True,
-                    help="기본: 수집 시간 상한 유지, 수집된 항목의 AI 판정 완료; --no-complete-validation으로 판정 시간 상한 적용")
+    ap.add_argument("--complete-validation", action=argparse.BooleanOptionalAction, default=False,
+                    help="기본: 전체 30분 안에 끝나도록 AI 판정에도 시간 상한 적용; --complete-validation이면 수집된 항목의 AI 판정을 시간 제한 없이 완료(실험)")
     args = ap.parse_args()
-    options["time_limit"] = not args.no_time_limit
     options["complete_validation"] = args.complete_validation
     try:
         httpd = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
@@ -487,12 +588,13 @@ def main():
     url = f"http://127.0.0.1:{httpd.server_address[1]}/"
     print(f"광고청정기 실행 중: {url}  (종료: Ctrl+C)")
     print(f"결과 파일 위치: {app_dir()}")
-    if args.no_time_limit:
-        print("[실험] 시간 한도 없이 탐색합니다 — 제출 시간(30분)을 넘길 수 있습니다.")
     if args.complete_validation:
         print("[완료 우선] 수집된 항목의 AI 판정에는 시간 제한이 없습니다.")
     if not args.no_browser:
         threading.Timer(0.5, webbrowser.open, args=(url,)).start()
+    # 지난 이력의 캐시를 최신 점검부터 한 건씩 백그라운드로 준비 (새 설치는 이력이 없어 바로 끝남)
+    threading.Thread(target=warm_run_caches, args=[d.parent.name for d in sorted(HISTORY.glob("*/report.json"), reverse=True)],
+                     daemon=True).start()
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

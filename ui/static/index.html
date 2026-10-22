@@ -88,6 +88,8 @@ svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor;
 .history li.lv-na { --c: var(--dim); }
 .history li:hover { border-color: var(--line-strong); }
 .history li.active { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(15, 158, 142, .14); }
+.history li.loading { border-color: var(--teal); cursor: progress; }  /* 누른 즉시 표시 — 대형 결과는 여는 데 몇 초 걸림 */
+.history li.loading::after { content: "결과를 여는 중…"; display: block; margin-top: 4px; color: var(--teal); font-weight: 600; animation: pulse 1.2s infinite; }
 .history li b { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
   font-size: 12.5px; overflow-wrap: anywhere; }
 .history li span { display: block; color: var(--muted); margin-top: 2px; word-break: keep-all; }
@@ -108,6 +110,7 @@ button.link:hover:not(:disabled) { background: var(--coral-weak); color: var(--c
 .confirm-row button { padding: 4px 10px; font-size: 12px; border-radius: 8px; }
 .confirm-row button.danger { background: var(--coral); border-color: var(--coral); color: #fff; }
 .confirm-row button.danger:hover:not(:disabled) { background: #c93a3f; border-color: #c93a3f; }
+.history .confirm-row span { flex-basis: 100%; }  /* 좁은 이력 카드: 질문은 한 줄, 삭제·취소는 그 아래 한 줄에 나란히 */
 .clear-confirm { margin: 0 0 10px; padding: 10px 12px; border-radius: 12px; background: var(--coral-weak); }
 .clear-confirm .confirm-row { margin: 0; padding: 0; border: 0; }
 .history li.empty { cursor: default; text-align: center; color: var(--muted); border-style: dashed; padding: 18px 10px; }
@@ -221,7 +224,9 @@ input[type=number] { width: 84px; }
 .ring .lvl.na { font-size: 30px; }
 .ring .lvl { font-size: 46px; font-weight: 900; line-height: 1.05; color: var(--c); letter-spacing: -.03em; }
 .ring .pct { margin-top: 4px; font-size: 17px; font-weight: 800; color: color-mix(in srgb, var(--c) 80%, #0f2f2a); }
-.ring .cap { margin-top: 4px; font-size: 12px; color: var(--muted); }
+.ring .cap { margin-top: 4px; max-width: 150px; font-size: 12px; color: var(--muted); }
+/* 미확인 범위·AI 보류 참고: 링 안에 넣으면 선과 겹쳐 원 아래에 따로 둔다 */
+.gauge .gauge-ref { margin: 28px 0 0; max-width: 320px; font-size: 12px; line-height: 1.5; color: var(--muted); }
 .gauge .gauge-why { list-style: none; margin: 16px 0 0; padding: 0; width: 100%; max-width: 320px; display: grid; gap: 7px; text-align: left; }
 .gauge .gauge-why:empty { display: none; }
 .gauge .gauge-why li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 8px; font-size: 12px; color: var(--muted); }
@@ -349,7 +354,7 @@ tr.page-head:hover td { background: #ebf6f2; }
 tr.page-head.open .chev { transform: rotate(90deg); }
 .ph .where { flex: 1 1 260px; min-width: 0; }
 .ph .where b { display: block; font-size: 13.5px; overflow-wrap: anywhere; }
-.ph .where a { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.ph .where a, .ph .where .sub { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
 .ph .cnt { font-weight: 800; color: var(--coral); white-space: nowrap; }
 .ph .cnt.done { color: var(--green); }
 .ph .chips { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -470,14 +475,12 @@ tr.row.in-page td:first-child { padding-left: 28px; }
     <div class="topbar">
       <div><h2>Dashboard</h2><p>공공 웹사이트에 숨어 있는 불법광고를 찾아 깨끗하게 정화합니다.</p></div>
       <span class="status-pill"><i></i><span id="sysText">대기 중</span></span>
-      <button type="button" class="small" id="exitBtn">프로그램 종료</button>
     </div>
 
     <section class="card">
       <form class="scan-form" id="scanForm">
         <div class="url-box"><svg class="i"><use href="#ic-search"/></svg>
           <input type="url" id="url" placeholder="점검할 웹사이트 주소 (https://...)" required aria-label="점검할 웹사이트 주소"></div>
-        <label class="inline" id="mlLabel"><input type="checkbox" id="useMl" checked> AI 보조 판정</label>
         <button id="startBtn" type="submit">탐지 시작</button>
       </form>
       <div class="clear-confirm" id="stopConfirm" hidden>
@@ -529,6 +532,7 @@ tr.row.in-page td:first-child { padding-left: 28px; }
               <div class="cap" id="gaugeCap"></div>
             </div>
           </div>
+          <p class="gauge-ref" id="gaugeRef" hidden></p>
           <ul class="gauge-why" id="gaugeWhy" aria-label="청정도 세부 지표"></ul>
           <div class="gauge-note">
             <h4>청정도 산정 기준</h4>
@@ -562,6 +566,7 @@ tr.row.in-page td:first-child { padding-left: 28px; }
         <div><h3><svg class="i"><use href="#ic-list"/></svg>탐지 결과</h3><p id="resultTitle"></p></div>
         <div class="export-btns">
           <button id="jsonBtn" type="button" class="ghost" title="요강 붙임4 표준 형식 (실행 폴더에 저장된 제출용 파일과 같은 내용)"><svg class="i"><use href="#ic-pages"/></svg>result.json 다운로드</button>
+          <button id="extraBtn" type="button" class="ghost" hidden title="요강 붙임4 추가 탐지 결과 파일 — 숨기지 않은 게시형 불법광고 (technique=ETC, extra_finding에 유형명)"><svg class="i"><use href="#ic-pages"/></svg>result_extra.json 다운로드</button>
           <button id="csvBtn" type="button" class="ghost" title="검토와 조치 관리용 엑셀 파일 (앞 6열은 result.json과 같은 필드)"><svg class="i"><use href="#ic-download"/></svg>엑셀(CSV) 내보내기</button>
         </div>
       </div>
@@ -660,16 +665,30 @@ function levelOf(pct) {
 // 진입 페이지에 접속하지 못한 점검: 0건이어도 '청정'이 아니라 판단 불가
 const LEVEL_NA = { key: "na", word: "확인 불가", name: "확인 불가", color: "var(--dim)", weak: "#eef2f1" };
 const isPending = c => c.verdict === "ad" && (c.review === "new" || c.review === "confirmed");
+/* 예상 소요 '19~29분'(점검 시작부터 끝까지): 앞은 지금 속도로 본 탐색 종료까지, 뒤는 시간 한도로 보장되는 최대 소요.
+   판정 중엔 '~29분'만 (Gemma 판정 시간은 미리 알 수 없어 앞쪽 값을 지어내지 않는다) */
+function finishText(s, crawl) {
+  if (!s.time_budget) return "";  // 시간 한도를 알려 주지 않는 이전 서버
+  const most = Math.ceil(s.time_budget / 60);
+  const rate = s.pages_done / Math.max(1, s.elapsed);  // 초당 페이지
+  if (!crawl || s.pages_done < 10 || !rate) return ` · 예상 소요 ~${most}분`;
+  const left = Math.min((s.pages_found - s.pages_done) / rate, Math.max(0, s.crawl_limit - s.elapsed));
+  const least = Math.min(most, Math.ceil((s.elapsed + left) / 60));
+  return least >= most ? ` · 예상 소요 ~${most}분` : ` · 예상 소요 ${least}~${most}분`;
+}
 const mmss = sec => { const t = Math.round(sec); return t < 60 ? `${t}초` : `${Math.floor(t / 60)}분 ${String(t % 60).padStart(2, "0")}초`; };
 const pathOf = url => { try { const u = new URL(url); return (u.pathname + u.search) || "/"; } catch { return url; } };
 
 let current = null;          // 지금 보고 있는 점검 결과
+let openSeq = 0, loadingId = null;  // 마지막으로 누른 이력만 연다 (먼저 누른 큰 결과가 늦게 도착해 덮어쓰지 않게)
 let techFilter = new Set();  // 비어 있으면 전체
 let openKey = null;          // 펼친 상세 행
 let viewMode = "page";       // 결과 표 보기: page(페이지별 묶음) | list(문구별 전체 목록)
 try { viewMode = localStorage.getItem("ap.viewMode") === "list" ? "list" : "page"; } catch {}
 let openPages = new Set();   // 페이지별 보기에서 펼친 페이지
 let openPagesRun = null;     // openPages가 어느 점검의 것인지 (점검을 바꾸면 처음 상태로)
+let openPhrases = new Set();  // 문구별 보기에서 펼친 문구
+let openPhrasesRun = null;
 let polling = null;
 let pollFailures = 0;
 let modelAvailable = true;
@@ -706,7 +725,7 @@ async function loadHistory(selectId) {
   }
   ul.innerHTML = runs.map(r => {
     const pending = r.pending ?? r.findings;
-    const lv = (r.entry_failed || r.needs_review) ? LEVEL_NA : levelOf(cleanPct(pollution({ pages: r.pages, dirtyPages: r.dirty_pages ?? pending,
+    const lv = r.entry_failed ? LEVEL_NA : levelOf(cleanPct(pollution({ pages: r.pages, dirtyPages: r.dirty_pages ?? pending,
                                                                        pending: r.pending_unique ?? pending, hidden: r.pending_hidden ?? 0 })));
     return `<li data-id="${esc(r.id)}" tabindex="0" title="누르면 결과를 열고, 한 번 더 누르면 닫습니다" class="lv-${lv.key} ${current && current.id === r.id ? "active" : ""}" style="--c:${lv.color}">
       <b title="${esc(r.entry_url)}">${esc(r.entry_url)}</b>
@@ -727,18 +746,42 @@ async function loadHistory(selectId) {
 /* 처음 화면(사용 안내): 결과를 고르지 않았을 때, 탐지를 시작했을 때. 지난 결과를 진행 중인 탐지 결과로 착각하지 않게 */
 function showHome() {
   current = null; openKey = null; techFilter.clear();
+  openSeq++; loadingId = null;  // 여는 중이던 이력이 늦게 도착해도 열지 않는다
+  document.querySelectorAll("#history li.loading").forEach(li => li.classList.remove("loading"));
   $("dashboard").hidden = true; $("resultPanel").hidden = true;
   $("guidePanel").hidden = false;
   $("deselect").hidden = true;
   document.querySelectorAll("#history li").forEach(li => li.classList.remove("active"));
 }
 /* 이력 카드: 누르면 열고, 이미 열린 카드를 다시 누르면 닫고 처음 화면으로 */
-const toggleRun = id => (current && current.id === id ? showHome() : openRun(id));
+const toggleRun = id => {
+  if (id === loadingId) return;  // 여는 중인 카드를 또 눌러도 다시 받지 않음
+  if (loadingId && current && current.id === id) {  // 다른 이력을 여는 도중 보던 카드를 다시 누르면 닫지 않고 그대로 보여준다
+    openSeq++; loadingId = null;
+    document.querySelectorAll("#history li").forEach(li => { li.classList.remove("loading"); li.classList.toggle("active", li.dataset.id === id); });
+    return;
+  }
+  return current && current.id === id ? showHome() : openRun(id);
+};
 $("deselect").onclick = () => showHome();
 
 async function openRun(id) {
+  const seq = ++openSeq;
+  loadingId = id;
+  document.querySelectorAll("#history li").forEach(li => li.classList.toggle("loading", li.dataset.id === id));
+  const done = () => { if (seq === openSeq) { loadingId = null; document.querySelectorAll("#history li.loading").forEach(li => li.classList.remove("loading")); } };
   try {
     const rep = await api(`/api/runs/${encodeURIComponent(id)}?view=ui`);
+    if (seq !== openSeq) return;
+    done();
+    // 서버는 캐시해 둔 결과에 최신 검토 상태(review.json)를 review_state로 따로 붙여 보낸다
+    if (rep && rep.review_state && typeof rep.review_state === "object" && Array.isArray(rep.candidates)) {
+      for (const c of rep.candidates) {
+        const r = c && rep.review_state[c.key];
+        if (c) { c.review = (r && r.status) || "new"; c.memo = (r && r.memo) || ""; }
+      }
+      delete rep.review_state;
+    }
     const object = value => value !== null && typeof value === "object" && !Array.isArray(value);
     const optionalRows = value => value == null || (Array.isArray(value) && value.every(object));
     const candidate = c => object(c)
@@ -759,7 +802,8 @@ async function openRun(id) {
     }
     if (!current || current.id !== rep.id) { techFilter.clear(); openKey = null; }
     current = rep;
-  } catch (e) { toast(`이력을 열 수 없습니다: ${e.message}`, true); return; }
+    $("extraBtn").hidden = !rep.has_extra;  // 게시형 탐지가 없던 점검, 10-22 이전 이력에는 파일이 없다
+  } catch (e) { if (seq === openSeq) { done(); toast(`이력을 열 수 없습니다: ${e.message}`, true); } return; }
   document.querySelectorAll("#history li").forEach(li => li.classList.toggle("active", li.dataset.id === id));
   $("guidePanel").hidden = true;
   $("deselect").hidden = false;
@@ -815,11 +859,22 @@ function pollutionOf(r) {
                      pending: new Set(list.map(phraseKey)).size, hidden: list.filter(isHidden).length });
 }
 
+/* 등급을 가리지 않는 미확인 범위 요약: 'AI 보류 3건 · 미확인 5페이지' */
+function uncheckedText(r) {
+  const cov = r.coverage || {};
+  const pages = (cov.pending_pages ?? r.left_in_queue ?? 0) + (cov.failed_pages ?? (r.failed_pages || []).length);
+  const parts = [];
+  if (r.unresolved_count) parts.push(`AI 보류 ${r.unresolved_count}건`);
+  if (pages) parts.push(`미확인 ${pages}페이지`);
+  if ((r.http_errors || []).length) parts.push(`오류 응답 ${r.http_errors.length}페이지`);
+  return parts.join(" · ") || "일부 범위 미확인";
+}
+
 /* 검토 상태가 바뀌면 이력 카드의 등급도 바로 갱신 */
 function refreshHistoryLevel() {
   const li = document.querySelector(`#history li[data-id="${current.id}"]`);
   if (!li) return;
-  const lv = (current.entry_failed || current.needs_review) ? LEVEL_NA : levelOf(cleanPct(pollutionOf(current)));
+  const lv = current.entry_failed ? LEVEL_NA : levelOf(cleanPct(pollutionOf(current)));
   li.classList.toggle("lv-na", lv === LEVEL_NA);
   li.style.setProperty("--c", lv.color);
   const em = li.querySelector("em");
@@ -832,14 +887,15 @@ function render() {
   $("dashboard").hidden = false;
   $("resultPanel").hidden = false;
   $("resultTitle").textContent = `${r.meta.entry_url}, ${r.meta.started_at.replace("T", " ").slice(0, 16)} 점검`
-    + (r.model ? `, 판정 모델 ${r.model}` : "");
+    + `, 총 소요 ${mmss(r.meta.elapsed_sec)}` + (r.model ? `, 판정 모델 ${r.model}` : "");
   const ads = r.candidates.filter(c => c.verdict === "ad");
   const pendingList = ads.filter(isPending);
   const pending = pendingList.length;
   const dirtyPages = new Set(pendingList.flatMap(pagesOf)).size;
   const pol = pollutionOf(r);
   const clean = cleanPct(pol);
-  const lv = (r.entry_failed || r.needs_review) ? LEVEL_NA : levelOf(clean);
+  // 등급은 확인된 범위의 탐지 결과로 계산한다. 404·접속 실패 몇 페이지나 AI 보류는 등급을 가리지 않고 아래에 참고로 표시
+  const lv = r.entry_failed ? LEVEL_NA : levelOf(clean);
   renderWarnings(r);
   renderLengthSkips(r);
 
@@ -847,14 +903,15 @@ function render() {
   const g = $("gauge");
   g.style.setProperty("--c", lv.color);
   g.style.setProperty("--cw", lv.weak);
-  $("gaugeVal").style.strokeDashoffset = (r.entry_failed || r.needs_review) ? "339.29" : (339.29 * (1 - clean / 100)).toFixed(2);
-  $("gaugeVal").style.opacity = (r.entry_failed || r.needs_review) ? 0 : 1;  // 둥근 선 끝이 점으로 남지 않게
-  $("gaugeLvl").textContent = r.needs_review ? "검토 필요" : lv.word;
+  $("gaugeVal").style.strokeDashoffset = r.entry_failed ? "339.29" : (339.29 * (1 - clean / 100)).toFixed(2);
+  $("gaugeVal").style.opacity = r.entry_failed ? 0 : 1;  // 둥근 선 끝이 점으로 남지 않게
+  $("gaugeLvl").textContent = lv.word;
   $("gaugeLvl").classList.toggle("na", !!r.entry_failed);
-  $("gaugePct").textContent = (r.entry_failed || r.needs_review) ? "청정도 -" : `청정도 ${pctText(clean)}%`;
+  $("gaugePct").textContent = r.entry_failed ? "청정도 -" : `청정도 ${pctText(clean)}%`;
   $("gaugeCap").textContent = r.entry_failed ? "사이트에 접속하지 못했습니다"
-    : r.needs_review ? `AI 보류 ${r.unresolved_count || 0}개 · 수집 범위 확인 필요`
     : pending ? `오염 페이지 ${dirtyPages} / ${r.pages}` : (ads.length ? "모든 불법광고 처리 완료" : "숨겨진 불법광고 없음");
+  $("gaugeRef").hidden = !(r.needs_review && !r.entry_failed);
+  $("gaugeRef").textContent = $("gaugeRef").hidden ? "" : `참고: ${uncheckedText(r)}`;
   // 세부 지표: 네 기준의 세부 지수(0~100, 높을수록 나쁨)를 막대로. 가장 크게 끌어내린 기준을 강조
   $("gaugeWhy").innerHTML = !r.entry_failed && pending ? pol.parts.map(x => `
     <li class="${x === pol.top ? "top" : ""}"><span>${x.name}</span><em>${esc(x.text)}</em>
@@ -865,11 +922,11 @@ function render() {
   $("tiles").innerHTML = na ? `
     <div class="card tile t-found"><div><small>탐지된 불법광고</small><b>-</b></div><div class="ico">${icon("search")}</div></div>
     <div class="card tile t-pending zero" style="--c:var(--dim)"><div><small>처리 필요</small><b style="color:var(--dim)">-</b></div><div class="ico" style="background:#eef2f1;color:var(--dim)">${icon("alert")}</div></div>
-    <div class="card tile t-pages"><div><small>점검 페이지 (${mmss(r.meta.elapsed_sec)})</small><b>0<u>개</u></b></div><div class="ico">${icon("pages")}</div></div>
+    <div class="card tile t-pages"><div><small>점검 페이지 · 총 소요 ${mmss(r.meta.elapsed_sec)}</small><b>0<u>개</u></b></div><div class="ico">${icon("pages")}</div></div>
     <div class="card tile t-grade"><div><small>청정 등급</small><b style="color:var(--dim)">확인 불가</b></div><div class="ico" style="background:#eef2f1;color:var(--dim)">${icon("shield")}</div></div>` : `
     <div class="card tile t-found"><div><small>탐지된 불법광고</small><b>${ads.length}<u>건</u></b></div><div class="ico">${icon("search")}</div></div>
     <div class="card tile t-pending ${pending ? "" : "zero"}"><div><small>처리 필요</small><b>${pending}<u>건</u></b></div><div class="ico">${icon(pending ? "alert" : "shield")}</div></div>
-    <div class="card tile t-pages"><div><small>점검 페이지 (${mmss(r.meta.elapsed_sec)})</small><b>${r.pages}<u>개</u></b></div><div class="ico">${icon("pages")}</div></div>
+    <div class="card tile t-pages"><div><small>점검 페이지 · 총 소요 ${mmss(r.meta.elapsed_sec)}</small><b>${r.pages}<u>개</u></b></div><div class="ico">${icon("pages")}</div></div>
     <div class="card tile t-grade" style="--c:${lv.color}"><div><small>청정 등급</small><b style="color:${lv.color}">${lv.name}</b></div><div class="ico" style="background:${lv.weak};color:${lv.color}">${icon("shield")}</div></div>`;
 
   // 오염원 분석
@@ -936,7 +993,7 @@ function renderWarnings(r) {
   }
   if (r.needs_review) {
     const cov = r.coverage || {};
-    html += `${html ? "<br>" : ""}<b>검토 필요: 미처리 범위 또는 진단 모드 결과입니다.</b> AI 보류 ${r.unresolved_count || 0}개. 방문 ${cov.visited_pages ?? r.pages}페이지 / 발견 ${cov.discovered_pages ?? r.pages}페이지, 대기 ${cov.pending_pages || 0}, 접속 실패 ${cov.failed_pages || 0}, 프레임 수집 실패 ${cov.failed_frames || 0}. 전체 사이트 크기는 확인되지 않았습니다.`;
+    html += `${html ? "<br>" : ""}<b>참고: 일부 범위는 확인하지 못했습니다.</b> 청정도는 확인된 범위의 결과로 계산했습니다. AI 보류 ${r.unresolved_count || 0}개. 방문 ${cov.visited_pages ?? r.pages}페이지 / 발견 ${cov.discovered_pages ?? r.pages}페이지, 대기 ${cov.pending_pages || 0}, 접속 실패 ${cov.failed_pages || 0}, 프레임 수집 실패 ${cov.failed_frames || 0}. 전체 사이트 크기는 확인되지 않았습니다.`;
     const unresolved = (r.ai || {}).unresolved_sources || [];
     if (unresolved.length) html += list(unresolved, x => `${esc(x.source_id || "원문")} — ${esc(x.reason)}`, r.ai.unresolved_sources_count ?? unresolved.length);
   }
@@ -953,8 +1010,7 @@ function renderLog(ads) {
   if (!items.length) {
     $("logList").innerHTML = current.entry_failed
       ? `<li class="log-empty" style="display:block;cursor:default"><b style="color:var(--dim)">점검하지 못했습니다</b>사이트 접속에 실패해 결과가 없습니다.</li>`
-      : current.needs_review ? `<li class="log-empty" style="display:block;cursor:default"><b>검토 필요</b>미판정 또는 미방문 범위가 남아 있습니다.</li>`
-      : `<li class="log-empty" style="display:block;cursor:default"><b>수집 범위에서 광고 미검출</b>숨겨진 불법광고가 발견되지 않았습니다.</li>`;
+      : `<li class="log-empty" style="display:block;cursor:default"><b>수집 범위에서 광고 미검출</b>숨겨진 불법광고가 발견되지 않았습니다.${current.needs_review ? ` (참고: ${uncheckedText(current)})` : ""}</li>`;
     return;
   }
   $("logList").innerHTML = items.map(c => `
@@ -974,7 +1030,7 @@ function focusRow(key) {
   techFilter.clear(); $("reviewFilter").value = ""; $("search").value = "";
   openKey = key;
   const c = current.candidates.find(x => x.key === key);
-  if (c) openPages.add(c.url);
+  if (c) { openPages.add(c.url); openPhrases.add(phraseKey(c)); }
   render();
   const tr = document.querySelector(`tr.row[data-key="${key}"]`);
   if (tr) { tr.scrollIntoView({ behavior: "smooth", block: "center" }); tr.focus({ preventScroll: true }); }
@@ -1007,28 +1063,42 @@ function renderRows() {
     return;
   }
   samePhrase = phraseGroups(current.candidates);
-  $("colPage").textContent = viewMode === "page" ? "위치" : "페이지";
+  $("colPage").textContent = viewMode === "page" ? "위치" : "페이지 · 위치";
+  // inPage: 페이지별 묶음 안(위치만), 아니면 문구별 묶음 안(페이지 주소 + 위치)
   const rowHtml = (c, inPage) => {
     const isAd = c.verdict === "ad";
     const state = c.verdict === "clean" ? "excluded" : c.review === "resolved" ? "purified" : c.review === "false_positive" ? "dismissed" : "";
     const row = `<tr class="row ${state} ${openKey === c.key ? "open" : ""} ${inPage ? "in-page" : ""}" data-key="${c.key}"
         tabindex="0" aria-expanded="${openKey === c.key}">
       <td><span class="badge t-${esc(c.technique)}">${TECH[c.technique] || esc(c.technique)}</span></td>
-      <td class="text">${esc(c.evidence_text)}${repeatBadge(c)}${c.review === "resolved" && isAd ? '<span class="stamp">정화 완료</span>' : ""}</td>
-      <td class="page">${inPage ? `<code title="${esc(c.location)}">${esc(shortLoc(c.location))}</code>` : esc(c.url)}</td>
+      <td class="text">${esc(c.evidence_text)}${inPage ? repeatBadge(c) : ""}${c.review === "resolved" && isAd ? '<span class="stamp">정화 완료</span>' : ""}</td>
+      <td class="page">${inPage ? "" : `<span title="${esc(c.url)}">${esc(pathOf(c.url))}</span><br>`}<code title="${esc(c.location)}">${esc(shortLoc(c.location))}</code></td>
       <td class="judge">${judgeLabel(c)}</td>
       <td>${isAd ? `<select data-review="${c.key}" class="r-${c.review}" aria-label="검토 상태">${Object.entries(REVIEW).map(([k, v]) =>
         `<option value="${k}" ${k === c.review ? "selected" : ""}>${v}</option>`).join("")}</select>` : "-"}</td>
     </tr>`;
     return row + (openKey === c.key ? detailRow(c) : "");
   };
+  const pend = g => g.filter(isPending).length;
   if (viewMode === "list") {
-    $("rows").innerHTML = list.map(c => rowHtml(c, false)).join("");
+    // 문구별: 같은 문구끼리 묶고, 처리 필요가 많은 문구부터. 펼치면 그 문구가 나온 페이지·위치를 한 줄씩 (탐지 건수는 줄 수 그대로)
+    const groups = new Map();
+    for (const c of list) { const k = phraseKey(c); groups.set(k, [...(groups.get(k) || []), c]); }
+    const phrases = [...groups.entries()].sort((a, b) => pend(b[1]) - pend(a[1]) || b[1].length - a[1].length || a[0].localeCompare(b[0]));
+    if (openPhrasesRun !== current.id) { openPhrasesRun = current.id; openPhrases = new Set(phrases.slice(0, 3).map(([k]) => k)); }
+    $("rows").innerHTML = phrases.map(([k, g]) => {
+      const open = openPhrases.has(k);
+      return phraseHead(k, g, open) + (open ? g.map(c => rowHtml(c, false)).join("") : "");
+    }).join("");
+    $("rows").querySelectorAll("tr.page-head").forEach(tr => {
+      const toggle = () => { const k = tr.dataset.phrase; openPhrases.has(k) ? openPhrases.delete(k) : openPhrases.add(k); renderRows(); };
+      tr.onclick = toggle;
+      tr.onkeydown = e => { if (e.target === tr && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toggle(); } };
+    });
   } else {
     // 페이지별: 같은 페이지 주소끼리 묶고, 처리 필요가 많은 페이지부터. 처음에는 앞의 3개 페이지만 펼친다
     const groups = new Map();
     for (const c of list) groups.set(c.url, [...(groups.get(c.url) || []), c]);
-    const pend = g => g.filter(isPending).length;
     const pages = [...groups.entries()].sort((a, b) => pend(b[1]) - pend(a[1]) || b[1].length - a[1].length || a[0].localeCompare(b[0]));
     if (openPagesRun !== current.id) { openPagesRun = current.id; openPages = new Set(pages.slice(0, 3).map(([u]) => u)); }
     $("rows").innerHTML = pages.map(([url, g]) => {
@@ -1088,6 +1158,27 @@ function pageHead(url, g, open) {
     <td colspan="5"><div class="ph">
       <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
       <span class="where"><b title="${esc(url)}">${esc(pathOf(url))}</b><a href="${esc(url)}" target="_blank" rel="noopener noreferrer">새 창으로 열기</a></span>
+      <span class="cnt ${pending ? "" : "done"}">불법광고 ${ads.length}건</span>
+      <span class="chips">${Object.entries(by).map(([t, k]) => `<span class="badge t-${esc(t)}">${TECH[t] || esc(t)} ${k}</span>`).join("")}</span>
+      <span class="st">${status || (rest ? `정상 판정 후보 ${rest}` : "")}</span>
+    </div></td></tr>`;
+}
+
+/* 문구 머리줄: 문구, 나온 곳(탐지 건수)·페이지 수, 숨김 방식별 건수, 처리 상태 */
+function phraseHead(text, g, open) {
+  const ads = g.filter(c => c.verdict === "ad");
+  const by = {};
+  for (const c of ads) by[c.technique] = (by[c.technique] || 0) + 1;
+  const n = st => ads.filter(c => c.review === st).length;
+  const pending = ads.filter(isPending).length;
+  const status = [pending && `처리 필요 ${pending}`, n("resolved") && `조치 완료 ${n("resolved")}`,
+                  n("false_positive") && `오탐 ${n("false_positive")}`].filter(Boolean).join(", ");
+  const pageCount = new Set(g.map(c => c.url)).size;
+  const rest = g.length - ads.length;
+  return `<tr class="page-head ${open ? "open" : ""}" data-phrase="${esc(text)}" tabindex="0" aria-expanded="${!!open}">
+    <td colspan="5"><div class="ph">
+      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+      <span class="where"><b title="${esc(text)}">${esc(text.length > 80 ? text.slice(0, 80) + "…" : text || "(빈 문구)")}</b><span class="sub">${g.length}곳 · 페이지 ${pageCount}개</span></span>
       <span class="cnt ${pending ? "" : "done"}">불법광고 ${ads.length}건</span>
       <span class="chips">${Object.entries(by).map(([t, k]) => `<span class="badge t-${esc(t)}">${TECH[t] || esc(t)} ${k}</span>`).join("")}</span>
       <span class="st">${status || (rest ? `정상 판정 후보 ${rest}` : "")}</span>
@@ -1156,7 +1247,6 @@ async function saveReview(c, status, memo, okMsg) {
 /* ---------- 탐지 실행 ---------- */
 // 탐지 중지: 탐지 중에는 시작 버튼이 '탐지 중지'로 바뀐다 → 한 번 더 확인 → 중지 요청.
 // 서버가 브라우저를 닫고 멈출 때까지 '중지하는 중…'
-let exiting = false;
 let stopMode = "idle";  // idle | confirm | stopping
 
 // 경과 시간: 서버 값으로만 바꾸면 응답이 늦을 때 몇 초씩 건너뛰므로, 시작 시각만 맞추고 화면 시계는 1초씩 흘려 보낸다
@@ -1179,7 +1269,6 @@ function stopClock() {
 }
 
 function setRunning(running) {
-  if (exiting) return;
   if (!running) { stopMode = "idle"; stopClock(); }
   document.body.classList.toggle("running", running);
   $("sysText").textContent = running ? "정화 중…" : "대기 중";
@@ -1190,27 +1279,8 @@ function setRunning(running) {
   $("stopConfirm").hidden = !(running && stopMode === "confirm");
   $("stopYes").disabled = false;
   $("url").disabled = running;
-  $("useMl").disabled = running;
   $("progress").style.display = running ? "block" : "none";
 }
-$("exitBtn").onclick = async () => {
-  if (exiting) return;
-  exiting = true;
-  clearInterval(polling);
-  $("exitBtn").disabled = true;
-  $("startBtn").disabled = true;
-  $("sysText").textContent = "종료 요청 중…";
-  try {
-    await api("/api/shutdown", { method: "POST", headers: JSON_HEADERS, body: "{}" });
-    $("sysText").textContent = "종료 요청됨";
-    $("scanError").textContent = "진행 중인 점검과 모델을 정리한 뒤 프로그램이 종료됩니다. 이 탭은 닫아도 됩니다.";
-  } catch (err) {
-    exiting = false;
-    $("exitBtn").disabled = false;
-    $("scanError").textContent = `종료 요청 실패: ${err.message}`;
-    startPolling();
-  }
-};
 $("stopNo").onclick = () => { stopMode = "idle"; setRunning(true); $("startBtn").focus(); };
 $("stopYes").onclick = async () => {
   $("stopYes").disabled = true;
@@ -1259,7 +1329,7 @@ async function pollStatus() {
     // 페이지 수 제한이 없으면 발견 페이지가 계속 늘어나므로, 시간 한도 대비 경과도 함께 본다
     const ratio = Math.max(s.pages_done / Math.max(1, s.pages_found), s.crawl_limit ? s.elapsed / s.crawl_limit : 0);
     $("bar").firstElementChild.style.width = crawl ? `${Math.min(100, ratio * 100)}%` : "";
-    const limit = !crawl ? "" : s.crawl_limit ? ` / 최대 ${Math.round(s.crawl_limit / 60)}분` : ", 시간 제한 없음(실험)";  // 크롤링 시간 한도
+    const limit = finishText(s, crawl);
     // 페이지 수 제한이 없으므로 '전체 중 몇 쪽'이 아니라 '본 페이지 · 아직 볼 주소'로 보여 준다
     const waiting = Math.max(0, s.pages_found - s.pages_done);
     const validation = s.validation_mode === "complete" ? ", 완료 우선 · AI 시간 제한 없음" : "";
@@ -1294,8 +1364,7 @@ function startPolling() {
     if (s.phase === "done" || s.phase === "review") {
       await loadHistory(s.run_id);
       if (current && current.entry_failed) toast("사이트에 접속하지 못했습니다. 주소를 확인하세요.", true);
-      else if (current && current.needs_review) toast("검토 필요: 미판정 또는 미방문 범위가 남았습니다.", true);
-      else toast("탐지가 끝났습니다.");
+      else toast(current && current.needs_review ? `탐지가 끝났습니다. (참고: ${uncheckedText(current)})` : "탐지가 끝났습니다.");
     }
   }, 700);
 }
@@ -1312,7 +1381,7 @@ $("scanForm").onsubmit = async e => {
   try {
     await api("/api/scan", {
       method: "POST", headers: JSON_HEADERS,
-      body: JSON.stringify({ url: $("url").value.trim(), use_ml: $("useMl").checked }),
+      body: JSON.stringify({ url: $("url").value.trim(), use_ml: true }),  // 화면 점검은 항상 규칙 → Laya → Gemma
     });
     showHome();
     setRunning(true);
@@ -1336,6 +1405,7 @@ const NEED_RUN = "먼저 점검을 실행하거나 점검 이력을 선택해 �
 const exportCsv = () => { if (current) location.href = `/api/runs/${encodeURIComponent(current.id)}/export.csv`; else toast(NEED_RUN, true); };
 $("csvBtn").onclick = exportCsv;
 $("jsonBtn").onclick = () => { if (current) location.href = `/api/runs/${encodeURIComponent(current.id)}/result.json`; };
+$("extraBtn").onclick = () => { if (current) location.href = `/api/runs/${encodeURIComponent(current.id)}/result_extra.json`; };
 $("navCsv").onclick = e => { e.preventDefault(); exportCsv(); };
 $("logMore").onclick = () => { techFilter.clear(); render(); $("resultPanel").scrollIntoView({ behavior: "smooth" }); };
 
@@ -1348,11 +1418,10 @@ document.querySelectorAll(".nav a[data-nav]").forEach(a => a.addEventListener("c
 (async () => {
   try {
     const s = await api("/api/status");
-    $("outHint").textContent = `결과 파일(result.json) 저장 위치: ${s.out_dir}`;
+    $("outHint").textContent = `결과 파일(result.json·result_extra.json) 저장 위치: ${s.out_dir}`;
     modelAvailable = s.model_available;
     if (!modelAvailable) {
-      $("mlLabel").title = "AI 자산이 준비되지 않았습니다. 체크를 직접 해제하면 진단 모드로 실행하며 미판정 항목은 보류됩니다.";
-      $("mlLabel").append(" (AI 자산 미준비 · 해제 시 진단 모드)");
+      $("outHint").textContent += " · AI 자산(Laya·Gemma)이 준비되지 않아 탐지를 시작할 수 없습니다. 설치 상태를 확인하세요.";
     }
     setRunning(s.running);
     renderAIProgress(s.ai_progress, s.phase);
