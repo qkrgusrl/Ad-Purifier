@@ -416,9 +416,9 @@ tr.row.in-page td:first-child { padding-left: 28px; }
   tr.row.in-page td:first-child { padding-left: 0; }
   .seg { margin-left: 0; }
 }
+/* 동작 줄이기(Windows '애니메이션 효과' 끔): 물방울과 정화 팬·입자는 화면 장식이라 그대로 움직이고 나머지만 멈춘다 */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition: none !important; }
-  .purify .p { display: none; }
+  *:not(.bubbles i, .purify .unit svg, .purify .p), *::before, *::after { animation: none !important; transition: none !important; }
 }
 </style>
 </head>
