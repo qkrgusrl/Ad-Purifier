@@ -452,7 +452,10 @@ async def crawl(entry, concurrency, timeout_ms, progress=None, user_agent=DEFAUL
                 finally:
                     state["inflight"] -= 1
                     if progress:
-                        progress(len(results) + len(failed) + len(external) + len(downloads), len(frontier.seen), url)
+                        # 발견 = 끝낸 페이지 + 실제 대기열 + 지금 여는 중. frontier.seen은 리다이렉트 도착 주소를
+                        # 다른 키 형식으로 한 번 더 넣어 같은 페이지를 두 번 세므로 쓰지 않는다(kjga 1,257쪽이 1,975로 보임)
+                        done = len(results) + len(failed) + len(external) + len(downloads)
+                        progress(done, done + len(frontier) + state["inflight"], url)
 
         async def watch_cancel():
             while not cancel.is_set():
