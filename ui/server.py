@@ -2,7 +2,8 @@
 
 실행하면 127.0.0.1에 서버를 띄우고 기본 브라우저로 화면을 연다.
 탐지 결과는 요강대로 구동 폴더(app_dir)에 result.json/report.json으로 쓰고,
-점검 이력은 history/<실행시각>/ 에 report.json, result.json, review.json(검토 상태·메모)으로 쌓는다.
+점검 이력은 history/<실행시각>/ 에 report.json, result.json(+result_extra.json), review.json(검토 상태·메모)으로 쌓고,
+목록·화면용 캐시(summary.json, ui_view.json)를 함께 둔다.
 이력 삭제는 history/ 아래 실행 ID 형식 폴더만 지운다 (구동 폴더의 제출용 result.json은 그대로).
 
 사용: python -m ui.server [--port 8780] [--no-browser]
@@ -14,6 +15,7 @@ import hashlib
 import io
 import importlib.util
 import json
+import os
 import re
 import shutil
 import sys
@@ -132,6 +134,8 @@ def scan_job(entry_url, use_ml):
             shutil.copy2(app_dir() / "result_extra.json", dest / "result_extra.json")
         with state_lock:
             state.update(phase="review" if report.get("needs_review") else "done", run_id=run_id)
+        # 이력 목록 요약·화면용 결과를 미리 만들어 둔다 (대형 사이트는 report.json 파싱에 수 초 — 첫 클릭이 느려지지 않게)
+        threading.Thread(target=warm_run_caches, args=(run_id,), daemon=True).start()
     except ScanCancelled:  # 결과 파일·이력은 만들지 않는다 (지난 점검의 result.json 그대로)
         with state_lock:
             state.update(phase="cancelled")
@@ -265,9 +269,12 @@ def ui_report(rep):
     """UI 조회 전용 projection. 원문을 복제하거나 저장 객체를 변경하지 않는다."""
     heavy = {"source_html", "source_context", "source_near_text", "context", "raw",
              "gemma", "extraction", "visit_log", "external_skipped", "duplicates"}
+    # 화면이 쓰지 않는 후보 필드 (counselpsy 10-22: 6만 건에서 약 13MB)
+    unused = heavy | {"source_id", "source_sha256", "href", "inspection", "cls", "tag", "attr",
+                      "laya_confidence", "gemma_skip"}
     value = {key: item for key, item in rep.items() if key not in heavy}
     value["candidates"] = [
-        {key: item for key, item in candidate.items() if key not in heavy}
+        {key: item for key, item in candidate.items() if key not in unused}
         for candidate in rep.get("candidates", [])
     ]
     warning_fields = {"source_id", "reason", "processing_status", "url", "location",
@@ -295,6 +302,58 @@ def ui_report(rep):
                 {key: row.get(key) for key in fields if not isinstance(row.get(key), (dict, list))}
                 for row in ai["length_skipped"][:20] if isinstance(row, dict)]
     return value
+
+
+UI_VIEW_VERSION = 1  # ui_report 항목·복원 규칙이 바뀌면 올려서 기존 ui_view.json을 다시 만든다
+
+
+def ui_view(run_id):
+    """화면용 결과(JSON 바이트). report.json(대형 사이트 900MB)을 클릭마다 파싱하면 이력 열기에 2~8초가 걸리므로
+    ui_report 결과를 history/<id>/ui_view.json에 한 번 만들어 두고 그대로 보낸다.
+    검토 상태·메모는 수시로 바뀌므로 매번 review.json을 review_state로 붙이고, 화면이 후보에 덮어쓴다."""
+    d = run_dir(run_id)
+    if not d:
+        return None
+    st = (d / "report.json").stat()
+    stamp = f"{UI_VIEW_VERSION}:{st.st_mtime_ns}:{st.st_size}"
+    cache, stamp_path = d / "ui_view.json", d / "ui_view.stamp"
+    try:
+        body = cache.read_bytes() if stamp_path.read_text(encoding="utf-8") == stamp else None
+    except OSError:
+        body = None
+    if body is None:
+        rep = load_run(run_id)
+        if rep is None:
+            return None
+        body = json.dumps(ui_report(rep), ensure_ascii=False).encode("utf-8")
+        tmp = d / f"ui_view.{threading.get_ident()}.tmp"  # 동시 요청이 서로의 파일을 덮지 않게 스레드별 임시 파일
+        try:
+            tmp.write_bytes(body)
+            os.replace(tmp, cache)
+            stamp_path.write_text(stamp, encoding="utf-8")
+        except OSError:
+            pass
+    review_path = d / "review.json"
+    try:
+        review = json.loads(review_path.read_text(encoding="utf-8")) if review_path.is_file() else {}
+    except (OSError, json.JSONDecodeError):
+        review = {}
+    head = {"review_state": {k: {"status": v.get("status", "new"), "memo": v.get("memo", "")}
+                             for k, v in review.items() if isinstance(v, dict)},
+            "has_extra": (d / "result_extra.json").is_file()}  # 화면의 result_extra.json 버튼 표시용
+    return json.dumps(head, ensure_ascii=False).encode("utf-8")[:-1] + b", " + body[1:]
+
+
+def warm_run_caches(*run_ids):
+    """이력 요약·화면용 결과를 미리 만든다. 이미 있으면 stamp만 확인하고 넘어간다."""
+    for run_id in run_ids:
+        d = run_dir(run_id)
+        try:
+            if d:
+                run_summary(d / "report.json")
+                ui_view(run_id)
+        except Exception:
+            traceback.print_exc()
 
 
 def delete_runs(run_ids):
@@ -420,13 +479,16 @@ class Handler(BaseHTTPRequestHandler):
                     return self.send(404, {"error": f"이 점검의 {name}이 없습니다."})
                 return self.send(200, (d / name).read_bytes(), "application/json; charset=utf-8",
                                  {"Content-Disposition": f'attachment; filename="{name}"'})
+            if len(parts) == 3 and parse_qs(urlparse(self.path).query).get("view", []) == ["ui"]:
+                body = ui_view(parts[2])
+                if body is None:
+                    return self.send(404, {"error": "점검 이력을 찾을 수 없습니다."})
+                return self.send(200, body)
             rep = load_run(parts[2])
             if rep is None:
                 return self.send(404, {"error": "점검 이력을 찾을 수 없습니다."})
             if len(parts) == 3:
-                view = parse_qs(urlparse(self.path).query).get("view", [])
-                rep["has_extra"] = (HISTORY / parts[2] / "result_extra.json").is_file()  # 화면의 result_extra.json 버튼 표시용
-                return self.send(200, ui_report(rep) if view == ["ui"] else rep)
+                return self.send(200, rep)
             result_path = HISTORY / parts[2] / "result.json"
             if parts[3:] == ["export.csv"]:
                 result_doc = json.loads(result_path.read_text(encoding="utf-8")) if result_path.is_file() else {}
@@ -530,6 +592,9 @@ def main():
         print("[완료 우선] 수집된 항목의 AI 판정에는 시간 제한이 없습니다.")
     if not args.no_browser:
         threading.Timer(0.5, webbrowser.open, args=(url,)).start()
+    # 지난 이력의 캐시를 최신 점검부터 한 건씩 백그라운드로 준비 (새 설치는 이력이 없어 바로 끝남)
+    threading.Thread(target=warm_run_caches, args=[d.parent.name for d in sorted(HISTORY.glob("*/report.json"), reverse=True)],
+                     daemon=True).start()
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

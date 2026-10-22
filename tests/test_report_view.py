@@ -66,7 +66,7 @@ def compact_fixture(full):
     for key in ("source_html", "source_context", "context", "raw"):
         value.pop(key)
     for row in value["candidates"]:
-        for key in ("source_html", "source_context", "context", "raw", "gemma"):
+        for key in ("source_html", "source_context", "context", "raw", "gemma", "source_id"):  # source_id: 화면 미사용
             row.pop(key, None)
     value["ai"].pop("gemma")
     value["ai"].pop("raw")
