@@ -801,7 +801,8 @@ def run(entry_url, out, concurrency=4, timeout=15000, model=DEFAULT_MODEL, use_m
     extra_hits = [c for c in hits if c["technique"] not in CORE_TECHNIQUES]
     findings = [{"id": f"f_{i:03d}", "url": c["url"], "is_violation": True, "location": c["location"],
                  "evidence_text": c["evidence_text"], "technique": c["technique"]} for i, c in enumerate(core_hits, 1)]
-    extra_findings = [{"id": f"f_{i:03d}", "url": c["url"], "location": c["location"],
+    # is_violation: 요강 예시엔 없지만 findings 필드 표에서 필수라 result.json과 같이 넣는다
+    extra_findings = [{"id": f"f_{i:03d}", "url": c["url"], "is_violation": True, "location": c["location"],
                        "evidence_text": c["evidence_text"], "technique": "ETC",
                        "extra_finding": EXTRA_LABEL.get(c["technique"], c["technique"])}
                       for i, c in enumerate(extra_hits, 1)]
