@@ -130,7 +130,15 @@
     const signals = [];
 
     // TRANSPARENT ------------------------------------------------------------
-    if (parseFloat(cs.opacity) === 0) signals.push(['TRANSPARENT', 'opacity:0']);
+    // 0이 아니어도 사람 눈에 안 보이는 불투명도(0.01 등)까지 — 요강 예시 opacity:0의 변형
+    if (parseFloat(cs.opacity) <= 0.05) signals.push(['TRANSPARENT', 'opacity:' + cs.opacity]);
+    const fop = (cs.filter || '').match(/opacity\(([\d.]+)(%?)\)/);
+    if (fop && parseFloat(fop[1]) / (fop[2] ? 100 : 1) <= 0.05) signals.push(['TRANSPARENT', 'filter:' + fop[0]]);
+    // 글자 채움색만 투명 — 그라데이션 글자(background-clip:text)는 실제로 보이므로 제외
+    const fill = rgba(cs.webkitTextFillColor || '');
+    const clipText = cs.webkitBackgroundClip === 'text' || cs.backgroundClip === 'text';
+    if (fill && fill.a === 0 && !clipText && (!pcs || cs.webkitTextFillColor !== pcs.webkitTextFillColor))
+      signals.push(['TRANSPARENT', '-webkit-text-fill-color:transparent']);
     const col = rgba(cs.color);
     const colorDeclaredHere = !pcs || cs.color !== pcs.color;
     if (col && col.a === 0 && colorDeclaredHere) signals.push(['TRANSPARENT', 'color:transparent']);
@@ -184,6 +192,21 @@
       }
     }
 
+    // translate·음수 margin으로 화면 밖으로 밀어낸 요소 (position 없이도 가능). 999px 이상 옮겼고 실제로 화면 밖일 때만 —
+    // 캐러셀은 바깥 트랙만 옮기므로 각 슬라이드에는 걸리지 않는다
+    const tm = cs.transform && cs.transform.match(/^matrix\(([^)]+)\)/);
+    const tx = tm ? Number(tm[1].split(',')[4]) : 0, ty = tm ? Number(tm[1].split(',')[5]) : 0;
+    const farShift = Math.abs(tx) >= 999 || Math.abs(ty) >= 999;
+    const farMargin = parseFloat(cs.marginLeft) <= -999 || parseFloat(cs.marginTop) <= -999;
+    if ((farShift || farMargin) && cs.display !== 'none') {
+      // 상자가 아니라 글자 범위로 잰다 — 음수 margin 블록은 상자 폭이 늘어나 오른쪽 끝이 화면 안에 남는다
+      const rng = document.createRange();
+      rng.selectNodeContents(el);
+      const r = rng.getBoundingClientRect();
+      if (r.right + window.scrollX <= 0 || r.bottom + window.scrollY <= 0 || r.left >= Math.max(docW, window.innerWidth) - 1)
+        signals.push(['OFFSCREEN', farShift ? 'transform:translate(' + tx + 'px,' + ty + 'px)' : 'margin:' + cs.marginLeft + ' ' + cs.marginTop]);
+    }
+
     // clip-path로 완전히 숨김 (inset(100%) 등)
     if (cs.clipPath && cs.clipPath !== 'none') {
       if (/inset\(\s*100%/.test(cs.clipPath) || /inset\(\s*50%\s+0\s+50%/.test(cs.clipPath))
@@ -231,7 +254,7 @@
       const pSel = selector(el);
       // 가상 요소 자체의 은닉 여부 확인
       const pSignals = [];
-      if (parseFloat(pcs.opacity) === 0) pSignals.push(['TRANSPARENT', 'pseudo:opacity:0']);
+      if (parseFloat(pcs.opacity) <= 0.05) pSignals.push(['TRANSPARENT', 'pseudo:opacity:' + pcs.opacity]);
       const pCol = rgba(pcs.color);
       if (pCol && pCol.a === 0) pSignals.push(['TRANSPARENT', 'pseudo:color:transparent']);
       else if (pCol && pCol.a > 0) {
