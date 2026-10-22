@@ -406,6 +406,16 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(200, list_runs())
         parts = path.strip("/").split("/")
         if len(parts) >= 3 and parts[:2] == ["api", "runs"]:
+            if parts[3:] == ["result.json"]:
+                # 탐지 엔진이 저장한 요강 붙임4 형식 파일을 바이트 그대로 전달 (재생성하지 않음).
+                # report.json(대형 사이트 900MB)을 읽지 않는다 — counselpsy 10-22에서 2.4MB 내려받기에 6.8초
+                d = run_dir(parts[2])
+                if not d:
+                    return self.send(404, {"error": "점검 이력을 찾을 수 없습니다."})
+                if not (d / "result.json").is_file():
+                    return self.send(404, {"error": "이 점검의 result.json이 없습니다."})
+                return self.send(200, (d / "result.json").read_bytes(), "application/json; charset=utf-8",
+                                 {"Content-Disposition": 'attachment; filename="result.json"'})
             rep = load_run(parts[2])
             if rep is None:
                 return self.send(404, {"error": "점검 이력을 찾을 수 없습니다."})
@@ -417,12 +427,6 @@ class Handler(BaseHTTPRequestHandler):
                 result_doc = json.loads(result_path.read_text(encoding="utf-8")) if result_path.is_file() else {}
                 return self.send(200, export_csv(rep, result_doc), "text/csv; charset=utf-8",
                                  {"Content-Disposition": f'attachment; filename="ad-purifier-{parts[2]}.csv"'})
-            if parts[3:] == ["result.json"]:
-                # 탐지 엔진이 저장한 요강 붙임4 형식 파일을 바이트 그대로 전달 (재생성하지 않음)
-                if not result_path.is_file():
-                    return self.send(404, {"error": "이 점검의 result.json이 없습니다."})
-                return self.send(200, result_path.read_bytes(), "application/json; charset=utf-8",
-                                 {"Content-Disposition": 'attachment; filename="result.json"'})
         self.send(404, {"error": "not found"})
 
     def do_POST(self):
