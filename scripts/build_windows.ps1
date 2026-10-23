@@ -1,6 +1,8 @@
-﻿param([string]$Version = '0.2.0-preview.1', [switch]$SingleInstaller, [string]$Python, [switch]$SkipUnitTests)
+﻿param([string]$Version = '0.2.0-preview.1', [switch]$SingleInstaller, [string]$Python, [switch]$SkipUnitTests,
+      [string]$LayaModelDir)
 # CI(GitHub Actions, pwsh 7)와 일반 Windows PC(Windows PowerShell 5.1) 양쪽에서 실행한다.
 # 로컬 예: powershell -ExecutionPolicy Bypass -File scripts\build_windows.ps1 -Python .venv-build\Scripts\python.exe
+#          (-SkipUnitTests, -LayaModelDir <Laya 모델 폴더> 는 로컬 전용)
 # (docs/BUILD.md '로컬 Windows PC 빌드'. 이 파일은 5.1이 한글을 읽도록 UTF-8 BOM으로 저장한다.)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -26,6 +28,9 @@ try {
     if ([Environment]::OSVersion.Platform -ne 'Win32NT') { throw 'Windows runner required' }
     $CI = $env:GITHUB_ACTIONS -eq 'true'
     if ($SkipUnitTests -and $CI) { throw 'CI에서는 유닛 테스트를 건너뛸 수 없음' }
+    # 로컬 전용: 잠금된 릴리스 Laya ZIP 대신 로컬 모델 폴더를 같은 설치 위치(models/laya-illegal-ad-long2)에 넣는다.
+    if ($LayaModelDir -and $CI) { throw 'CI에서는 잠금된 릴리스 Laya 모델만 사용' }
+    if ($LayaModelDir) { $LayaModelDir = (Resolve-Path -LiteralPath $LayaModelDir).Path }
     # 로컬 실행: CI가 주는 값을 같은 의미의 로컬 값으로 채운다. CI에서는 기존 값을 그대로 쓴다.
     $Temp = $env:RUNNER_TEMP
     if (-not $Temp) {
@@ -99,12 +104,18 @@ try {
     New-Item -ItemType Directory -Force 'dist/AdPurifier/runtime' | Out-Null
     Move-Item $BrowserStage 'dist/AdPurifier/runtime/chromium'
     # 대형 자산은 완성된 dist에 직접 기록한다. 별도 모델 staging 사본을 만들지 않는다.
+    if ($LayaModelDir) {
+        Write-Warning "로컬 Laya 모델 사용: $LayaModelDir (잠금된 릴리스 long2 대신)"
+        Invoke-Checked $Python @('-m', 'scripts.assets', 'prepare', '--root', 'dist/AdPurifier',
+                                '--manifest', 'assets.lock.json', '--laya-dir', $LayaModelDir)
+    } else {
     $LayaZip = Join-Path $Temp 'laya-long2-model.zip'
     if (Test-Path $LayaZip) { Remove-Item $LayaZip }
     Invoke-Checked 'gh' @('release', 'download', 'build-inputs-long2-20261018', '--repo', $Repository,
                           '--pattern', 'laya-long2-model.zip', '--dir', $Temp)
     Invoke-Checked $Python @('-m', 'scripts.assets', 'prepare', '--root', 'dist/AdPurifier',
                             '--manifest', 'assets.lock.json', '--laya-zip', $LayaZip)
+    }
     # VS 설치의 한 release x64 CRT family를 선택한다. System32/다른 버전에서 보충하지 않는다.
     $VsWhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
     if (-not (Test-Path $VsWhere)) { throw 'VS 설치 탐색 도구 누락' }

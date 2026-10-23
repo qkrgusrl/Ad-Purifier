@@ -54,7 +54,12 @@ powershell -ExecutionPolicy Bypass -File scripts\build_windows.ps1 -Python .venv
 
 CI 전용 값은 로컬 값으로 채운다: `RUNNER_TEMP` → `%TEMP%\adpurifier-build`, `GITHUB_REPOSITORY` → `gh repo view`,
 `GITHUB_SHA` → `git rev-parse HEAD`(커밋 안 된 변경이 있으면 경고), `PYTHONUTF8` → `1`. CI에서는 기존 값을 그대로 쓴다.
-`-SkipUnitTests`는 로컬 전용이며 CI(`GITHUB_ACTIONS=true`)에서는 거부한다. 패키징 계약 테스트 일부는 pwsh 7을 요구한다.
+`-SkipUnitTests`는 로컬 전용이며 CI(`GITHUB_ACTIONS=true`)에서는 거부한다.
+`-LayaModelDir <폴더>`(로컬 전용)는 private 릴리스 ZIP 대신 그 폴더의 Laya 모델을 같은 설치 위치
+`models/laya-illegal-ad-long2/`에 넣는다. `model.safetensors`, `rl_agent_config.json`, `questions.json`,
+`encoder/config.json`, `tokenizer/tokenizer.json`, `tokenizer/tokenizer_config.json`이 있어야 한다.
+설치본의 `assets.lock.json`에는 잠금된 long2 대신 실제 복사한 파일 해시와 폴더 이름만 기록한다.
+모델의 `max_len`이 다르면 그보다 긴 문구는 Laya 판정에서 빠진다(`length_skipped_laya`). 패키징 계약 테스트 일부는 pwsh 7을 요구한다.
 스크립트는 UTF-8 BOM으로 저장한다. BOM이 없으면 5.1이 한글을 시스템 코드페이지로 읽어 구문 분석부터 실패한다.
 로컬 실행도 dist 삭제, `%LOCALAPPDATA%\설치 시험\광고청정기` 실제 설치(제거 프로그램 등록 포함)를 CI와 같이 수행한다.
 

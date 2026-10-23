@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import posixpath
 import re
 import shutil
 import tempfile
@@ -126,13 +127,43 @@ def prepare_browsers(registry, lock):
     verify_assets(registry, {'files': records})
 
 
-def prepare(root, lock, laya_zip):
+LAYA_REQUIRED = ('model.safetensors', 'rl_agent_config.json', 'questions.json', 'encoder/config.json',
+                 'tokenizer/tokenizer.json', 'tokenizer/tokenizer_config.json')
+
+
+def copy_laya_dir(source_dir, root, entry):
+    """로컬 빌드: 릴리스 ZIP 대신 Laya 모델 폴더를 같은 설치 위치(entry members의 공통 폴더)에 복사한다."""
+    source = Path(source_dir).resolve()
+    if not source.is_dir():
+        raise ValueError(f'Laya 모델 폴더 없음: {source}')
+    prefix = posixpath.commonpath(list(entry['members'].values()))
+    members = sorted(p for p in source.rglob('*') if p.is_file() or p.is_symlink())
+    names = [p.relative_to(source).as_posix() for p in members]
+    if any(p.is_symlink() for p in members):
+        raise ValueError('Laya 모델 폴더 symlink 금지')
+    missing = [n for n in LAYA_REQUIRED if n not in names]
+    if missing:
+        raise ValueError(f'Laya 모델 필수 파일 누락: {missing}')
+    records = []
+    for member, name in zip(members, names):
+        destination = safe_path(root, f'{prefix}/{name}')
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(member, destination)
+        records.append(file_record(member, f'{prefix}/{name}'))
+    verify_assets(root, {'files': records})
+    return prefix + '/', records
+
+
+def prepare(root, lock, laya_zip, laya_dir=None):
     root = Path(root).resolve()
+    laya_prefix, laya_records = None, []
     for entry in lock['downloads']:
         if entry.get('destination', '').startswith('runtime/chromium/') and (root / 'runtime/chromium').is_dir():
             # 유닛 테스트에 사용한 브라우저를 빌드 스크립트가 이동했다. 아래에서 전부 재검증한다.
             continue
-        if entry.get('release'):
+        if entry.get('release') and laya_dir:
+            laya_prefix, laya_records = copy_laya_dir(laya_dir, root, entry)
+        elif entry.get('release'):
             archive = Path(laya_zip).resolve()
             verify_assets(archive.parent, {'files': [{**entry, 'path': archive.name}]})
             extract_archive(archive, root, entry)
@@ -144,7 +175,9 @@ def prepare(root, lock, laya_zip):
                 extract_archive(archive, root, entry)
         else:
             download(entry, safe_path(root, entry['destination']))
-    immutable = [x for x in lock['files'] if x['path'].startswith(('models/', 'runtime/'))]
+    # 로컬 Laya 폴더를 쓰면 잠금된 릴리스 모델 기록 대신 실제 복사한 파일 기록을 쓴다.
+    pinned = [x for x in lock['files'] if not (laya_prefix and x['path'].startswith(laya_prefix))]
+    immutable = [x for x in pinned if x['path'].startswith(('models/', 'runtime/'))]
     verify_assets(root, {'files': immutable})
     # UI/JS는 소스 변경에 따라 달라진다. 빌드 입력 자체와 비교한 뒤 최종 트리 해시를 생성한다.
     source = Path(__file__).resolve().parents[1]
@@ -152,7 +185,11 @@ def prepare(root, lock, laya_zip):
     for name in ('ui/static/index.html', 'detector/extract.js'):
         dynamic[name] = file_record(source / name, name)
         verify_assets(root, {'files': [dynamic[name]]})
-    built_lock = {**lock, 'files': [dynamic.get(item['path'], item) for item in lock['files']]}
+    built_lock = {**lock, 'files': [dynamic.get(item['path'], item) for item in pinned] + laya_records}
+    if laya_prefix:
+        # 설치본에 사용자 경로를 남기지 않도록 폴더 이름만 기록한다.
+        built_lock['downloads'] = [{'local_laya_dir': Path(laya_dir).resolve().name, 'destination': laya_prefix.rstrip('/')}
+                                   if item.get('release') else item for item in lock['downloads']]
     (root / 'assets.lock.json').write_text(json.dumps(built_lock, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 
 
@@ -170,6 +207,7 @@ def main():
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--manifest', type=Path, required=True)
     parser.add_argument('--laya-zip', type=Path)
+    parser.add_argument('--laya-dir', type=Path, help='로컬 빌드: 릴리스 ZIP 대신 사용할 Laya 모델 폴더')
     parser.add_argument('--source-dir', type=Path)
     args = parser.parse_args()
     if args.action == 'crt':
@@ -182,7 +220,7 @@ def main():
         if args.action == 'browsers':
             prepare_browsers(args.root, lock)
         elif args.action == 'prepare':
-            prepare(args.root, lock, args.laya_zip)
+            prepare(args.root, lock, args.laya_zip, args.laya_dir)
         else:
             verify_assets(args.root, lock)
 
