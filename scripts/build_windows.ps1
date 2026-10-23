@@ -1,4 +1,4 @@
-param([string]$Version = '0.2.0-preview.1', [switch]$SingleInstaller)
+param([string]$Version = '0.2.0-preview.1', [switch]$SingleInstaller, [string]$LayaZip)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $Root = Split-Path -Parent $PSScriptRoot
@@ -20,37 +20,14 @@ try {
     $Drive = Get-PSDrive -Name ([IO.Path]::GetPathRoot($Root).Substring(0,1))
     if ($Drive.Free -lt 14GB) { throw '빌드 시작 시 14 GiB 이상 여유 공간 필요' }
     $Python = (Get-Command python).Source
-    $PayloadSource = 'dae7af58e636d3b0438910271de11081f9cbdd01'
-    if ($SingleInstaller) {
-        $Source = Join-Path $Root 'single-installer-source'
-        if (Test-Path $Source) { Remove-Item $Source -Recurse -Force }
-        if (Test-Path 'dist/AdPurifier') { Remove-Item 'dist/AdPurifier' -Recurse -Force }
-        New-Item -ItemType Directory $Source | Out-Null
-        Invoke-Checked 'gh' @('release', 'download', 'v0.2.0-preview.1', '--repo', $env:GITHUB_REPOSITORY,
-            '--pattern', '*Setup.exe', '--pattern', '*.bin', '--pattern', 'installer-manifest.json', '--dir', $Source)
-        $SourceManifest = Join-Path $Source 'installer-manifest.json'
-        if ((Get-FileHash $SourceManifest -Algorithm SHA256).Hash.ToLowerInvariant() -cne
-            'b7e57e0203efba4b63c9a715cede874aa301e1fc17f1f1f2fa1c4da8db97db8e') { throw '기준 manifest SHA256 불일치' }
-        $Baseline = Get-Content -Raw $SourceManifest | ConvertFrom-Json
-        $Parts = @($Baseline.files | ForEach-Object path)
-        if ($Baseline.source_commit -cne $PayloadSource -or $Baseline.version -cne '0.2.0-preview.1' -or
-            $Parts.Count -ne 5 -or @($Parts | Where-Object { $_ -cmatch '^[^/\\]+Setup\.exe$' }).Count -ne 1 -or
-            @($Parts | Where-Object { $_ -cmatch '^[^/\\]+\.bin$' }).Count -ne 4) { throw '기준 payload 출처/파일 구성 불일치' }
-        Invoke-Checked $Python @('-m', 'scripts.assets', 'verify', '--root', $Source, '--manifest', $SourceManifest)
-        $PayloadRoot = Join-Path $Root 'dist/AdPurifier'
-        $OldSetup = Join-Path $Source ($Parts | Where-Object { $_ -like '*Setup.exe' })
-        $OldInstaller = Start-Process -FilePath $OldSetup -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',
-            "/DIR=`"$PayloadRoot`"", "/LOG=`"$(Join-Path $Diagnostics 'payload-install.log')`"") -PassThru -Wait
-        if ($OldInstaller.ExitCode -ne 0) { throw "기준 설치 실패: $($OldInstaller.ExitCode)" }
-        Invoke-Checked $Python @('-m', 'scripts.assets', 'verify', '--root', $PayloadRoot,
-            '--manifest', (Join-Path $PayloadRoot 'installed-assets.json'))
-        Copy-Item "$PayloadRoot/assets.lock.json", "$PayloadRoot/installed-assets.json", "$PayloadRoot/crt-manifest.json" $Diagnostics
-        Get-ChildItem $PayloadRoot -File | Where-Object { $_.Name -match '^unins.*\.(exe|dat)$' } | Remove-Item -Force
-        Remove-Item $Source -Recurse -Force
-        [ordered]@{ source_sha = $PayloadSource; payload_source_commit = $PayloadSource; packaging_commit = $env:GITHUB_SHA;
-            manifest_sha256 = 'b7e57e0203efba4b63c9a715cede874aa301e1fc17f1f1f2fa1c4da8db97db8e'; validation_status = 'passed' } |
-            ConvertTo-Json | Set-Content (Join-Path $Diagnostics 'payload-source.json') -Encoding utf8
-    } else {
+    # 단일 설치도 현재 소스에서 새로 빌드한다. 이전 설치본 재포장 금지.
+    $PayloadSource = (& git rev-parse HEAD).Trim()
+    if (-not $LayaZip -and $env:LAYA_ADVANCED_ZIP_URL) {
+        $LayaZip = Join-Path $env:RUNNER_TEMP 'laya-advanced.zip'
+        Invoke-WebRequest -Uri $env:LAYA_ADVANCED_ZIP_URL -OutFile $LayaZip
+    }
+    if (-not $LayaZip -or -not (Test-Path $LayaZip -PathType Leaf)) { throw '-LayaZip 또는 빌드 전용 LAYA_ADVANCED_ZIP_URL에 Advanced 원본 ZIP을 지정하세요' }
+    $LayaZip = (Resolve-Path $LayaZip).Path
     # DOM 독립 테스트가 PATH=0을 강제한다. 동일한 잠금 브라우저로 검사한 뒤 이동한다.
     $TestBrowsers = & $Python -c "import pathlib,playwright; print(pathlib.Path(playwright.__file__).parent / 'driver/package/.local-browsers')"
     if ($LASTEXITCODE -ne 0) { throw 'Playwright package path lookup failed' }
@@ -64,10 +41,6 @@ try {
     New-Item -ItemType Directory -Force 'dist/AdPurifier/runtime' | Out-Null
     Move-Item $BrowserStage 'dist/AdPurifier/runtime/chromium'
     # 대형 자산은 완성된 dist에 직접 기록한다. 별도 모델 staging 사본을 만들지 않는다.
-    $LayaZip = Join-Path $env:RUNNER_TEMP 'laya-long2-model.zip'
-    if (Test-Path $LayaZip) { Remove-Item $LayaZip }
-    Invoke-Checked 'gh' @('release', 'download', 'build-inputs-long2-20261018', '--repo', $env:GITHUB_REPOSITORY,
-                          '--pattern', 'laya-long2-model.zip', '--dir', $env:RUNNER_TEMP)
     Invoke-Checked $Python @('-m', 'scripts.assets', 'prepare', '--root', 'dist/AdPurifier',
                             '--manifest', 'assets.lock.json', '--laya-zip', $LayaZip)
     # VS 설치의 한 release x64 CRT family를 선택한다. System32/다른 버전에서 보충하지 않는다.
@@ -100,7 +73,9 @@ try {
     Copy-Item 'dist/AdPurifier/assets.lock.json', 'requirements-windows.lock.txt' $Diagnostics
     # 수집 완료 후 PyInstaller 작업 캐시를 제거한다.
     Remove-Item 'build' -Recurse -Force
-    }
+    [ordered]@{ source_sha = $PayloadSource; payload_source_commit = $PayloadSource;
+        packaging_commit = $env:GITHUB_SHA; validation_status = 'passed'; mode = 'fresh-build' } |
+        ConvertTo-Json | Set-Content (Join-Path $Diagnostics 'payload-source.json') -Encoding utf8
     function Find-Inno {
         $Command = Get-Command 'iscc.exe' -ErrorAction SilentlyContinue
         if ($Command) { return $Command.Source }

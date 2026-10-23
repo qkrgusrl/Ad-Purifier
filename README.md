@@ -325,7 +325,7 @@ CPU 전용 torch, laya, playwright, Chromium을 설치합니다.
 
 | 자산 | 설치 경로 |
 |---|---|
-| Laya long2 전체 모델 폴더 | `models/laya-illegal-ad-long2/` (가중치, 설정, questions, encoder, tokenizer 포함) |
+| Laya Advanced 전체 모델 폴더 | `models/laya-illegal-ad(advanced)/` (가중치, 설정, questions, encoder, tokenizer 포함) |
 | Gemma GGUF | `models/gemma/gemma-4-E2B_q4_0-it.gguf` |
 | 현재 OS·CPU 아키텍처용 llama.cpp 서버와 의존 라이브러리 | macOS/Linux: `runtime/llama/llama-server`, Windows: `runtime/llama/llama-server.exe` 및 동봉 DLL |
 | Chromium | 아래 브라우저 경로 선택 규칙 참고 |
@@ -360,7 +360,7 @@ AI 연결부는 수집 문구를 원본 HTML의 직접 본문·하위 본문·�
 
 `inspection`은 원문 소유 범위, 부모 ID, 조각 번호와 문자 위치를 기록합니다. `ai.inspection`은 투영·분할·연결 불가 수를 집계합니다. 토큰 예산을 계산할 수 없거나 원문 결합에 실패한 항목, 모델 오류·잘림은 정상으로 처리하지 않습니다. 실제 추론 전 길이 초과 검사는 계속 유지하며, 잔여 길이 초과는 원문·실제 토큰 수·한도와 함께 보류 사유로 남깁니다. 길이 초과 건수는 모델 오류와 구분해 진행 화면에 표시합니다. 분할은 입력 누락을 줄이지만 문장 경계에서의 의미 손실이나 모델 오판까지 없앤다는 뜻은 아닙니다.
 
-### 참고: 직접 파인튜닝하기 (공식 실행에 필요한 long2 배포본과 별도)
+### 참고: 직접 파인튜닝하기 (공식 실행에 필요한 Advanced 배포본과 별도)
 프로토타입과 같은 설정입니다. CPU로도 돌아가지만 시간이 걸립니다.
 ```bash
 # 1) 학습 데이터 생성 (train.jsonl·dev.jsonl, 이미 들어 있으니 수정했을 때만 실행)
@@ -379,7 +379,7 @@ Mac(16GB)에서는 `--micro-batch 4 --grad-accum 8`이 메모리 안에 들어�
 
 긴 글 보강 학습 데이터(2000문장)에는 100자 넘는 문장이 들어 있어 `--max-len 384`를 그대로 쓰면 됩니다. 학습 뒤 `training/eval_classifier.py 모델폴더`로 검증셋·dev·real_cases를 한 번에 비교하세요.
 
-기본 모델은 `models/laya-illegal-ad-long2`입니다. 다른 모델과 비교하려면 `AD_PURIFIER_MODEL`로 전체 모델 폴더를 지정하세요. `AD_PURIFIER_GEMMA_MODEL`과 `AD_PURIFIER_LLAMA_SERVER`도 지원합니다. 상대 경로는 현재 작업 폴더와 무관하게 저장소 루트(설치형은 실행 파일 폴더)를 기준으로 해석합니다.
+기본 모델은 `models/laya-illegal-ad(advanced)`입니다. 다른 모델과 비교하려면 `AD_PURIFIER_MODEL`로 전체 모델 폴더를 지정하세요. `AD_PURIFIER_GEMMA_MODEL`과 `AD_PURIFIER_LLAMA_SERVER`도 지원합니다. 상대 경로는 현재 작업 폴더와 무관하게 저장소 루트(설치형은 실행 파일 폴더)를 기준으로 해석합니다.
 ```bash
 AD_PURIFIER_MODEL=models/laya-illegal-ad-v3 .venv/bin/python -u -m ui.server --port 8780
 ```
@@ -490,7 +490,7 @@ Windows에서는 `run_testsite.bat`을 실행한 뒤 `run_detect.bat http://127.
 | `--llm-reserve` | 480 (8분) | 크롤링 뒤 AI 판정 몫(초). 크롤링은 `time-budget − llm-reserve − 판정 2분`(19분)까지, Laya는 `time-budget − 30초 − Gemma 최소 2분`(26분 30초)까지 |
 | `--concurrency` | 4 | 동시에 여는 탭 수 |
 | `--timeout` | 15000 | 페이지 로딩 제한 시간(ms) |
-| `--model` | `models/laya-illegal-ad-long2` (`AD_PURIFIER_MODEL` 환경변수로 변경 가능) | 로컬 Laya 모델 폴더 |
+| `--model` | `models/laya-illegal-ad(advanced)` (`AD_PURIFIER_MODEL` 환경변수로 변경 가능) | 로컬 Laya 모델 폴더 |
 | `--no-ml` | – | Laya 없이 룰만 사용 |
 | `--user-agent` | 일반 Chrome | 크롤러 User-Agent. 기본으로 평범한 한국어 브라우저처럼 접속합니다(로캘 `ko-KR`, `Accept-Language` 포함). 점검 기관에 신원을 밝혀야 하면 뒤에 도구명을 덧붙이세요. |
 | `--no-extra` | – | 게시형(은닉 없는) 불법광고 탐지를 끄고 적격평가 4종만 탐지 |

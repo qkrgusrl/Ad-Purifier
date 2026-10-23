@@ -19,6 +19,7 @@ jobs:
       ui_smoke: ${{ steps.validate.outputs.ui_smoke }}
     env:
       PYTHONUTF8: '1'
+      LAYA_ADVANCED_ZIP_URL: ${{ vars.LAYA_ADVANCED_ZIP_URL }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
@@ -27,29 +28,35 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Repack baseline and run actual Windows installation, self-test and UI
+      - name: Install locked CPU dependencies
         shell: pwsh
-        run: ./scripts/build_windows.ps1 -SingleInstaller -Version 0.2.0-preview.2
+        run: |
+          python -m pip install --no-cache-dir --require-hashes -r requirements-windows.lock.txt
+          if ($LASTEXITCODE -ne 0) { throw 'locked dependency installation failed' }
+          python -m pip check
+          if ($LASTEXITCODE -ne 0) { throw 'dependency consistency failed' }
+      - name: Build current source and run actual Windows installation, self-test and UI
+        shell: pwsh
+        run: ./scripts/build_windows.ps1 -SingleInstaller -Version 0.2.0-preview.5
       - name: Validate payload provenance and single installer
         id: validate
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $PayloadSource = 'dae7af58e636d3b0438910271de11081f9cbdd01'
+          $PayloadSource = $env:GITHUB_SHA
           $Manifest = Get-Content -Raw release/installer-manifest.json | ConvertFrom-Json
           $Validation = Get-Content -Raw release/validation-status.json | ConvertFrom-Json
           $Payload = Get-Content -Raw build-diagnostics/payload-source.json | ConvertFrom-Json
           if ($env:GITHUB_SHA -cnotmatch '^[0-9a-f]{40}$' -or
-              $Manifest.source_commit -cne $env:GITHUB_SHA -or $Manifest.version -cne '0.2.0-preview.2' -or
+              $Manifest.source_commit -cne $env:GITHUB_SHA -or $Manifest.version -cne '0.2.0-preview.5' -or
               $Manifest.payload_source_commit -cne $PayloadSource -or
               $Payload.source_sha -cne $PayloadSource -or $Payload.payload_source_commit -cne $PayloadSource -or
               $Payload.packaging_commit -cne $env:GITHUB_SHA -or $Payload.validation_status -cne 'passed' -or
-              $Payload.manifest_sha256 -cne 'b7e57e0203efba4b63c9a715cede874aa301e1fc17f1f1f2fa1c4da8db97db8e' -or
               $Validation.source_commit -cne $env:GITHUB_SHA -or $Validation.validation_status -cne 'passed') {
               throw 'payload/packaging 출처 또는 Windows 검증 상태 불일치'
           }
           $Files = @(Get-ChildItem release -File -Filter '*.exe')
-          if ($Files.Count -ne 1 -or $Files[0].Name -cne 'AdPurifier-0.2.0-preview.2-Setup.exe' -or @($Manifest.files).Count -ne 1 -or
+          if ($Files.Count -ne 1 -or $Files[0].Name -cne 'AdPurifier-0.2.0-preview.5-Setup.exe' -or @($Manifest.files).Count -ne 1 -or
               $Manifest.files[0].path -cne $Files[0].Name -or $Files[0].Length -ge 4200000000 -or
               @(Get-ChildItem release -File -Filter '*.bin').Count) { throw '단일 EXE 구성/크기 오류' }
           python -m scripts.assets verify --root release --manifest release/installer-manifest.json
@@ -67,7 +74,7 @@ jobs:
         id: installer
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: AdPurifier-0.2.0-preview.2-Setup.exe
+          name: AdPurifier-0.2.0-preview.5-Setup.exe
           path: release/*.exe
           archive: false
           if-no-files-found: error
@@ -80,7 +87,7 @@ jobs:
           ARTIFACT_DIGEST: ${{ steps.installer.outputs.artifact-digest }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $Tag = 'v0.2.0-preview.2'
+          $Tag = 'v0.2.0-preview.5'
           python -m scripts.release_manifest --verify-tag --repo $env:GITHUB_REPOSITORY --tag $Tag --expected-sha $env:GITHUB_SHA
           if ($LASTEXITCODE -ne 0) { throw '실제 원격 태그 SHA 불일치' }
           $Raw = gh release view $Tag --repo $env:GITHUB_REPOSITORY --json isDraft

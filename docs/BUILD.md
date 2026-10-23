@@ -8,8 +8,13 @@
 
 - Gemma E2B: `assets.lock.json`의 공개 HF revision과 GGUF SHA256.
 - v15 프롬프트와 source-ID 복원: `local_llm/`. 다른 벤치 버전/target-v8 선택 기능 없음.
-- Laya long2: private release `build-inputs-long2-20261018`의 `laya-long2-model.zip`.
-  `model/` 접두사를 `models/laya-illegal-ad-long2/`로 매핑한다. SDK 전체를 복사하지 않는다.
+- Laya Advanced: 팀 공유 폴더의 `laya-illegal-ad(advanced).zip`.
+  ZIP의 `laya-illegal-ad-v3/`를 `models/laya-illegal-ad(advanced)/`로 매핑한다.
+  원본 ZIP과 각 파일의 size/SHA256은 `assets.lock.json`으로 검증한다.
+  빌드 시 `scripts/build_windows.ps1 -SingleInstaller -LayaZip <원본 ZIP 경로>`를 사용한다.
+  CI에서는 저장소 변수 `LAYA_ADVANCED_ZIP_URL`에 다운로드 가능한 원본 ZIP 주소를 준비해야 한다.
+  URL은 빌드에만 쓰이며 배포 앱은 모델을 다운로드하지 않는다. SHA256 불일치 시 빌드를 중단한다.
+  설치 사용자는 ZIP이나 모델을 따로 받을 필요가 없다. 입력 원본 ZIP은 삭제하지 않는다.
 - Windows llama CPU ZIP, Chromium/headless-shell/FFmpeg/winldd:
   공식 배포 ZIP을 실제 다운로드하여 계산한 파일별 size/SHA256을 `assets.lock.json`에 보존.
 - Python wheel: `requirements-windows.lock.txt`의 정확한 버전과 실제 SHA256.
@@ -31,12 +36,11 @@ Windows-2022 runner에서 잠금 의존성 설치와 `pip check` 후 `scripts/bu
 스크립트는 잠금 Chromium 준비 → 전체 unittest → 브라우저 임시 이동 → 라이선스 수집 → PyInstaller → 브라우저 dist 이동 및 모델 자산 직접 다운로드 →
 Inno Setup → 실제 설치 → frozen self-test → UI HTTP smoke 순서로 동작한다.
 
-private 입력은 `GH_TOKEN` 환경변수를 사용하는 `gh release download`로 받는다.
-토큰을 파일이나 명령 인수에 기록하지 않는다. 입력 릴리스와 빌드 workflow가 같은 저장소에 있어야 한다.
-프로젝트의 다른 저장소로 옮기면 해당 입력에 대한 접근 권한을 별도로 구성해야 한다.
+Advanced ZIP은 빌드 담당자가 위 공유 폴더에서 준비해 `-LayaZip`으로 전달한다.
+단일 EXE도 현재 소스로 새로 빌드하며, 기존 릴리스의 구형 실행파일을 재포장하지 않는다.
 
 빌드 시작 시 14 GiB 여유 공간을 검사한다. 코드부터 동결하고 큰 자산은 dist에 직접 기록한다.
-ZIP은 추출 직후 삭제한다. Inno 압축이 끝나면 dist를 삭제한 뒤 설치 시험을 진행한다.
+원본 모델 ZIP은 보존한다. Inno 압축이 끝나면 dist를 삭제한 뒤 설치 시험을 진행한다.
 전체 Windows 실행 성공은 CI 진단과 설치 JSON으로 확인해야 한다. macOS 유닛 테스트는 그 증거가 아니다.
 
 ## 설치 시험과 증거

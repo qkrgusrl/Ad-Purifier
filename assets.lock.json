@@ -8,18 +8,17 @@
   "chromium_revision": "1248",
   "downloads": [
     {
-      "release": "build-inputs-long2-20261018",
-      "asset": "laya-long2-model.zip",
-      "size": 602651503,
-      "sha256": "5fb67a972ac4061a537fc109b53f8d00d53c0d0d43d22c95e590a060d27a541f",
+      "local_archive": "laya-illegal-ad(advanced).zip",
+      "source_url": "https://drive.google.com/drive/u/0/folders/1-tRQ9EIg4EHd2NM805OujKxKn9ZVNb1x",
+      "size": 598599887,
+      "sha256": "1bcce121dc0cb6540d2bda83a610ac823246d31eaa159ad35022bbded0c23ce0",
       "members": {
-        "model/encoder/config.json": "models/laya-illegal-ad-long2/encoder/config.json",
-        "model/model.safetensors": "models/laya-illegal-ad-long2/model.safetensors",
-        "model/questions.json": "models/laya-illegal-ad-long2/questions.json",
-        "model/rl_agent_config.json": "models/laya-illegal-ad-long2/rl_agent_config.json",
-        "model/tokenizer/tokenizer.json": "models/laya-illegal-ad-long2/tokenizer/tokenizer.json",
-        "model/tokenizer/tokenizer_config.json": "models/laya-illegal-ad-long2/tokenizer/tokenizer_config.json",
-        "model/train_report.json": "models/laya-illegal-ad-long2/train_report.json"
+        "laya-illegal-ad-v3/questions.json": "models/laya-illegal-ad(advanced)/questions.json",
+        "laya-illegal-ad-v3/encoder/config.json": "models/laya-illegal-ad(advanced)/encoder/config.json",
+        "laya-illegal-ad-v3/tokenizer/tokenizer_config.json": "models/laya-illegal-ad(advanced)/tokenizer/tokenizer_config.json",
+        "laya-illegal-ad-v3/tokenizer/tokenizer.json": "models/laya-illegal-ad(advanced)/tokenizer/tokenizer.json",
+        "laya-illegal-ad-v3/model.safetensors": "models/laya-illegal-ad(advanced)/model.safetensors",
+        "laya-illegal-ad-v3/rl_agent_config.json": "models/laya-illegal-ad(advanced)/rl_agent_config.json"
       }
     },
     {
@@ -65,41 +64,6 @@
     }
   ],
   "files": [
-    {
-      "path": "models/laya-illegal-ad-long2/encoder/config.json",
-      "size": 2018,
-      "sha256": "3ceae14d210557b47abcde2768b27afbb2131974f9c4dd714f2236fd9ee54981"
-    },
-    {
-      "path": "models/laya-illegal-ad-long2/model.safetensors",
-      "size": 643835524,
-      "sha256": "391f38be190d50faf86efb62f6ba026697a1166a5af490bb7c72fc5aa626e14b"
-    },
-    {
-      "path": "models/laya-illegal-ad-long2/questions.json",
-      "size": 263,
-      "sha256": "c524e1f65e82e77404f6ec567d2ad6ae92925f95ee020cb3718c7c219234932a"
-    },
-    {
-      "path": "models/laya-illegal-ad-long2/rl_agent_config.json",
-      "size": 5001,
-      "sha256": "715cf2aa4fc32bf2ac83968cb7d96af25c2642676e5db8cc59fa5069f9371d3e"
-    },
-    {
-      "path": "models/laya-illegal-ad-long2/tokenizer/tokenizer.json",
-      "size": 34363285,
-      "sha256": "dbba919c6e5e492bc22beb80abb64e6fcc7e8744dc696e8388b8c977767afa4b"
-    },
-    {
-      "path": "models/laya-illegal-ad-long2/tokenizer/tokenizer_config.json",
-      "size": 648,
-      "sha256": "5f36fa307ecb9e70c9b058ca0621530f6bd3e89b371c4d6c0279c48d9dbd2629"
-    },
-    {
-      "path": "models/laya-illegal-ad-long2/train_report.json",
-      "size": 2576,
-      "sha256": "45d38e007fcb75d665883cda0dbc11aff82b988708efc08b086928dae3b79807"
-    },
     {
       "path": "models/gemma/gemma-4-E2B_q4_0-it.gguf",
       "size": 3349516256,
@@ -3349,6 +3313,37 @@
       "path": "detector/extract.js",
       "size": 16120,
       "sha256": "742097e1f31510900d278015cf4428e334610ddf55d32de313c07b521a6bc67f"
+    },
+    {
+      "path": "models/laya-illegal-ad(advanced)/questions.json",
+      "size": 258,
+      "sha256": "95f0e9c185652dafc640cf88b5d153cedb393665263f2e1de5c47250fc9dbe12"
+    },
+    {
+      "path": "models/laya-illegal-ad(advanced)/encoder/config.json",
+      "size": 1939,
+      "sha256": "36b7d4898274ed6f06ce9c1f0e34034d8bd39295ab232d7cabc41a3eac821e5f"
+    },
+    {
+      "path": "models/laya-illegal-ad(advanced)/tokenizer/tokenizer_config.json",
+      "size": 624,
+      "sha256": "f2ff584a8f78ac9f3b6fd0afcf9ab310e41c2d445ef628f9ab4b0d594e992b7a"
+    },
+    {
+      "path": "models/laya-illegal-ad(advanced)/tokenizer/tokenizer.json",
+      "size": 34363285,
+      "sha256": "dbba919c6e5e492bc22beb80abb64e6fcc7e8744dc696e8388b8c977767afa4b"
+    },
+    {
+      "path": "models/laya-illegal-ad(advanced)/model.safetensors",
+      "size": 643835524,
+      "sha256": "6696d5a195d8f2623dbd899d9858df6e789d4596e2ac7e34163cc592b609bfea"
+    },
+    {
+      "path": "models/laya-illegal-ad(advanced)/rl_agent_config.json",
+      "size": 1728,
+      "sha256": "b792cc1adbde49003e097533a013caf3a5aa760dd3d9ac9062e84ab3291b1ec3"
     }
-  ]
+  ],
+  "laya_model": "advanced"
 }

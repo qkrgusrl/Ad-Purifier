@@ -1,6 +1,7 @@
 """동봉 자산의 실제 로드/추론/브라우저/I/O 검사. 정확도 평가가 아니다."""
 import gc
 import json
+import math
 import os
 import sys
 import tempfile
@@ -75,6 +76,12 @@ def run_self_test(output):
         from scripts.assets import verify_assets
         manifest = json.loads((app_root() / 'installed-assets.json').read_text(encoding='utf-8'))
         verify_assets(app_root(), manifest)
+        expected = app_root() / 'models/laya-illegal-ad(advanced)'
+        if laya_model().resolve() != expected.resolve():
+            raise RuntimeError('설치본 기본 Advanced 모델 경로 불일치')
+        for asset in (laya_model(), gemma_model()):
+            if not asset.resolve().is_relative_to(app_root().resolve()):
+                raise RuntimeError('설치 폴더 밖 모델 사용 금지')
         return {'verified_files': len(manifest['files']), 'manifest': 'installed-assets.json'}
     phase('asset_integrity', assets)
     if result['phases']['asset_integrity']['status'] != 'ok':
@@ -143,6 +150,9 @@ def run_self_test(output):
                 json.dumps(prediction, ensure_ascii=False, allow_nan=False)
                 if len(prediction) != 1 or 'answers' not in prediction[0]:
                     raise ValueError('Laya 추론 envelope 오류')
+                p = float(prediction[0]['answers']['is_illegal_ad']['noul'])
+                if not math.isfinite(p) or not 0 <= p <= 1:
+                    raise ValueError('Advanced Laya 유효 확률 없음')
         finally:
             pid = runner.pid
             raw['pid'] = pid
