@@ -78,6 +78,21 @@
   const owners = new WeakMap();
   const collected = new Set();
   let nextOwner = 0;
+  // 주변 문맥 HTML 상한. 문서 뷰어(연수구청 synap 미리보기)는 큰 div 하나에 글자 조각 수천 개를 넣어,
+  // 조각마다 그 div 전체를 문맥으로 만들면 합계가 수백 MB가 되어 evaluate가 끝나지 않았다.
+  // 넘으면 대상 요소 쪽으로 좁힌다 — Gemma는 문맥 중 대상 앞뒤 50자만 쓰므로 판정 입력은 같다.
+  const CONTEXT_HTML_MAX = 20000;
+  const htmlLength = new WeakMap();
+  const outerLength = n => {
+    if (!htmlLength.has(n)) htmlLength.set(n, n.outerHTML.length);
+    return htmlLength.get(n);
+  };
+  const nearbyCache = new Map();  // 문맥 요소 → (기사 → {html, text}): 같은 컨테이너의 조각끼리 한 번만 만든다
+  function nearbyOf(local, article) {
+    return [local.previousElementSibling, local, local.nextElementSibling]
+      .filter(n => n && (n === local || (!n.matches('article,section,[role="article"]') &&
+        (!article || article.contains(n)))));
+  }
   function source(el, suffix = '') {
     if (!owners.has(el)) owners.set(el, 'dom-' + (++nextOwner));
     // 본문 전체나 다른 기사의 교육 문맥을 넘기지 않는다.
@@ -85,15 +100,26 @@
     const local = container === document.body ? el : container;
     const article = el.closest('article,section,[role="article"],.article,.post,.entry');
     const title = article ? article.querySelector('h1,h2,h3,header') : null;
-    const nearby = [local.previousElementSibling, local, local.nextElementSibling]
-      .filter(n => n && (n === local || (!n.matches('article,section,[role="article"]') &&
-        (!article || article.contains(n)))));
-    const contextHtml = nearby.map(n => n.outerHTML).join('\n');
-    const titleHtml = title && !nearby.some(n => n.contains(title)) ? title.outerHTML + '\n' : '';
+    // local에서 el까지 내려가며 앞뒤 형제를 합쳐도 상한 안인 가장 넓은 요소를 문맥으로 쓴다. 없으면 대상 요소만.
+    let ctxEl = null, nearby = [el];
+    for (let e = el; e; e = e.parentElement) {
+      const candidate = nearbyOf(e, article);
+      if (candidate.reduce((sum, n) => sum + outerLength(n), 0) <= CONTEXT_HTML_MAX) { ctxEl = e; nearby = candidate; }
+      if (e === local) break;
+    }
+    const key = ctxEl || el;
+    if (!nearbyCache.has(key)) nearbyCache.set(key, new Map());
+    const byArticle = nearbyCache.get(key);
+    if (!byArticle.has(article)) {
+      byArticle.set(article, { html: nearby.map(n => n.outerHTML).join('\n'), text: nearby.map(textOf).join('\n') });
+    }
+    const near = byArticle.get(article);
+    const titleHtml = title && !nearby.some(n => n.contains(title)) && outerLength(title) <= CONTEXT_HTML_MAX
+      ? title.outerHTML + '\n' : '';
     return { source_id: owners.get(el) + suffix,
              source_html: el.outerHTML,
-             source_context: titleHtml + contextHtml,
-             source_near_text: (title ? title.textContent + '\n' : '') + nearby.map(textOf).join('\n') };
+             source_context: titleHtml + near.html,
+             source_near_text: (title ? title.textContent + '\n' : '') + near.text };
   }
   function collect(row) {
     if (!collected.has(row.source_id)) {

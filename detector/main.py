@@ -137,6 +137,12 @@ ENTRY_TIMEOUT_MS = 45000  # 시작 페이지 접속 제한 시간 (일반 페이
 # 느린 사이트 적응: 최근 SLOW_WINDOW번 방문 중 절반 이상이 시간 초과면 '느린 모드' — 제한 시간을 늘리고 동시 요청을 줄인다.
 # s-solution은 응답에만 8~10초가 걸려, 탭 4개로 동시에 열면 15초를 넘겨 51쪽 중 49쪽이 실패했다.
 SLOW_WINDOW, SLOW_TIMEOUT_MS, SLOW_CONCURRENCY = 10, 45000, 2
+# 페이지 한 개에서 프레임 추출(extract.js)에 쓸 수 있는 시간. evaluate에는 Playwright 제한 시간이 없어,
+# 페이지 스크립트나 추출이 끝나지 않으면 작업자가 영원히 기다렸다 (연수구청 synap 문서 미리보기 — 526쪽에서 멈춤).
+EXTRACT_TIMEOUT_S = 30
+# 크롤링 마감 뒤 진행 중인 페이지를 기다리는 시간. 접속(느린 모드 45초)+추출(30초)+닫기(10초)보다 길게 두고,
+# 그래도 끝나지 않으면 브라우저를 닫아 크롤링을 끝낸다.
+DEADLINE_GRACE_S = 90
 
 
 class ScanCancelled(Exception):
@@ -318,16 +324,24 @@ async def scan_page(ctx, url, timeout_ms, on_site=None, guard=None):
             await page.wait_for_load_state("networkidle", timeout=max(1000, left))
         except Exception:
             await page.wait_for_timeout(500)  # networkidle 실패 시 현재 DOM으로 진행
+        extract_until = time.perf_counter() + EXTRACT_TIMEOUT_S
         try:  # 스크롤로 IntersectionObserver 기반 lazy-load 콘텐츠 유도
-            await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            await asyncio.wait_for(page.evaluate("window.scrollTo(0, document.body.scrollHeight)"), 5)
             await page.wait_for_timeout(300)
-            await page.evaluate("window.scrollTo(0, 0)")
+            await asyncio.wait_for(page.evaluate("window.scrollTo(0, 0)"), 5)
         except Exception:
             pass
         frames = []
         for frame_index, fr in enumerate(page.frames):
             try:
-                data = await fr.evaluate(EXTRACT_JS)
+                # 페이지의 모든 프레임이 추출 시간 하나를 나눠 쓴다. 넘으면 그 프레임은 수집 실패로 남긴다(frame_failures).
+                left = extract_until - time.perf_counter()
+                if left <= 0:
+                    raise TimeoutError(f"프레임 추출 {EXTRACT_TIMEOUT_S}초 초과")
+                try:
+                    data = await asyncio.wait_for(fr.evaluate(EXTRACT_JS), left)
+                except asyncio.TimeoutError:
+                    raise TimeoutError(f"프레임 추출 {EXTRACT_TIMEOUT_S}초 초과") from None
                 data["frame_url"] = fr.url
                 namespace = hashlib.sha256(f"{url}|{page.url}|{frame_index}|{fr.url}".encode()).hexdigest()[:24]
                 for group in ("hidden", "texts", "head", "source_blocks"):
@@ -381,7 +395,7 @@ async def crawl(entry, concurrency, timeout_ms, progress=None, user_agent=DEFAUL
     # sitemap.xml에 등록된 URL도 대기열에 (링크 탐색으로 닿지 않는 고아 페이지 대응). 우선순위는 다른 주소와 똑같이 매긴다.
     sitemap = await _fetch_sitemap(entry, timeout_s=min(timeout_ms / 1000, 8))
     frontier.add_links(crawlable((su, "") for su in sitemap), 2)
-    state = {"inflight": 0, "stopped_by_time": False, "slow": False}
+    state = {"inflight": 0, "stopped_by_time": False, "slow": False, "forced_stop": False}
     recent = collections.deque(maxlen=SLOW_WINDOW)  # 최근 방문의 시간 초과 여부
     retried = set()  # 시간 초과로 한 번 다시 시도한 주소
     t_start = time.perf_counter()
@@ -434,6 +448,9 @@ async def crawl(entry, concurrency, timeout_ms, progress=None, user_agent=DEFAUL
                     frontier.add_links(crawlable(lt for _, data in frames for lt in data["links"]), depth + 1)
                     recent.append(False)
                 except Exception as e:  # 한 페이지 실패가 전체를 멈추지 않게 (점검 페이지 수에는 넣지 않음)
+                    if state["forced_stop"]:  # 마감 강제 종료로 닫힌 페이지: 실패가 아니라 시간 안에 못 본 페이지
+                        state["stopped_by_time"] = True
+                        continue
                     if DOWNLOAD_ERROR in str(e) and url != entry:  # 파일 다운로드 링크: 접속 실패로 세지 않음
                         downloads.append({"url": url})
                         continue
@@ -454,12 +471,18 @@ async def crawl(entry, concurrency, timeout_ms, progress=None, user_agent=DEFAUL
                     if progress:
                         progress(len(results) + len(failed) + len(external) + len(downloads), len(frontier.seen), url)
 
-        async def watch_cancel():
-            while not cancel.is_set():
+        async def watch_stop():
+            # 취소되거나, 마감 뒤 DEADLINE_GRACE_S가 지나도 끝나지 않은 페이지가 있으면 브라우저를 닫는다.
+            # 열려 있던 페이지 접속·대기가 곧바로 오류로 끝나 작업자들이 빠져나온다.
+            while not (cancel is not None and cancel.is_set()):
+                if deadline is not None and time.perf_counter() >= deadline + DEADLINE_GRACE_S:
+                    state["forced_stop"] = True
+                    print(f"[warn] 크롤링 마감 {DEADLINE_GRACE_S}초 뒤에도 끝나지 않은 페이지가 있어 강제 종료")
+                    break
                 await asyncio.sleep(0.2)
-            await browser.close()  # 열려 있던 페이지 접속·대기가 곧바로 오류로 끝나 작업자들이 빠져나온다
+            await browser.close()
 
-        watcher = asyncio.create_task(watch_cancel()) if cancel is not None else None
+        watcher = asyncio.create_task(watch_stop()) if cancel is not None or deadline is not None else None
         await asyncio.gather(*(worker(i) for i in range(concurrency)))
         if watcher:
             watcher.cancel()
