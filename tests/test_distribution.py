@@ -94,7 +94,7 @@ class DistributionTests(unittest.TestCase):
         missing = [name for name in ARTIFACTS if not (ROOT / name).is_file()]
         self.assertEqual(missing, [], f"설치형 배포 계약 파일 부재: {missing}")
 
-    def test_existing_detector_default_uses_bundled_long2(self):
+    def test_existing_detector_default_uses_bundled_advanced(self):
         # 현재 실행 경로 자체를 평가한다. playwright는 import만 대체하고 호출 금지.
         if importlib.util.find_spec("playwright") is None:
             parent = types.ModuleType("playwright")
@@ -105,8 +105,8 @@ class DistributionTests(unittest.TestCase):
         spec = importlib.util.spec_from_file_location("detector._distribution_subject", ROOT / "detector/main.py")
         main = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(main)
-        self.assertEqual(Path(main.DEFAULT_MODEL), ROOT / "models/laya-illegal-ad-long2",
-                         "기존 detector 기본 경로가 동봉된 long2 모델을 선택해야 함")
+        self.assertEqual(Path(main.DEFAULT_MODEL), ROOT / "models/laya-illegal-ad(advanced)",
+                         "기존 detector 기본 경로가 동봉된 Advanced 모델을 선택해야 함")
         self.assertEqual(main.app_dir(), ROOT, "결과 기본 위치는 CWD가 아닌 프로젝트 루트")
 
     def test_development_roots_and_model_paths_ignore_cwd(self):
@@ -114,7 +114,7 @@ class DistributionTests(unittest.TestCase):
         paths = required_module("app_paths")
         self.assertEqual(Path(paths.app_root()), ROOT)
         self.assertEqual(Path(paths.resource_root()), ROOT)
-        self.assertEqual(Path(paths.laya_model()), ROOT / "models/laya-illegal-ad-long2")
+        self.assertEqual(Path(paths.laya_model()), ROOT / "models/laya-illegal-ad(advanced)")
         self.assertEqual(Path(paths.gemma_model()), ROOT / "models/gemma/gemma-4-E2B_q4_0-it.gguf")
         suffix = ".exe" if sys.platform == "win32" else ""
         self.assertEqual(Path(paths.llama_server()), ROOT / ("runtime/llama/llama-server" + suffix))
@@ -124,7 +124,7 @@ class DistributionTests(unittest.TestCase):
         paths = required_module("app_paths")
         self.assertEqual(Path(paths.app_root()), self.install)
         self.assertEqual(Path(paths.resource_root()), self.resources)
-        self.assertEqual(Path(paths.laya_model()), self.install / "models/laya-illegal-ad-long2")
+        self.assertEqual(Path(paths.laya_model()), self.install / "models/laya-illegal-ad(advanced)")
         self.assertEqual(Path(paths.gemma_model()), self.install / "models/gemma/gemma-4-E2B_q4_0-it.gguf")
         with patch.object(sys, "platform", "win32"):
             self.assertEqual(Path(paths.llama_server()), self.install / "runtime/llama/llama-server.exe")
@@ -199,7 +199,7 @@ class DistributionTests(unittest.TestCase):
         # CRT 결함과 CPU DLL 이름 결함을 분리하기 위해 app-local CRT는 이 fixture에 제공.
         for name in names | {"MSVCP140.dll", "VCRUNTIME140.dll", "VCRUNTIME140_1.dll"}:
             (runtime / name).write_bytes(b"\x00fixture\xff")
-        laya = self.install / "models/laya-illegal-ad-long2"
+        laya = self.install / "models/laya-illegal-ad(advanced)"
         for name in ("model.safetensors", "rl_agent_config.json", "questions.json", "encoder/config.json",
                      "tokenizer/tokenizer.json", "tokenizer/tokenizer_config.json"):
             path = laya / name
@@ -274,8 +274,8 @@ class DistributionTests(unittest.TestCase):
 
     def assets(self):
         fixture = {
-            "models/laya-illegal-ad-long2/config.json": b'{"model_type":"bert"}',
-            "models/laya-illegal-ad-long2/model.safetensors": b"\x00\x01fixture-weights\xff",
+            "models/laya-illegal-ad(advanced)/config.json": b'{"model_type":"bert"}',
+            "models/laya-illegal-ad(advanced)/model.safetensors": b"\x00\x01fixture-weights\xff",
             "models/gemma/gemma-4-E2B_q4_0-it.gguf": b"\x00fixture-not-a-real-GGUF\xff",
             "runtime/llama/llama-server.exe": b"\x00fixture-not-a-PE\xff",
             "runtime/llama/ggml.dll": b"\x00fixture-DLL\xfe",
@@ -358,7 +358,7 @@ class DistributionTests(unittest.TestCase):
             self.assertIs(type(entry["size"]), int)
             self.assertGreater(entry["size"], 0)
             self.assertRegex(entry["sha256"], r"^[0-9a-f]{64}$")
-        for prefix in ("models/laya-illegal-ad-long2/", "models/gemma/", "runtime/llama/", "runtime/chromium/"):
+        for prefix in ("models/laya-illegal-ad(advanced)/", "models/gemma/", "runtime/llama/", "runtime/chromium/"):
             self.assertTrue(any(p.startswith(prefix) for p in seen), prefix)
         self.assertIn("models/gemma/gemma-4-E2B_q4_0-it.gguf", seen)
         self.assertIn("runtime/llama/llama-server.exe", seen)

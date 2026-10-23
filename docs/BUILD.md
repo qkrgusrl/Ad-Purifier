@@ -8,8 +8,13 @@
 
 - Gemma E2B: `assets.lock.json`의 공개 HF revision과 GGUF SHA256.
 - v15 프롬프트와 source-ID 복원: `local_llm/`. 다른 벤치 버전/target-v8 선택 기능 없음.
-- Laya long2: private release `build-inputs-long2-20261018`의 `laya-long2-model.zip`.
-  `model/` 접두사를 `models/laya-illegal-ad-long2/`로 매핑한다. SDK 전체를 복사하지 않는다.
+- Laya Advanced: 팀 공유 폴더의 `laya-illegal-ad(advanced).zip`.
+  ZIP의 `laya-illegal-ad-v3/`를 `models/laya-illegal-ad(advanced)/`로 매핑한다.
+  원본 ZIP과 각 파일의 size/SHA256은 `assets.lock.json`으로 검증한다.
+  빌드 시 `scripts/build_windows.ps1 -SingleInstaller -LayaZip <원본 ZIP 경로>`를 사용한다.
+  CI에서는 저장소 변수 `LAYA_ADVANCED_ZIP_URL`에 다운로드 가능한 원본 ZIP 주소를 준비해야 한다.
+  URL은 빌드에만 쓰이며 배포 앱은 모델을 다운로드하지 않는다. SHA256 불일치 시 빌드를 중단한다.
+  설치 사용자는 ZIP이나 모델을 따로 받을 필요가 없다. 입력 원본 ZIP은 삭제하지 않는다.
 - Windows llama CPU ZIP, Chromium/headless-shell/FFmpeg/winldd:
   공식 배포 ZIP을 실제 다운로드하여 계산한 파일별 size/SHA256을 `assets.lock.json`에 보존.
 - Python wheel: `requirements-windows.lock.txt`의 정확한 버전과 실제 SHA256.
@@ -25,40 +30,38 @@
 
 `.github/workflows/windows-installer.yml`은 `build/windows-*` 태그 push 및 `workflow_dispatch` 수동 실행을 지원한다.
 일반 commit의 브랜치 push와 PR에는 빌드가 실행되지 않는다.
-현재 workflow는 feature 브랜치에만 있어 `workflow_dispatch`의 default branch 조건을 충족하지 않으므로,
-코드 검증 후 정확한 commit에 매번 새 `build/windows-날짜-순번` 태그를 붙여 push하는 수동 트리거를 사용한다.
+정확한 commit의 `build/windows-날짜-순번` 태그 또는 수동 실행으로 빌드를 시작한다.
 원격 workflow가 비활성 상태이면 태그를 push해도 실행되지 않는다.
 Windows-2022 runner에서 잠금 의존성 설치와 `pip check` 후 `scripts/build_windows.ps1`을 실행한다.
 스크립트는 잠금 Chromium 준비 → 전체 unittest → 브라우저 임시 이동 → 라이선스 수집 → PyInstaller → 브라우저 dist 이동 및 모델 자산 직접 다운로드 →
 Inno Setup → 실제 설치 → frozen self-test → UI HTTP smoke 순서로 동작한다.
 
-private 입력은 `GH_TOKEN` 환경변수를 사용하는 `gh release download`로 받는다.
-토큰을 파일이나 명령 인수에 기록하지 않는다. 입력 릴리스와 빌드 workflow가 같은 저장소에 있어야 한다.
-프로젝트의 다른 저장소로 옮기면 해당 입력에 대한 접근 권한을 별도로 구성해야 한다.
+Advanced ZIP은 빌드 담당자가 위 공유 폴더에서 준비해 `-LayaZip`으로 전달한다.
+단일 EXE도 현재 소스로 새로 빌드하며, 기존 릴리스의 구형 실행파일을 재포장하지 않는다.
 
 빌드 시작 시 14 GiB 여유 공간을 검사한다. 코드부터 동결하고 큰 자산은 dist에 직접 기록한다.
-ZIP은 추출 직후 삭제한다. Inno 압축이 끝나면 dist를 삭제한 뒤 설치 시험을 진행한다.
+원본 모델 ZIP은 보존한다. Inno 압축이 끝나면 dist를 삭제한 뒤 설치 시험을 진행한다.
 전체 Windows 실행 성공은 CI 진단과 설치 JSON으로 확인해야 한다. macOS 유닛 테스트는 그 증거가 아니다.
 
 ## 로컬 Windows PC 빌드
 
 같은 스크립트를 Windows PowerShell 5.1(Windows 기본)이나 pwsh 7로 실행한다. 필요한 것은 Python 3.12(3.12.0 제외),
-VS 2022 이상의 C++ 도구(VC143 CRT), Inno Setup 6, private Laya 입력을 받을 수 있는 `gh auth login`, 14 GiB 여유 공간이다.
+VS 2022 이상의 C++ 도구(VC143 CRT), Inno Setup 6, Advanced 원본 ZIP, 14 GiB 여유 공간이다.
 스크립트가 `build/`를 삭제하므로 잠금 의존성 venv는 그 밖에 만든다.
 
 ```powershell
 py -3.12 -m venv .venv-build
 .venv-build\Scripts\python.exe -m pip install --require-hashes -r requirements-windows.lock.txt
-powershell -ExecutionPolicy Bypass -File scripts\build_windows.ps1 -Python .venv-build\Scripts\python.exe
+powershell -ExecutionPolicy Bypass -File scripts\build_windows.ps1 -Python .venv-build\Scripts\python.exe -LayaZip <Advanced ZIP>
 ```
 
-CI 전용 값은 로컬 값으로 채운다: `RUNNER_TEMP` → `%TEMP%\adpurifier-build`, `GITHUB_REPOSITORY` → `gh repo view`,
+CI 전용 값은 로컬 값으로 채운다: `RUNNER_TEMP` → `%TEMP%\adpurifier-build`,
 `GITHUB_SHA` → `git rev-parse HEAD`(커밋 안 된 변경이 있으면 경고), `PYTHONUTF8` → `1`. CI에서는 기존 값을 그대로 쓴다.
 `-SkipUnitTests`는 로컬 전용이며 CI(`GITHUB_ACTIONS=true`)에서는 거부한다.
-`-LayaModelDir <폴더>`(로컬 전용)는 private 릴리스 ZIP 대신 그 폴더의 Laya 모델을 같은 설치 위치
-`models/laya-illegal-ad-long2/`에 넣는다. `model.safetensors`, `rl_agent_config.json`, `questions.json`,
+`-LayaModelDir <폴더>`(로컬 전용)는 Advanced ZIP 대신 압축을 푼 Laya 모델 폴더를 같은 설치 위치
+(`assets.lock.json`의 Laya 경로)에 넣는다. `model.safetensors`, `rl_agent_config.json`, `questions.json`,
 `encoder/config.json`, `tokenizer/tokenizer.json`, `tokenizer/tokenizer_config.json`이 있어야 한다.
-설치본의 `assets.lock.json`에는 잠금된 long2 대신 실제 복사한 파일 해시와 폴더 이름만 기록한다.
+설치본의 `assets.lock.json`에는 잠금 기록 대신 실제 복사한 파일 해시와 폴더 이름만 기록한다.
 모델의 `max_len`이 다르면 그보다 긴 문구는 Laya 판정에서 빠진다(`length_skipped_laya`). 패키징 계약 테스트 일부는 pwsh 7을 요구한다.
 스크립트는 UTF-8 BOM으로 저장한다. BOM이 없으면 5.1이 한글을 시스템 코드페이지로 읽어 구문 분석부터 실패한다.
 로컬 실행도 dist 삭제, `%LOCALAPPDATA%\설치 시험\광고청정기` 실제 설치(제거 프로그램 등록 포함)를 CI와 같이 수행한다.
@@ -66,7 +69,7 @@ CI 전용 값은 로컬 값으로 채운다: `RUNNER_TEMP` → `%TEMP%\adpurifie
 ## 설치 시험과 증거
 
 `%LOCALAPPDATA%\설치 시험\광고청정기`에 실제 설치하고 다른 CWD에서 실행한다.
-PATH에서 사용자 Python을 제거하고, 빈 HF 캐시와 오프라인 설정을 사용한다.
+빈 HF 캐시와 오프라인 설정에서 검사한다. 사용자 Python이 없는 PATH와 원래 사용자 PATH 두 조건으로 실제 설치 모델 추론을 검사한다. 사용자 PATH의 고장 난 junction도 모델 시작을 막지 않아야 한다.
 
 ```powershell
 AdPurifier.exe --self-test --self-test-output C:\temp\self-test.json --no-browser
@@ -92,12 +95,13 @@ Program Files 등 쓰기 불가능한 설치 위치를 AppData 결과 경로로 
 `app_paths.app_root()`는 frozen이면 EXE 부모, 개발 중이면 저장소 루트다.
 `resource_root()`는 frozen이면 `sys._MEIPASS`다. 모델 환경변수의 상대경로는 app_root 기준이다.
 `PLAYWRIGHT_BROWSERS_PATH`는 bootstrap에서 app_root/runtime/chromium으로 강제 지정한다.
-Windows frozen 상태에서 llama-server 실행 직전에 `SetDllDirectoryW(None)`과 bundle PATH 정리를
-적용하고, Popen 직후 원래 DLL 경로를 복원한다. 인수는 shell 문자열이 아닌 리스트로 전달한다.
+Windows frozen 상태에서 llama-server 실행 직전에 `SetDllDirectoryW(None)`을 적용한다.
+자식 프로세스의 PATH 사본은 동봉 llama 런타임과 Windows 시스템 디렉터리로만 구성한다.
+사용자 PATH를 순회·resolve하지 않으며 부모 PATH는 변경하지 않는다. Popen 직후 원래 DLL 경로를 복원한다. 인수는 shell 문자열이 아닌 리스트로 전달한다.
 근거: https://pyinstaller.org/en/stable/common-issues-and-pitfalls.html#launching-external-programs-from-the-frozen-application
 
 키와 서버 로그는 사용자 쓰기 가능 데이터 폴더에 저장하며, context 종료 시 소유 프로세스와 키를 정리한다.
-GemmaClient deadline은 time.perf_counter() 기준 절대시각이며 점검 전체에서 공유한다. 기본 threads=2, GPU layers=0.
+GemmaClient deadline은 time.perf_counter() 기준 절대시각이며 점검 전체에서 공유한다. CPU 스레드 수는 런타임 자동 선택을 기본으로 하고 환경변수로 조절할 수 있다. GPU layers=0.
 
 ## 무결성과 릴리스
 

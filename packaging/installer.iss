@@ -2,6 +2,15 @@
 #define AppVersion "0.2.0-preview.1"
 #endif
 #define SingleFilename "AdPurifier-" + AppVersion + "-Setup"
+#if !FileExists("..\dist\AdPurifier\models\laya-illegal-ad(advanced)\model.safetensors")
+#error "Bundled Laya Advanced weights missing"
+#endif
+#if !FileExists("..\dist\AdPurifier\models\gemma\gemma-4-E2B_q4_0-it.gguf")
+#error "Bundled Gemma E2B weights missing"
+#endif
+#if !FileExists("..\dist\AdPurifier\installed-assets.json")
+#error "Verified installed asset manifest missing"
+#endif
 [Setup]
 AppId={{85B7AA32-7FDD-4BCB-BEF2-09B7C1CB431A}
 AppName=AdPurifier

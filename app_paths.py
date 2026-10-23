@@ -20,7 +20,7 @@ def _asset(variable, relative):
 
 
 def laya_model():
-    return _asset('AD_PURIFIER_MODEL', 'models/laya-illegal-ad-long2')
+    return _asset('AD_PURIFIER_MODEL', 'models/laya-illegal-ad(advanced)')
 
 
 def gemma_model():

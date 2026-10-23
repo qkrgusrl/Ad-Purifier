@@ -161,13 +161,14 @@ def prepare(root, lock, laya_zip, laya_dir=None):
         if entry.get('destination', '').startswith('runtime/chromium/') and (root / 'runtime/chromium').is_dir():
             # 유닛 테스트에 사용한 브라우저를 빌드 스크립트가 이동했다. 아래에서 전부 재검증한다.
             continue
-        if entry.get('release') and laya_dir:
+        if (entry.get('release') or entry.get('local_archive')) and laya_dir:
             laya_prefix, laya_records = copy_laya_dir(laya_dir, root, entry)
-        elif entry.get('release'):
+        elif entry.get('release') or entry.get('local_archive'):
+            if not laya_zip:
+                raise ValueError('빌드에 사용할 Advanced 모델 ZIP의 --laya-zip 경로가 필요합니다')
             archive = Path(laya_zip).resolve()
             verify_assets(archive.parent, {'files': [{**entry, 'path': archive.name}]})
             extract_archive(archive, root, entry)
-            archive.unlink()
         elif entry.get('archive'):
             with tempfile.TemporaryDirectory(prefix='adpurifier-asset-') as temp:
                 archive = Path(temp) / 'asset.zip'

@@ -174,7 +174,7 @@ class StandardEntryTests(unittest.TestCase):
                         local.rmdir()
 
     def test_readiness_uses_files_and_dependencies_without_loading_models(self):
-        laya = self.root / "models/laya-illegal-ad-long2"
+        laya = self.root / "models/laya-illegal-ad(advanced)"
         for name in ("model.safetensors", "rl_agent_config.json", "questions.json",
                      "encoder/config.json", "tokenizer/tokenizer.json", "tokenizer/tokenizer_config.json"):
             path = laya / name
@@ -200,7 +200,7 @@ class StandardEntryTests(unittest.TestCase):
                 patch.object(sys, "_MEIPASS", str(self.root / "internal"), create=True):
             app_paths.bootstrap()
             self.assertEqual(os.environ["PLAYWRIGHT_BROWSERS_PATH"], str(self.root / "runtime/chromium"))
-            self.assertEqual(app_paths.laya_model(), self.root / "models/laya-illegal-ad-long2")
+            self.assertEqual(app_paths.laya_model(), self.root / "models/laya-illegal-ad(advanced)")
             self.assertEqual(app_paths.gemma_model(), self.root / "models/gemma/gemma-4-E2B_q4_0-it.gguf")
             with patch.dict(os.environ, {"AD_PURIFIER_MODEL": "custom/laya", "AD_PURIFIER_GEMMA_MODEL": "custom/gemma.gguf"}):
                 self.assertEqual(app_paths.laya_model(), self.root / "custom/laya")

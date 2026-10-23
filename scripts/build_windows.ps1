@@ -1,7 +1,7 @@
-﻿param([string]$Version = '0.2.0-preview.1', [switch]$SingleInstaller, [string]$Python, [switch]$SkipUnitTests,
-      [string]$LayaModelDir)
+﻿param([string]$Version = '0.2.0-preview.1', [switch]$SingleInstaller, [string]$LayaZip,
+      [string]$Python, [switch]$SkipUnitTests, [string]$LayaModelDir)
 # CI(GitHub Actions, pwsh 7)와 일반 Windows PC(Windows PowerShell 5.1) 양쪽에서 실행한다.
-# 로컬 예: powershell -ExecutionPolicy Bypass -File scripts\build_windows.ps1 -Python .venv-build\Scripts\python.exe
+# 로컬 예: powershell -ExecutionPolicy Bypass -File scripts\build_windows.ps1 -Python .venv-build\Scripts\python.exe -LayaZip <Advanced ZIP>
 #          (-SkipUnitTests, -LayaModelDir <Laya 모델 폴더> 는 로컬 전용)
 # (docs/BUILD.md '로컬 Windows PC 빌드'. 이 파일은 5.1이 한글을 읽도록 UTF-8 BOM으로 저장한다.)
 $ErrorActionPreference = 'Stop'
@@ -28,19 +28,14 @@ try {
     if ([Environment]::OSVersion.Platform -ne 'Win32NT') { throw 'Windows runner required' }
     $CI = $env:GITHUB_ACTIONS -eq 'true'
     if ($SkipUnitTests -and $CI) { throw 'CI에서는 유닛 테스트를 건너뛸 수 없음' }
-    # 로컬 전용: 잠금된 릴리스 Laya ZIP 대신 로컬 모델 폴더를 같은 설치 위치(models/laya-illegal-ad-long2)에 넣는다.
-    if ($LayaModelDir -and $CI) { throw 'CI에서는 잠금된 릴리스 Laya 모델만 사용' }
+    # 로컬 전용: Advanced ZIP 대신 로컬 모델 폴더를 같은 설치 위치(assets.lock.json의 Laya 경로)에 넣는다.
+    if ($LayaModelDir -and $CI) { throw 'CI에서는 잠금된 Advanced 모델 ZIP만 사용' }
     if ($LayaModelDir) { $LayaModelDir = (Resolve-Path -LiteralPath $LayaModelDir).Path }
     # 로컬 실행: CI가 주는 값을 같은 의미의 로컬 값으로 채운다. CI에서는 기존 값을 그대로 쓴다.
     $Temp = $env:RUNNER_TEMP
     if (-not $Temp) {
         $Temp = Join-Path ([IO.Path]::GetTempPath()) 'adpurifier-build'
         New-Item -ItemType Directory -Force $Temp | Out-Null
-    }
-    $Repository = $env:GITHUB_REPOSITORY
-    if (-not $Repository) {
-        $Repository = & gh repo view --json nameWithOwner --jq .nameWithOwner
-        if ($LASTEXITCODE -ne 0 -or -not $Repository) { throw 'gh로 저장소를 확인하지 못함 (gh auth login 필요)' }
     }
     if (-not $env:GITHUB_SHA) {
         # release_manifest와 validation-status가 소스 commit으로 기록한다.
@@ -56,37 +51,16 @@ try {
     if ($Python.StartsWith((Join-Path $Root 'build') + '\', [StringComparison]::OrdinalIgnoreCase)) {
         throw '빌드 중 build 폴더를 삭제하므로 Python 환경을 build 폴더 밖에 두어야 함'
     }
-    $PayloadSource = 'dae7af58e636d3b0438910271de11081f9cbdd01'
-    if ($SingleInstaller) {
-        $Source = Join-Path $Root 'single-installer-source'
-        if (Test-Path $Source) { Remove-Item $Source -Recurse -Force }
-        if (Test-Path 'dist/AdPurifier') { Remove-Item 'dist/AdPurifier' -Recurse -Force }
-        New-Item -ItemType Directory $Source | Out-Null
-        Invoke-Checked 'gh' @('release', 'download', 'v0.2.0-preview.1', '--repo', $Repository,
-            '--pattern', '*Setup.exe', '--pattern', '*.bin', '--pattern', 'installer-manifest.json', '--dir', $Source)
-        $SourceManifest = Join-Path $Source 'installer-manifest.json'
-        if ((Get-FileHash $SourceManifest -Algorithm SHA256).Hash.ToLowerInvariant() -cne
-            'b7e57e0203efba4b63c9a715cede874aa301e1fc17f1f1f2fa1c4da8db97db8e') { throw '기준 manifest SHA256 불일치' }
-        $Baseline = Get-Content -Raw -Encoding UTF8 $SourceManifest | ConvertFrom-Json
-        $Parts = @($Baseline.files | ForEach-Object path)
-        if ($Baseline.source_commit -cne $PayloadSource -or $Baseline.version -cne '0.2.0-preview.1' -or
-            $Parts.Count -ne 5 -or @($Parts | Where-Object { $_ -cmatch '^[^/\\]+Setup\.exe$' }).Count -ne 1 -or
-            @($Parts | Where-Object { $_ -cmatch '^[^/\\]+\.bin$' }).Count -ne 4) { throw '기준 payload 출처/파일 구성 불일치' }
-        Invoke-Checked $Python @('-m', 'scripts.assets', 'verify', '--root', $Source, '--manifest', $SourceManifest)
-        $PayloadRoot = Join-Path $Root 'dist/AdPurifier'
-        $OldSetup = Join-Path $Source ($Parts | Where-Object { $_ -like '*Setup.exe' })
-        $OldInstaller = Start-Process -FilePath $OldSetup -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',
-            "/DIR=`"$PayloadRoot`"", "/LOG=`"$(Join-Path $Diagnostics 'payload-install.log')`"") -PassThru -Wait
-        if ($OldInstaller.ExitCode -ne 0) { throw "기준 설치 실패: $($OldInstaller.ExitCode)" }
-        Invoke-Checked $Python @('-m', 'scripts.assets', 'verify', '--root', $PayloadRoot,
-            '--manifest', (Join-Path $PayloadRoot 'installed-assets.json'))
-        Copy-Item "$PayloadRoot/assets.lock.json", "$PayloadRoot/installed-assets.json", "$PayloadRoot/crt-manifest.json" $Diagnostics
-        Get-ChildItem $PayloadRoot -File | Where-Object { $_.Name -match '^unins.*\.(exe|dat)$' } | Remove-Item -Force
-        Remove-Item $Source -Recurse -Force
-        [ordered]@{ source_sha = $PayloadSource; payload_source_commit = $PayloadSource; packaging_commit = $env:GITHUB_SHA;
-            manifest_sha256 = 'b7e57e0203efba4b63c9a715cede874aa301e1fc17f1f1f2fa1c4da8db97db8e'; validation_status = 'passed' } |
-            ConvertTo-Json | Write-Utf8 (Join-Path $Diagnostics 'payload-source.json')
-    } else {
+    # 단일 설치도 현재 소스에서 새로 빌드한다. 이전 설치본 재포장 금지.
+    $PayloadSource = (& git rev-parse HEAD).Trim()
+    if (-not $LayaModelDir) {
+    if (-not $LayaZip -and $env:LAYA_ADVANCED_ZIP_URL) {
+        $LayaZip = Join-Path $Temp 'laya-advanced.zip'
+        Invoke-WebRequest -UseBasicParsing -Uri $env:LAYA_ADVANCED_ZIP_URL -OutFile $LayaZip
+    }
+    if (-not $LayaZip -or -not (Test-Path $LayaZip -PathType Leaf)) { throw '-LayaZip 또는 빌드 전용 LAYA_ADVANCED_ZIP_URL에 Advanced 원본 ZIP을 지정하세요' }
+    $LayaZip = (Resolve-Path $LayaZip).Path
+    }
     # DOM 독립 테스트가 PATH=0을 강제한다. 동일한 잠금 브라우저로 검사한 뒤 이동한다.
     $TestBrowsers = & $Python -c "import pathlib,playwright; print(pathlib.Path(playwright.__file__).parent / 'driver/package/.local-browsers')"
     if ($LASTEXITCODE -ne 0) { throw 'Playwright package path lookup failed' }
@@ -105,14 +79,10 @@ try {
     Move-Item $BrowserStage 'dist/AdPurifier/runtime/chromium'
     # 대형 자산은 완성된 dist에 직접 기록한다. 별도 모델 staging 사본을 만들지 않는다.
     if ($LayaModelDir) {
-        Write-Warning "로컬 Laya 모델 사용: $LayaModelDir (잠금된 릴리스 long2 대신)"
+        Write-Warning "로컬 Laya 모델 폴더 사용: $LayaModelDir (Advanced ZIP 대신)"
         Invoke-Checked $Python @('-m', 'scripts.assets', 'prepare', '--root', 'dist/AdPurifier',
                                 '--manifest', 'assets.lock.json', '--laya-dir', $LayaModelDir)
     } else {
-    $LayaZip = Join-Path $Temp 'laya-long2-model.zip'
-    if (Test-Path $LayaZip) { Remove-Item $LayaZip }
-    Invoke-Checked 'gh' @('release', 'download', 'build-inputs-long2-20261018', '--repo', $Repository,
-                          '--pattern', 'laya-long2-model.zip', '--dir', $Temp)
     Invoke-Checked $Python @('-m', 'scripts.assets', 'prepare', '--root', 'dist/AdPurifier',
                             '--manifest', 'assets.lock.json', '--laya-zip', $LayaZip)
     }
@@ -148,7 +118,9 @@ try {
     Copy-Item 'dist/AdPurifier/assets.lock.json', 'requirements-windows.lock.txt' $Diagnostics
     # 수집 완료 후 PyInstaller 작업 캐시를 제거한다.
     Remove-Item 'build' -Recurse -Force
-    }
+    [ordered]@{ source_sha = $PayloadSource; payload_source_commit = $PayloadSource;
+        packaging_commit = $env:GITHUB_SHA; validation_status = 'passed'; mode = 'fresh-build' } |
+        ConvertTo-Json | Set-Content (Join-Path $Diagnostics 'payload-source.json') -Encoding utf8
     function Find-Inno {
         $Command = Get-Command 'iscc.exe' -ErrorAction SilentlyContinue
         if ($Command) { return $Command.Source }
@@ -222,6 +194,20 @@ try {
         if ($Process.ExitCode -ne 0) { throw "설치 self-test 실패: $($Process.ExitCode)" }
         $Report = Get-Content -Raw -Encoding UTF8 $Smoke | ConvertFrom-Json
         if ($Report.status -ne 'ok' -or -not $Report.frozen) { throw 'frozen self-test 증거 불일치' }
+        # 사용자 PATH를 보존한 실제 환경도 검사한다. 깨끗한 PATH 시험만으로는
+        # Scoop junction 등 사용자 경로에 의한 Gemma 시작 실패를 발견하지 못한다.
+        $env:PATH = $OldPath
+        $NormalSmoke = Join-Path $Diagnostics 'self-test-user-path.json'
+        $Normal = Start-Process -FilePath $Exe -WorkingDirectory $Elsewhere -ArgumentList @('--self-test',
+                    '--no-browser', '--self-test-output', "`"$NormalSmoke`"") -PassThru
+        if (-not $Normal.WaitForExit(1200000)) {
+            & "$env:SystemRoot/System32/taskkill.exe" /PID $Normal.Id /T /F
+            throw '사용자 PATH 설치 스모크 시간 초과'
+        }
+        $Normal.Refresh()
+        if ($Normal.ExitCode -ne 0 -or (Get-Content -Raw $NormalSmoke | ConvertFrom-Json).status -ne 'ok') {
+            throw '사용자 PATH에서 설치 self-test 실패'
+        }
         # 별도의 실제 UI 시작 검사. --no-browser로 기본 브라우저를 열지 않는다.
         $Listener = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, 0)
         $Listener.Start(); $Port = $Listener.LocalEndpoint.Port; $Listener.Stop()
