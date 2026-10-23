@@ -148,6 +148,20 @@ try {
         if ($Process.ExitCode -ne 0) { throw "설치 self-test 실패: $($Process.ExitCode)" }
         $Report = Get-Content -Raw $Smoke | ConvertFrom-Json
         if ($Report.status -ne 'ok' -or -not $Report.frozen) { throw 'frozen self-test 증거 불일치' }
+        # 사용자 PATH를 보존한 실제 환경도 검사한다. 깨끗한 PATH 시험만으로는
+        # Scoop junction 등 사용자 경로에 의한 Gemma 시작 실패를 발견하지 못한다.
+        $env:PATH = $OldPath
+        $NormalSmoke = Join-Path $Diagnostics 'self-test-user-path.json'
+        $Normal = Start-Process -FilePath $Exe -WorkingDirectory $Elsewhere -ArgumentList @('--self-test',
+                    '--no-browser', '--self-test-output', "`"$NormalSmoke`"") -PassThru
+        if (-not $Normal.WaitForExit(1200000)) {
+            & "$env:SystemRoot/System32/taskkill.exe" /PID $Normal.Id /T /F
+            throw '사용자 PATH 설치 스모크 시간 초과'
+        }
+        $Normal.Refresh()
+        if ($Normal.ExitCode -ne 0 -or (Get-Content -Raw $NormalSmoke | ConvertFrom-Json).status -ne 'ok') {
+            throw '사용자 PATH에서 설치 self-test 실패'
+        }
         # 별도의 실제 UI 시작 검사. --no-browser로 기본 브라우저를 열지 않는다.
         $Listener = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, 0)
         $Listener.Start(); $Port = $Listener.LocalEndpoint.Port; $Listener.Stop()

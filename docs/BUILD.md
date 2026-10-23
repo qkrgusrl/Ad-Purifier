@@ -29,8 +29,7 @@
 
 `.github/workflows/windows-installer.yml`은 `build/windows-*` 태그 push 및 `workflow_dispatch` 수동 실행을 지원한다.
 일반 commit의 브랜치 push와 PR에는 빌드가 실행되지 않는다.
-현재 workflow는 feature 브랜치에만 있어 `workflow_dispatch`의 default branch 조건을 충족하지 않으므로,
-코드 검증 후 정확한 commit에 매번 새 `build/windows-날짜-순번` 태그를 붙여 push하는 수동 트리거를 사용한다.
+정확한 commit의 `build/windows-날짜-순번` 태그 또는 수동 실행으로 빌드를 시작한다.
 원격 workflow가 비활성 상태이면 태그를 push해도 실행되지 않는다.
 Windows-2022 runner에서 잠금 의존성 설치와 `pip check` 후 `scripts/build_windows.ps1`을 실행한다.
 스크립트는 잠금 Chromium 준비 → 전체 unittest → 브라우저 임시 이동 → 라이선스 수집 → PyInstaller → 브라우저 dist 이동 및 모델 자산 직접 다운로드 →
@@ -46,7 +45,7 @@ Advanced ZIP은 빌드 담당자가 위 공유 폴더에서 준비해 `-LayaZip`
 ## 설치 시험과 증거
 
 `%LOCALAPPDATA%\설치 시험\광고청정기`에 실제 설치하고 다른 CWD에서 실행한다.
-PATH에서 사용자 Python을 제거하고, 빈 HF 캐시와 오프라인 설정을 사용한다.
+빈 HF 캐시와 오프라인 설정에서 검사한다. 사용자 Python이 없는 PATH와 원래 사용자 PATH 두 조건으로 실제 설치 모델 추론을 검사한다. 사용자 PATH의 고장 난 junction도 모델 시작을 막지 않아야 한다.
 
 ```powershell
 AdPurifier.exe --self-test --self-test-output C:\temp\self-test.json --no-browser
@@ -72,12 +71,13 @@ Program Files 등 쓰기 불가능한 설치 위치를 AppData 결과 경로로 
 `app_paths.app_root()`는 frozen이면 EXE 부모, 개발 중이면 저장소 루트다.
 `resource_root()`는 frozen이면 `sys._MEIPASS`다. 모델 환경변수의 상대경로는 app_root 기준이다.
 `PLAYWRIGHT_BROWSERS_PATH`는 bootstrap에서 app_root/runtime/chromium으로 강제 지정한다.
-Windows frozen 상태에서 llama-server 실행 직전에 `SetDllDirectoryW(None)`과 bundle PATH 정리를
-적용하고, Popen 직후 원래 DLL 경로를 복원한다. 인수는 shell 문자열이 아닌 리스트로 전달한다.
+Windows frozen 상태에서 llama-server 실행 직전에 `SetDllDirectoryW(None)`을 적용한다.
+자식 프로세스의 PATH 사본은 동봉 llama 런타임과 Windows 시스템 디렉터리로만 구성한다.
+사용자 PATH를 순회·resolve하지 않으며 부모 PATH는 변경하지 않는다. Popen 직후 원래 DLL 경로를 복원한다. 인수는 shell 문자열이 아닌 리스트로 전달한다.
 근거: https://pyinstaller.org/en/stable/common-issues-and-pitfalls.html#launching-external-programs-from-the-frozen-application
 
 키와 서버 로그는 사용자 쓰기 가능 데이터 폴더에 저장하며, context 종료 시 소유 프로세스와 키를 정리한다.
-GemmaClient deadline은 time.perf_counter() 기준 절대시각이며 점검 전체에서 공유한다. 기본 threads=2, GPU layers=0.
+GemmaClient deadline은 time.perf_counter() 기준 절대시각이며 점검 전체에서 공유한다. CPU 스레드 수는 런타임 자동 선택을 기본으로 하고 환경변수로 조절할 수 있다. GPU layers=0.
 
 ## 무결성과 릴리스
 

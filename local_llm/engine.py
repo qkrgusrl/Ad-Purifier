@@ -52,9 +52,11 @@ def external_server_environment():
         return
     import ctypes
     from ctypes import wintypes
-    bundle = Path(sys._MEIPASS).resolve()
-    env['PATH'] = os.pathsep.join(part for part in env.get('PATH', '').split(os.pathsep)
-                                 if part and not Path(part).resolve().is_relative_to(bundle))
+    # 독립 실행파일은 동봉 DLL과 Windows 시스템 DLL만 필요하다.
+    # 사용자 PATH를 resolve하면 끊어진 junction/Scoop 경로에서도 시작이 실패한다.
+    # 자식에게 줄 사본만 제한하고 사용자/부모 프로세스의 PATH는 변경하지 않는다.
+    windows = Path(env.get('SystemRoot', r'C:\Windows'))
+    env['PATH'] = os.pathsep.join((str(llama_server().parent), str(windows / 'System32'), str(windows)))
     kernel = ctypes.WinDLL('kernel32', use_last_error=True)
     get_directory = kernel.GetDllDirectoryW
     get_directory.argtypes = [wintypes.DWORD, wintypes.LPWSTR]
