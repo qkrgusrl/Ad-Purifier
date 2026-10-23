@@ -14,10 +14,10 @@ Gemma 4 E2B IT QAT Q4_0 GGUF
 Laya 0.4.2
   PyPI 배포물의 실제 LICENSE 원문: licenses/Laya-LICENSE
   빌드 환경 wheel의 원문/metadata: licenses/python-packages/laya/
-  이 소프트웨어 패키지의 라이선스와 long2 학습 산출물의 배포 권한은 별개다.
-  long2 학습 산출물은 프로젝트 소유자가 제공한 private build-inputs 릴리스에서 동봉한다.
+  이 소프트웨어 패키지의 라이선스와 Advanced 학습 산출물의 배포 권한은 별개다.
+  Advanced 학습 산출물은 사용자가 지정한 팀 공유 모델 ZIP에서 동봉한다.
 
-mmBERT-base (long2의 기반 encoder)
+mmBERT-base (Advanced의 기반 encoder)
   https://huggingface.co/jhu-clsp/mmBERT-base
   revision: c5955035435e2bf121cde7f3c8863ef52ff35d82
   모델 카드에서 MIT로 선언: licenses/mmBERT-base-README.md
