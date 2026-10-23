@@ -101,19 +101,45 @@ class CompletionPolicyTests(unittest.TestCase):
         self.assertFalse(report["needs_review"])
         self.assertEqual(h.entered, h.exited)
 
-    def test_same_actual_laya_text_is_inferred_once_but_each_owner_is_bound(self):
+    def test_same_hidden_text_is_verified_once_and_verdict_copied_to_each_owner(self):
+        # 2026-10-21 정책 변경: 같은 문구·같은 은닉 기법은 Gemma를 대표 1건만 돌리고 판정을 복사한다.
+        # 위치가 다르면 출력은 각각 남는다(요강 집계 단위 url + location + technique).
         rows = [source("s1", context="예방 교육 자료"), source("s2", context="상품 안내 게시판")]
-        def verify(item):
-            return bound_reply(item, "clean" if item["context"] == rows[0]["source_context"] else "ad")
-        h = OfflineRun(rows, verify=verify)
+        h = OfflineRun(rows, verify=lambda item: bound_reply(item, "ad"))
         report = self.execute(h)
         self.assertEqual(h.laya_inputs, ["환전 안내"], "Laya 실제 text가 같으면 HTML/context와 무관하게 1회")
-        self.assertEqual(len(h.verify_inputs), 2)
-        self.assertEqual({(i["html"], i["context"]) for i in h.verify_inputs},
-                         {(r["source_html"], r["source_context"]) for r in rows})
-        self.assertEqual(len({i["candidate_id"] for i in h.verify_inputs}), 2)
+        self.assertEqual(len(h.verify_inputs), 1, "같은 문구·기법은 Gemma 1회")
         owners = self.owners(report)
-        self.assertEqual({sid: c["verdict"] for sid, c in owners.items()}, {"s1": "clean", "s2": "ad"})
+        self.assertEqual({sid: c["verdict"] for sid, c in owners.items()}, {"s1": "ad", "s2": "ad"})
+        verified = h.verify_inputs[0]["html"]
+        rep = next(c for c in owners.values() if c["source_html"] == verified)
+        copy = next(c for c in owners.values() if c is not rep)
+        self.assertEqual(rep["decided_by"], "gemma")
+        self.assertEqual(copy["decided_by"], "gemma_reused")
+        self.assertEqual(copy["reused_from"]["source_id"], rep["source_id"])
+        self.assertEqual(report["ai"]["gemma_text_reused"], 1)
+        submitted = json.loads((self.out / "result.json").read_text(encoding="utf-8"))["findings"]
+        self.assertEqual(len(submitted), 2, "위치가 다르면 같은 문구라도 각각 제출")
+
+    def test_same_text_reuses_representative_review(self):
+        rows = [source("s1"), source("s2", context="다른 문맥")]
+        h = OfflineRun(rows, verify=lambda item: bound_reply(item, "uncertain", "needs_review"))
+        report = self.execute(h)
+        self.assertEqual(len(h.verify_inputs), 1)
+        self.assertEqual({c["verdict"] for c in self.owners(report).values()}, {"uncertain"})
+        self.assertTrue(report["needs_review"], "대표가 보류면 복사본도 보류")
+
+    def test_gemma_reuse_key_keeps_posted_context_apart(self):
+        from detector.ai import gemma_reuse_key
+        hidden = {"technique": "TRANSPARENT", "context": [("page-context", -3)]}
+        self.assertEqual(gemma_reuse_key(hidden, "t"), gemma_reuse_key({"technique": "TRANSPARENT"}, "t"),
+                         "은닉 4종은 문구+기법만 본다")
+        plain = {"technique": "POSTED", "context": []}
+        news = {"technique": "POSTED", "context": [("page-context", -3)]}
+        self.assertNotEqual(gemma_reuse_key(plain, "t"), gemma_reuse_key(news, "t"),
+                            "게시형은 보도·교육 맥락이 다르면 따로 검증")
+        self.assertEqual(gemma_reuse_key(news, "t"), gemma_reuse_key(dict(news), "t"))
+        self.assertNotEqual(gemma_reuse_key(hidden, "t"), gemma_reuse_key({"technique": "OFFSCREEN"}, "t"))
 
     def test_same_text_initial_and_residual_reuse_laya_but_verify_in_order_once(self):
         rows = [source("s1", context="초기 후보"), source("s2", context="잔여 원문")]
@@ -127,7 +153,9 @@ class CompletionPolicyTests(unittest.TestCase):
         self.assertEqual(set(self.owners(report)), {"s1", "s2"})
 
     def test_foreign_binding_cannot_reuse_same_text_owner_verdict(self):
-        rows = [source("s1", context="문맥 하나"), source("s2", context="문맥 둘")]
+        # 같은 문구·같은 기법은 대표 1건만 검증하므로, 각자 검증되는 다른 기법으로 남의 결합 재사용을 확인한다.
+        rows = [source("s1", context="문맥 하나"),
+                source("s2", context="문맥 둘", signals=[["OFFSCREEN", "left:-9999px"]])]
         replies = []
         def verify(item):
             if not replies:

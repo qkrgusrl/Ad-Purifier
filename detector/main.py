@@ -137,6 +137,12 @@ ENTRY_TIMEOUT_MS = 45000  # 시작 페이지 접속 제한 시간 (일반 페이
 # 느린 사이트 적응: 최근 SLOW_WINDOW번 방문 중 절반 이상이 시간 초과면 '느린 모드' — 제한 시간을 늘리고 동시 요청을 줄인다.
 # s-solution은 응답에만 8~10초가 걸려, 탭 4개로 동시에 열면 15초를 넘겨 51쪽 중 49쪽이 실패했다.
 SLOW_WINDOW, SLOW_TIMEOUT_MS, SLOW_CONCURRENCY = 10, 45000, 2
+# 페이지 한 개에서 프레임 추출(extract.js)에 쓸 수 있는 시간. evaluate에는 Playwright 제한 시간이 없어,
+# 페이지 스크립트나 추출이 끝나지 않으면 작업자가 영원히 기다렸다 (연수구청 synap 문서 미리보기 — 526쪽에서 멈춤).
+EXTRACT_TIMEOUT_S = 30
+# 크롤링 마감 뒤 진행 중인 페이지를 기다리는 시간. 접속(느린 모드 45초)+추출(30초)+닫기(10초)보다 길게 두고,
+# 그래도 끝나지 않으면 브라우저를 닫아 크롤링을 끝낸다.
+DEADLINE_GRACE_S = 90
 
 
 class ScanCancelled(Exception):
@@ -318,16 +324,24 @@ async def scan_page(ctx, url, timeout_ms, on_site=None, guard=None):
             await page.wait_for_load_state("networkidle", timeout=max(1000, left))
         except Exception:
             await page.wait_for_timeout(500)  # networkidle 실패 시 현재 DOM으로 진행
+        extract_until = time.perf_counter() + EXTRACT_TIMEOUT_S
         try:  # 스크롤로 IntersectionObserver 기반 lazy-load 콘텐츠 유도
-            await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            await asyncio.wait_for(page.evaluate("window.scrollTo(0, document.body.scrollHeight)"), 5)
             await page.wait_for_timeout(300)
-            await page.evaluate("window.scrollTo(0, 0)")
+            await asyncio.wait_for(page.evaluate("window.scrollTo(0, 0)"), 5)
         except Exception:
             pass
         frames = []
         for frame_index, fr in enumerate(page.frames):
             try:
-                data = await fr.evaluate(EXTRACT_JS)
+                # 페이지의 모든 프레임이 추출 시간 하나를 나눠 쓴다. 넘으면 그 프레임은 수집 실패로 남긴다(frame_failures).
+                left = extract_until - time.perf_counter()
+                if left <= 0:
+                    raise TimeoutError(f"프레임 추출 {EXTRACT_TIMEOUT_S}초 초과")
+                try:
+                    data = await asyncio.wait_for(fr.evaluate(EXTRACT_JS), left)
+                except asyncio.TimeoutError:
+                    raise TimeoutError(f"프레임 추출 {EXTRACT_TIMEOUT_S}초 초과") from None
                 data["frame_url"] = fr.url
                 namespace = hashlib.sha256(f"{url}|{page.url}|{frame_index}|{fr.url}".encode()).hexdigest()[:24]
                 for group in ("hidden", "texts", "head", "source_blocks"):
@@ -381,7 +395,7 @@ async def crawl(entry, concurrency, timeout_ms, progress=None, user_agent=DEFAUL
     # sitemap.xml에 등록된 URL도 대기열에 (링크 탐색으로 닿지 않는 고아 페이지 대응). 우선순위는 다른 주소와 똑같이 매긴다.
     sitemap = await _fetch_sitemap(entry, timeout_s=min(timeout_ms / 1000, 8))
     frontier.add_links(crawlable((su, "") for su in sitemap), 2)
-    state = {"inflight": 0, "stopped_by_time": False, "slow": False}
+    state = {"inflight": 0, "stopped_by_time": False, "slow": False, "forced_stop": False}
     recent = collections.deque(maxlen=SLOW_WINDOW)  # 최근 방문의 시간 초과 여부
     retried = set()  # 시간 초과로 한 번 다시 시도한 주소
     t_start = time.perf_counter()
@@ -434,6 +448,9 @@ async def crawl(entry, concurrency, timeout_ms, progress=None, user_agent=DEFAUL
                     frontier.add_links(crawlable(lt for _, data in frames for lt in data["links"]), depth + 1)
                     recent.append(False)
                 except Exception as e:  # 한 페이지 실패가 전체를 멈추지 않게 (점검 페이지 수에는 넣지 않음)
+                    if state["forced_stop"]:  # 마감 강제 종료로 닫힌 페이지: 실패가 아니라 시간 안에 못 본 페이지
+                        state["stopped_by_time"] = True
+                        continue
                     if DOWNLOAD_ERROR in str(e) and url != entry:  # 파일 다운로드 링크: 접속 실패로 세지 않음
                         downloads.append({"url": url})
                         continue
@@ -457,12 +474,18 @@ async def crawl(entry, concurrency, timeout_ms, progress=None, user_agent=DEFAUL
                         done = len(results) + len(failed) + len(external) + len(downloads)
                         progress(done, done + len(frontier) + state["inflight"], url)
 
-        async def watch_cancel():
-            while not cancel.is_set():
+        async def watch_stop():
+            # 취소되거나, 마감 뒤 DEADLINE_GRACE_S가 지나도 끝나지 않은 페이지가 있으면 브라우저를 닫는다.
+            # 열려 있던 페이지 접속·대기가 곧바로 오류로 끝나 작업자들이 빠져나온다.
+            while not (cancel is not None and cancel.is_set()):
+                if deadline is not None and time.perf_counter() >= deadline + DEADLINE_GRACE_S:
+                    state["forced_stop"] = True
+                    print(f"[warn] 크롤링 마감 {DEADLINE_GRACE_S}초 뒤에도 끝나지 않은 페이지가 있어 강제 종료")
+                    break
                 await asyncio.sleep(0.2)
-            await browser.close()  # 열려 있던 페이지 접속·대기가 곧바로 오류로 끝나 작업자들이 빠져나온다
+            await browser.close()
 
-        watcher = asyncio.create_task(watch_cancel()) if cancel is not None else None
+        watcher = asyncio.create_task(watch_stop()) if cancel is not None or deadline is not None else None
         await asyncio.gather(*(worker(i) for i in range(concurrency)))
         if watcher:
             watcher.cancel()
@@ -612,13 +635,14 @@ def candidates_from(pages, detect_posted=True, *, recover_posted=False):
 def dedupe(cands):
     """같은 페이지에서 같은 광고를 여러 번 보고하는 것을 하나로 합친다. (남길 후보, 합친 후보 목록)
 
-    중복 기준(팀 결정 2026-10-15): **문구가 같고 페이지가 같을 때만** 하나로 본다. 다른 페이지(다른 글)의 같은 문구는 각각 센다.
     '같은 페이지'는 page_key — 목록 몇 쪽에서 들어왔는지(startPage 등)만 다른 주소는 같은 글이다.
     불법광고 판정(ad)만 대상이며, 아래 경우 하나만 남긴다.
-    1) 같은 페이지에서 문구가 같으면 위치가 달라도 (글 제목과 아래 목록 링크, 목록에 같은 링크 두 번)
+    1) 은닉 4종(result.json): 요강 집계 단위 (url + location + technique)가 같을 때만 (2026-10-21 변경).
+       같은 요소·같은 기법이면 문구가 달라도 1건(요강: 동일 요소 내 같은 기법 문자열은 1건).
+       같은 문구라도 위치가 다르면 각각 남긴다. 같은 요소의 서로 다른 은닉 기법도 각각 남긴다.
+    2) 게시형(result_extra.json): 같은 페이지에서 문구가 같으면 위치가 달라도 (글 제목과 아래 목록 링크 등)
        → 은닉 기법이 게시형보다 우선, 그다음 바깥 요소·앞 형제
-       단, 같은 요소에 서로 다른 은닉 기법이 함께 잡힌 경우는 둘 다 남긴다 (채점이 기법까지 본다)
-    2) 숨김 블록(은닉 4종) 안의 요소가 게시형으로 따로 잡힌 경우 — 숨김 블록 한 건으로 보고
+    3) 숨김 블록(은닉 4종) 안의 요소가 게시형으로 따로 잡힌 경우 — 숨김 블록 한 건으로 보고
     """
     def rank(c):  # 남길 우선순위: 은닉 기법 > 게시형, 바깥 요소 > 안쪽, 앞 형제 > 뒤 형제
         return (c["technique"] not in CORE_TECHNIQUES, c["location"].count(" > "), c["location"])
@@ -631,9 +655,14 @@ def dedupe(cands):
         page = by_page.setdefault(page_key(c["url"]), [])
         for k in page:
             k_text = " ".join(k["evidence_text"].split())
-            if c["location"] == k["location"] and c["technique"] != k["technique"] \
-                    and {c["technique"], k["technique"]} <= CORE_TECHNIQUES:
-                continue  # 한 요소에 은닉 기법이 둘(예: 투명+화면 밖) — 채점이 기법까지 보므로 둘 다 남긴다
+            if {c["technique"], k["technique"]} <= CORE_TECHNIQUES:
+                # 은닉 4종은 요강의 집계 단위 (url + location + technique)로만 합친다.
+                # 같은 요소·같은 기법이면 문구가 달라도 1건, 위치나 기법이 다르면 같은 문구라도 각각 남긴다.
+                if c["location"] == k["location"] and c["technique"] == k["technique"]:
+                    c["duplicate_of"] = {"location": k["location"], "technique": k["technique"]}
+                    dups.append(c)
+                    break
+                continue
             nested = (c["location"] == k["location"] or c["location"].startswith(k["location"] + " > ")
                       or k["location"].startswith(c["location"] + " > "))
             # 숨김 블록 안의 요소는 글자가 조금 달라도(링크 글자 제외 등) 그 블록의 일부 — 블록 한 건으로 본다
@@ -839,9 +868,10 @@ def run(entry_url, out, concurrency=4, timeout=15000, model=DEFAULT_MODEL, use_m
     (out / "result.json").write_text(json.dumps({"meta": meta, "findings": findings}, ensure_ascii=False, indent=2),
                                      encoding="utf-8")
     (out / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-    # result_extra.json: 추가 유형이 있을 때만 생성 (적격평가 제출물과 섞이지 않도록 별도 파일)
+    # result_extra.json: 추가 탐지(detect_posted)를 켜면 0건이어도 빈 findings로 생성 (요강 붙임4 0건 예시).
+    # 끄면 만들지 않고 지난 실행 파일도 지운다. 적격평가 제출물(result.json)과는 별도 파일.
     extra_path = out / "result_extra.json"
-    if extra_findings:
+    if detect_posted:
         extra_path.write_text(json.dumps({"meta": meta, "findings": extra_findings}, ensure_ascii=False, indent=2),
                               encoding="utf-8")
     elif extra_path.exists():
