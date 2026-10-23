@@ -1,4 +1,5 @@
 """실제 public run의 RED/GREEN 계약. unittest, 모델/네트워크/브라우저 불필요."""
+import codecs
 import inspect
 import json
 import tempfile
@@ -82,6 +83,22 @@ class AIIntegrationTests(unittest.TestCase):
                             for c in report["candidates"]), "기존 은닉 탐지는 유지해야 함")
         self.assertEqual(report["extra_count"], 0)
         self.assertFalse((self.out / "result_extra.json").exists())
+
+    def test_result_extra_written_empty_when_no_extra_findings(self):
+        from fixtures.reviewer_dom import capture
+
+        # 은닉 광고만 있고 게시형 추가 탐지는 0건 — 요강 0건 예시처럼 빈 findings로 생성해야 한다.
+        (self.out / "result_extra.json").write_text('{"stale": true}', encoding="utf-8")
+        page_data = capture('<span style="opacity:0">카지노 바카라</span>')
+        report = self.run_case(OfflineRun(page_data=page_data, extract=recover), detect_posted=True)
+        self.assertEqual(report["extra_count"], 0)
+        raw = (self.out / "result_extra.json").read_bytes()
+        self.assertFalse(raw.startswith(codecs.BOM_UTF8), "UTF-8 BOM 없음")
+        extra = json.loads(raw.decode("utf-8"))
+        self.assertEqual(sorted(extra), ["findings", "meta"])
+        self.assertEqual(extra["findings"], [])
+        result = json.loads((self.out / "result.json").read_text(encoding="utf-8"))
+        self.assertEqual(extra["meta"], result["meta"], "두 파일은 같은 실행 정보를 쓴다")
 
     def test_reviewer_dom_attribute_residual_not_discarded_with_used_body(self):
         from fixtures.reviewer_dom import capture

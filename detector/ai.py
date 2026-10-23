@@ -16,6 +16,16 @@ from .laya_runtime import LayaCleanupError, LayaRunner
 from .inspection import project, split_row, matches as matches_inspection
 
 
+def gemma_reuse_key(c, text_key):
+    """원문·문맥·검사 범위가 동일한 후보끼리만 판정을 재사용한다."""
+    payload = {"html": c.get("source_html", ""), "context": c.get("source_context", ""),
+               "target_spans": c.get("inspection", {}).get("target_spans"),
+               "context_signals": c.get("context", [])}
+    identity = hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+    return text_key, c["technique"], identity
+
+
+
 # Gemma 넘김 최소화 — Gemma는 1건에 5~10초라 마감까지 남는 몇 분에 수십 건만 볼 수 있다.
 # counselpsy(1,089페이지): 대기 2,500건 중 327건만 처리, 96%가 20자 미만 링크 문구('강남 달토')라
 # Gemma가 판단할 내용 없이 정상으로 뒤집었다. 세부 점수로 정말 판단할 수 없는 것만 골라
@@ -202,7 +212,7 @@ def matching_recovery_text(binding, row):
 def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_confidence_threshold=.8, cancel_error=None, detect_posted=True, telemetry=None, laya_deadline=None, residual_needs_rule_clue=False,
             gemma_sec_per_item=None):
     from .ai_telemetry import AIProgress, context_conflict
-    from .main import ScanCancelled, candidates_from, judge, source_fields
+    from .main import ScanCancelled, candidates_from, judge, norm_url, source_fields
     from local_llm.prompts import DECISION_POLICY
     ScanCancelled = cancel_error or ScanCancelled
     if not .5 <= laya_confidence_threshold <= 1:
@@ -212,6 +222,9 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
              "gemma_decision_policy": DECISION_POLICY,
              "laya_inputs": 0, "laya_preflight_rejected": 0,
              "length_skipped": [], "length_skipped_count": 0, "length_skipped_laya": 0, "length_skipped_gemma": 0,
+             "gemma_text_reused": 0,
+             "context_requests": 0, "context_missing": 0, "context_missing_no_anchor": 0,
+             "context_missing_duplicate": 0, "context_missing_empty": 0,
              "gemma_verify": 0, "gemma_extract": 0, "residual_screened_clean": 0, "residual_no_rule_clue": 0, "residual_bare_url": 0, "border_bare_url": 0,
              "gemma_requests": dict.fromkeys(("attempted", "succeeded", "transport_failed", "output_failed", "preflight_failed", "reused"), 0),
              "source_rows": 0, "unique_count": 0, "cache_reuse": 0,
@@ -515,6 +528,40 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
     check()
 
     pending = []
+    representative, followers = {}, {}
+
+    def nested(a, b):
+        # 같은 페이지에서 한쪽이 다른 쪽을 품는 요소(부모 div와 자식 span 등)는 판정을 나눠 쓰지 않는다.
+        la, lb = a.get("location", ""), b.get("location", "")
+        return (norm_url(a.get("url", "")) == norm_url(b.get("url", ""))
+                and (la == lb or la.startswith(lb + " > ") or lb.startswith(la + " > ")))
+
+    def queue_gemma(c):
+        rep = representative.setdefault(gemma_reuse_key(c, key(c)), c)
+        # 자기 Gemma 추출 근거가 있는 회수 항목은 남의 판정을 빌리지 않고 자기 근거로 검증한다.
+        if rep is not c and not c.get("extraction") and not nested(rep, c):
+            followers.setdefault(id(rep), []).append(c)
+            review(c, "같은 문구 대표 항목의 Gemma 판정 대기")
+            return
+        pending.append(c)
+        meter.snapshot["gemma"]["eligible_verify"] += 1
+        meter.progress("gemma")
+
+    def apply_reused():
+        """대표 항목의 판정을 같은 문구 후보에 복사한다. 위치·근거 원문은 각자 그대로 두고 출력도 각각 한다."""
+        for rep in representative.values():
+            for c in followers.get(id(rep), []):
+                c["reused_from"] = {k: rep.get(k) for k in ("source_id", "url", "location")}
+                if rep.get("processing_status") == "completed" and rep.get("verdict") in ("ad", "clean"):
+                    c.pop("review_code", None)
+                    c.update(verdict=rep["verdict"], decided_by=f"{rep.get('decided_by')}_reused",
+                             processing_status="completed",
+                             reason=f"같은 문구 대표 항목의 {rep.get('decided_by')} 판정 재사용")
+                    stats["gemma_text_reused"] += 1
+                else:
+                    review(c, "같은 문구 대표 항목 보류: " + str(rep.get("reason", "")),
+                           rep.get("processing_status", "review"), code=rep.get("review_code"))
+
     def route(c):
         if not c.get("source_html"):
             review(c, "원본 HTML 없음: 재합성하지 않음")
@@ -538,9 +585,7 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                 if c.get('_inspection_error'):
                     review(c, '공통 검사 범위 결합 불가: ' + c['_inspection_error'], code='source_binding_unavailable')
                     return
-                pending.append(c)
-                meter.snapshot['gemma']['eligible_verify'] += 1
-                meter.progress('gemma')
+                queue_gemma(c)
                 return
             c.update(verdict="ad" if p >= .5 else "clean", decided_by="laya",
                      processing_status="completed", reason="Laya 정상 출력의 confidence가 운영 임계값 이상")
@@ -548,9 +593,7 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
             if c.get('_inspection_error'):
                 review(c, '공통 검사 범위 결합 불가: ' + c['_inspection_error'])
                 return
-            pending.append(c)
-            meter.snapshot["gemma"]["eligible_verify"] += 1
-            meter.progress("gemma")
+            queue_gemma(c)
     for c in border:
         route(c)
 
@@ -689,6 +732,16 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
                 for row in response["results"]:
                     count_requests(row.get("call", {}))
             else:
+                # 앞뒤 50자 문맥을 못 붙이고 빈 문맥으로 보낸 요청을 센다(원문 위치 못 찾음/같은 문구 중복/문맥 없음).
+                context_status = (response.get("model_input") or {}).get("context_status")
+                if isinstance(context_status, str):
+                    stats["context_requests"] += 1
+                    if not context_status.startswith("unique_raw_anchor"):
+                        stats["context_missing"] += 1
+                        reason = {"no_raw_anchor": "no_anchor", "duplicate_raw_anchor": "duplicate",
+                                  "empty_context": "empty"}.get(context_status)
+                        if reason:
+                            stats[f"context_missing_{reason}"] += 1
                 counts = stats["gemma_requests"]
                 attempted = response.get("request_count", 0)
                 counts["attempted"] += attempted
@@ -902,7 +955,9 @@ def analyze(cands, pages, model_path, use_ml, deadline=None, cancel=None, laya_c
         tail, _ = select_for_gemma(pending[initial_pending:], [])
         pending[initial_pending:] = tail
         verify_pending(initial_pending, len(pending))
+    apply_reused()
     check()
+    reused = [c for group in followers.values() for c in group]
     stats["failures"].extend({"source_id": c.get("source_id"), "stage": "verify", "reason": c["reason"]}
-                             for c in pending if c["verdict"] == "uncertain")
+                             for c in pending + reused if c["verdict"] == "uncertain")
     return finish()

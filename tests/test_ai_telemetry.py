@@ -207,6 +207,32 @@ class AITelemetryTests(unittest.TestCase):
         self.assertEqual(self.chats, [], '길이 초과 입력은 모델 요청 없이 보류')
         self.assertTrue(report['needs_review'])
 
+    def context_report(self, context_for):
+        row = source('s1')
+        row['source_context'] = context_for(row['source_html'])
+        h = OfflineRun([row], predict=lambda ts: [prediction(.55) for _ in ts])
+        return self.execute(h)['ai']
+
+    def test_context_counts_when_anchor_found(self):
+        ai_report = self.context_report(lambda html: '<p>예방교육 안내</p>' + html)
+        self.assertEqual((ai_report['context_requests'], ai_report['context_missing']), (1, 0))
+        sent = json.loads(self.chats[-1]['messages'][1]['content'])
+        self.assertEqual(sent['context_before'], '예방교육 안내')
+
+    def test_context_missing_is_counted_by_cause(self):
+        cases = {'context_missing_no_anchor': lambda html: '<p>다른 글</p>',
+                 'context_missing_duplicate': lambda html: html + '<p>사이</p>' + html,
+                 'context_missing_empty': lambda html: ''}
+        for field, context_for in cases.items():
+            with self.subTest(field=field):
+                self.chats.clear()
+                ai_report = self.context_report(context_for)
+                self.assertEqual((ai_report['context_requests'], ai_report['context_missing']), (1, 1))
+                self.assertEqual(ai_report[field], 1)
+                self.assertEqual(sum(ai_report[k] for k in cases), 1)
+                sent = json.loads(self.chats[-1]['messages'][1]['content'])
+                self.assertEqual((sent['context_before'], sent['context_after']), ('', ''))
+
     def test_no_length_skip_when_inputs_fit(self):
         h = OfflineRun([source('s1')], predict=lambda ts: [prediction(.55) for _ in ts])
         ai_report = self.execute(h)['ai']
@@ -216,7 +242,8 @@ class AITelemetryTests(unittest.TestCase):
         for p in (.2, .20000000000001, .79999999999999, .8):
             with self.subTest(p=p):
                 self.chats.clear()
-                rows = [source('s1'), source('s2', context='두 번째 원문')]
+                # 같은 문구·같은 기법은 Gemma를 한 번만 돌리므로, owner별 감사 기록을 보려면 기법을 다르게 둔다.
+                rows = [source('s1'), source('s2', context='두 번째 원문', signals=[['OFFSCREEN', 'left:-9999px']])]
                 h = OfflineRun(rows, predict=lambda ts: [prediction(p) for _ in ts])
                 t = self.telemetry(self.execute(h))
                 _, records = self.audit(t)
